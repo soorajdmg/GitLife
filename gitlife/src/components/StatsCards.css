@@ -1,0 +1,153 @@
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  /* Four columns with equal width */
+  gap: 1rem;
+  /* Space between items */
+  margin: 2rem 2rem;
+  max-width: fit-content;
+}
+
+
+.stats-card {
+  width: 13rem;
+  background-color: rgb(31, 41, 55);
+  border-radius: 0.5rem;
+  padding: 1.8rem 1rem;
+  transition: transform 0.2s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.stats-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.stats-icon.yellow {
+  color: #fbbf24;
+}
+
+.stats-icon.red {
+  color: #f87171;
+}
+
+.stats-icon.blue {
+  color: #60a5fa;
+}
+
+.stats-icon.purple {
+  color: #a78bfa;
+}
+
+.text-yellow {
+  color: #fbbf24;
+  /* Yellow color */
+}
+
+.text-red {
+  color: #f87171;
+  /* Red color */
+}
+
+.text-blue {
+  color: #60a5fa;
+  /* Blue color */
+}
+
+.text-purple {
+  color: #a78bfa;
+  /* Purple color */
+}
+
+
+.stats-value {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Dark mode optimization */
+@media (prefers-color-scheme: dark) {
+  .stats-card {
+    background-color: rgb(31, 41, 55);
+  }
+
+  .stats-label {
+    color: #9ca3af;
+  }
+}
+
+/* Animations */
+.stats-card {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effects */
+.stats-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus states for accessibility */
+.stats-card:focus-within {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar for containers */
+.stats-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.stats-container::-webkit-scrollbar-track {
+  background: rgb(31, 41, 55);
+}
+
+.stats-container::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.stats-container::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

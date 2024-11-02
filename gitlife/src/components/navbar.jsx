@@ -1,7 +1,10 @@
 // Navbar.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GitBranch } from 'lucide-react';
-
+import { addDecision } from '../config/addDecision';
+import { addBranch } from '../config/addBranch';
+import { db } from '../config/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -14,37 +17,102 @@ const Navbar = () => {
 
   const [showLifeChoiceForm, setShowLifeChoiceForm] = useState(false);
   const [showBranchForm, setShowBranchForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [branches, setBranches] = useState(['main-timeline']);
 
   const [decisionForm, setDecisionForm] = useState({
     decision: '',
     branch: 'main-timeline',
     mood: '😊',
-    impact: 5
+    impact: 5,
+    commitType: 'feat'
+  });
+
+  const [branchForm, setBranchForm] = useState({
+    branch_name: '',
+    branch_type: 'main'
   });
 
   const moodOptions = ['😊', '😐', '😢', '😡', '🤔', '😴', '🤩', '😰', '🤮', '🥳'];
-  const branchOptions = ['main-timeline', 'what-if/dropout-startup'];
+  const commitTypes = ['feat', 'fix', 'chore'];
+  const branchTypes = ['main', 'feature', 'what-if', 'alternative'];
 
-  const handleLifeChoice = (e) => {
+  // Fetch branches from Firestore
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'branches'));
+        const branchList = querySnapshot.docs.map(doc => doc.data().branch_name);
+        if (branchList.length > 0) {
+          setBranches(branchList);
+          setDecisionForm(prev => ({
+            ...prev,
+            branch: branchList[0]
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+      }
+    };
+
+    fetchBranches();
+  }, []);
+
+  const handleLifeChoice = async (e) => {
     e.preventDefault();
-    console.log('New Decision:', decisionForm);
-    setShowLifeChoiceForm(false);
-    setDecisionForm({
-      decision: '',
-      branch: 'main-timeline',
-      mood: '😊',
-      impact: 5
-    });
+    setLoading(true);
+    try {
+      await addDecision(decisionForm);
+      setShowLifeChoiceForm(false);
+      setDecisionForm({
+        decision: '',
+        branch: branches[0],
+        mood: '😊',
+        impact: 5,
+        commitType: 'feat'
+      });
+    } catch (error) {
+      console.error('Error adding decision:', error);
+      alert('Failed to add decision. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleBranchCreate = (e) => {
+  const handleBranchCreate = async (e) => {
     e.preventDefault();
-    setShowBranchForm(false);
+    setLoading(true);
+    try {
+      if (!branchForm.branch_name.trim()) {
+        throw new Error('Branch name is required');
+      }
+
+      await addBranch(branchForm);
+      setBranches(prev => [...prev, branchForm.branch_name]);
+      setShowBranchForm(false);
+      setBranchForm({
+        branch_name: '',
+        branch_type: 'main'
+      });
+    } catch (error) {
+      console.error('Error creating branch:', error);
+      alert(error.message || 'Failed to create branch. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setDecisionForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleBranchInputChange = (e) => {
+    const { name, value } = e.target;
+    setBranchForm(prev => ({
       ...prev,
       [name]: value
     }));
@@ -89,6 +157,22 @@ const Navbar = () => {
               </div>
 
               <div className="form-group">
+                <label>Commit Type</label>
+                <div className="commit-type-selector">
+                  {commitTypes.map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`commit-type-button ${decisionForm.commitType === type ? 'selected' : ''}`}
+                      onClick={() => setDecisionForm(prev => ({ ...prev, commitType: type }))}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
                 <label>Decision</label>
                 <textarea
                   name="decision"
@@ -96,6 +180,7 @@ const Navbar = () => {
                   onChange={handleInputChange}
                   placeholder="What decision did you make?"
                   rows="3"
+                  required
                 />
               </div>
 
@@ -107,7 +192,7 @@ const Navbar = () => {
                   onChange={handleInputChange}
                   className="branch-select"
                 >
-                  {branchOptions.map(branch => (
+                  {branches.map(branch => (
                     <option key={branch} value={branch}>{branch}</option>
                   ))}
                 </select>
@@ -121,7 +206,7 @@ const Navbar = () => {
                       key={mood}
                       type="button"
                       className={`mood-button ${decisionForm.mood === mood ? 'selected' : ''}`}
-                      onClick={() => setDecisionForm(prev => ({ ...prev, mood }))}
+                      onClick={() => setDecisionForm(prev => ({ ...prev, mood: mood }))}
                     >
                       {mood}
                     </button>
@@ -146,11 +231,18 @@ const Navbar = () => {
               </div>
 
               <div className="modal-buttons">
-                <button type="submit" className="btn btn-primary">Commit Decision</button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? 'Committing...' : 'Commit Decision'}
+                </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() => setShowLifeChoiceForm(false)}
+                  disabled={loading}
                 >
                   Cancel
                 </button>
@@ -167,17 +259,49 @@ const Navbar = () => {
               <div className="modal-header">
                 <h3>Create New Branch</h3>
               </div>
-              <input
-                type="text"
-                placeholder="Enter branch name..."
-                className="branch-input"
-              />
+
+              <div className="form-group">
+                <label>Branch Name</label>
+                <input
+                  type="text"
+                  name="branch_name"
+                  value={branchForm.branch_name}
+                  onChange={handleBranchInputChange}
+                  placeholder="Enter branch name..."
+                  className="branch-input"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Branch Type</label>
+                <select
+                  name="branch_type"
+                  value={branchForm.branch_type}
+                  onChange={handleBranchInputChange}
+                  className="branch-select"
+                >
+                  {branchTypes.map(type => (
+                    <option key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="modal-buttons">
-                <button type="submit" className="btn btn-primary">Create</button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating...' : 'Create Branch'}
+                </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() => setShowBranchForm(false)}
+                  disabled={loading}
                 >
                   Cancel
                 </button>

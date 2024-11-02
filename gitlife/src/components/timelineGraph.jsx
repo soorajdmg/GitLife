@@ -10,6 +10,9 @@ const TimelineGraph = ({ data = [] }) => {
         { day: 'Wed', currentTimeline: 90, whatIf: 50 },
         { day: 'Thu', currentTimeline: 75, whatIf: 85 },
         { day: 'Fri', currentTimeline: 85, whatIf: 65 },
+        { day: 'Sat', currentTimeline: 30, whatIf: 88 },
+        { day: 'Sun', currentTimeline: 76, whatIf: 82 },
+
     ];
 
     const chartData = data.length > 0 ? data : sampleData;

@@ -1,6 +1,7 @@
 # 🌍 GitLife - Version Control System for your Life Decisions.
 
-![GitLife Logo](path_to_your_logo_image) <!-- Optional logo -->
+![gitlifeVideo-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/f4400bca-0d64-4b63-82b4-f874c0137171)
+
 
 Welcome to GitLife, the app that proves version control can be as chaotic and unpredictable as your life! Forget the boring Git tutorials; we’re here to turn your life decisions into a version control system. Because who doesn’t want to commit their choices like they’re pushing code?
 
@@ -65,3 +66,16 @@ Got questions, funny life stories, or want to share your version control mishaps
 ---
 
 ⭐️ If you enjoy this wonderfully chaotic experience, please give it a star! It might not fix your life, but it will definitely bring a smile.
+![image](https://github.com/user-attachments/assets/3a9a825d-f65e-4344-b677-998a67992c24)
+---
+![image](https://github.com/user-attachments/assets/db7dafec-8720-4703-8b8c-af2bb967ef18)
+
+---
+![image](https://github.com/user-attachments/assets/7fe9f665-eb05-4556-9c57-56748ee10d9c)
+
+---
+![image](https://github.com/user-attachments/assets/291c788f-a175-40ec-b539-96907d69540f)
+---
+![image](https://github.com/user-attachments/assets/551100c6-10b7-4003-859d-ef2860141b06)
+
+

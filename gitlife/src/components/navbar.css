@@ -134,6 +134,22 @@
   border-color: #10B981;
 }
 
+.branch-type-main {
+  font-weight: bold;
+}
+
+.branch-type-feature {
+  color: #2b6cb0;
+}
+
+.branch-type-what-if {
+  color: #805ad5;
+}
+
+.branch-type-alternative {
+  color: #38a169;
+}
+
 
 /* Modal Styles */
 .modal-overlay {

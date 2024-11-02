@@ -77,7 +77,7 @@ const Navbar = () => {
         const statsDoc = statsSnapshot.docs[0];
         await updateDoc(doc(db, 'stats', statsDoc.id), {
           commits: increment(1),
-          impact: increment(Number(decisionForm.impact))
+          impacts: increment(Number(decisionForm.impact))
         });
       }
 

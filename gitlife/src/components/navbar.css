@@ -1,0 +1,291 @@
+/* Navbar.css */
+.navbar {
+  background-color: #111827;
+  padding: 1rem 0;
+  width: 100%;
+  color: white;
+  font-family: system-ui, -apple-system, sans-serif;
+  border-bottom: 1px solid #2d3748;
+}
+
+.navbar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30rem;
+  width: 100%;
+  margin: 0;
+}
+
+.navbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: fit-content;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 3rem;
+}
+
+.git-icon {
+  color: #10B981;
+}
+
+.navbar h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.navbar-right {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin: 1rem 3rem;
+  max-width: fit-content;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.stat-box {
+  background-color: #24292E;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-icon {
+  font-size: 1.25rem;
+}
+
+.stat-label {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  max-width: fit-content;
+  cursor: pointer;
+  border: none;
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background-color: #08b94c;
+}
+
+.btn-secondary {
+  background-color: #8741ff;
+}
+
+.btn-cancel {
+  background-color: #4B5563;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background-color: #24292E;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #2d3748;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.25rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: white;
+}
+
+.decision-form {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #9CA3AF;
+  font-size: 0.875rem;
+}
+
+textarea,
+.branch-select,
+.branch-input {
+  width: 85%;
+  padding: 0.75rem;
+  margin-left: 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid #4B5563;
+  background-color: #1a1d21;
+  color: white;
+  font-size: 0.875rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.mood-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.mood-button {
+  background: #1a1d21;
+  border: 1px solid #4B5563;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mood-button:hover {
+  background-color: #2D3748;
+}
+
+.mood-button.selected {
+  background-color: #2D3748;
+  border-color: #10B981;
+}
+
+.impact-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.impact-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: #4B5563;
+  border-radius: 2px;
+}
+
+.impact-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #10B981;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.impact-value {
+  min-width: 2rem;
+  text-align: center;
+  color: #10B981;
+  font-weight: bold;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 2rem 1rem 1rem 0;
+
+}
+
+@media (max-width: 768px) {
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mood-selector {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-right {
+    flex-direction: column;
+  }
+
+  .mood-selector {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

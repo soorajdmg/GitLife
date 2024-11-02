@@ -1,0 +1,12 @@
+/* CommitItem.css */
+.commit-item {
+  background-color: #374151;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+.commit-hash {
+  font-weight: bold;
+}

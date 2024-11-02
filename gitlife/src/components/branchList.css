@@ -1,0 +1,9 @@
+.branch-list {
+  width: 100%;
+  max-width: 600px;
+  padding: 10px;
+  background-color: #e1e4e8;
+  border-radius: 8px;
+  box-sizing: border-box;
+  margin: 10px 0;
+}

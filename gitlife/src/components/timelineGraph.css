@@ -1,0 +1,185 @@
+.timelineg-section {
+    max-width: fit-content;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.timelinesg-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.timelineg-header-icon {
+    width: 20px;
+    height: 20px;
+    color: #4ade80;
+}
+
+.timelineg-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.timelineg-container {
+    background: #172937;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin: 20px 0;
+    width: 61rem;
+    max-width: 1200px;
+}
+
+.timelineg-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chart-container {
+    width: 100%;
+    height: 400px;
+}
+
+.timelineg-legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: white;
+}
+
+.legend-line {
+    display: inline-block;
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.legend-line.current {
+    background: #8884d8;
+}
+
+.legend-line.whatif {
+    background: #82ca9d;
+    border: none;
+    background-image: linear-gradient(to right, #82ca9d 50%, transparent 50%);
+    background-size: 10px 3px;
+}
+
+/* Tooltip Styles */
+.timeline-tooltip {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tooltip-label {
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.timeline-value,
+.whatif-value {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
+    color: #666;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.current-dot {
+    background: #8884d8;
+}
+
+.whatif-dot {
+    background: #82ca9d;
+}
+
+/* Chart Styles */
+.timelineg-chart {
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.timelineg-grid {
+    stroke: #334155;
+}
+
+.timeline-dot-current {
+    fill: #8884d8;
+    stroke: white;
+    stroke-width: 2;
+}
+
+.timeline-dot-current-active {
+    fill: #8884d8;
+    stroke: white;
+    stroke-width: 2;
+}
+
+.timeline-dot-whatif {
+    fill: #82ca9d;
+    stroke: white;
+    stroke-width: 2;
+}
+
+.timeline-dot-whatif-active {
+    fill: #82ca9d;
+    stroke: white;
+    stroke-width: 2;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .timeline-container {
+        padding: 15px;
+        margin: 15px 0;
+    }
+
+    .chart-container {
+        height: 300px;
+    }
+
+    .timeline-legend {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .timeline-title {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container {
+        height: 250px;
+    }
+
+    .timeline-container {
+        padding: 10px;
+    }
+}

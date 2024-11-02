@@ -1,0 +1,69 @@
+/* Container for the Create Branch form */
+.create-branch-form {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 40rem;
+  margin: 1.25rem auto;
+}
+
+/* Form title */
+.form-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Style for each form group */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+/* Label styling */
+.form-group label {
+  display: block;
+  color: #4a5568;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Input and textarea styling */
+.input-field {
+  width: 90%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  color: #2d3748;
+  background-color: #f7fafc;
+  transition: border-color 0.2s;
+}
+
+.input-field::placeholder {
+  color: #a0aec0;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+/* Button styling */
+.create-branch-button {
+  width: 100%;
+  background-color: #4f46e5;
+  color: #fff;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.create-branch-button:hover {
+  background-color: #4338ca;
+}

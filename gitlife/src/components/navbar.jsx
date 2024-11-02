@@ -1,20 +1,10 @@
-// Navbar.jsx
 import React, { useState, useEffect } from 'react';
 import { GitBranch } from 'lucide-react';
-import { addDecision } from '../config/addDecision';
-import { addBranch } from '../config/addBranch';
+import { addDoc, collection, getDocs, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { collection, getDocs } from 'firebase/firestore';
 import './Navbar.css';
 
 const Navbar = () => {
-  const [stats, setStats] = useState({
-    decisions: 2,
-    regrets: '∞',
-    caffeineCommits: 3,
-    achievementScore: 404
-  });
-
   const [showLifeChoiceForm, setShowLifeChoiceForm] = useState(false);
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,14 +25,13 @@ const Navbar = () => {
 
   const moodOptions = ['😊', '😐', '😢', '😡', '🤔', '😴', '🤩', '😰', '🤮', '🥳'];
   const commitTypes = ['feat', 'fix', 'chore'];
-  const branchTypes = ['main', 'feature', 'what-if', 'alternative'];
+  const branchTypes = ['main', 'what-if', 'alternative'];
 
   // Fetch branches from Firestore
   useEffect(() => {
     const fetchBranches = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'branches'));
-
         const branchList = querySnapshot.docs
           .map(doc => doc.data().name)
           .filter(branch => branch !== undefined);
@@ -67,7 +56,31 @@ const Navbar = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDecision(decisionForm);
+      // Add the decision to decisions collection
+      await addDoc(collection(db, 'decisions'), {
+        ...decisionForm,
+        timestamp: new Date(),
+      });
+
+      // Update or create stats document
+      const statsRef = collection(db, 'stats');
+      const statsSnapshot = await getDocs(statsRef);
+
+      if (statsSnapshot.empty) {
+        // Create new stats document
+        await addDoc(statsRef, {
+          totalDecisions: 1,
+          impactScore: Number(decisionForm.impact)
+        });
+      } else {
+        // Update existing stats
+        const statsDoc = statsSnapshot.docs[0];
+        await updateDoc(doc(db, 'stats', statsDoc.id), {
+          commits: increment(1),
+          impact: increment(Number(decisionForm.impact))
+        });
+      }
+
       setShowLifeChoiceForm(false);
       setDecisionForm({
         decision: '',
@@ -92,7 +105,12 @@ const Navbar = () => {
         throw new Error('Branch name is required');
       }
 
-      await addBranch(branchForm);
+      await addDoc(collection(db, 'branches'), {
+        name: branchForm.branch_name,
+        type: branchForm.branch_type,
+        timestamp: new Date()
+      });
+
       setBranches(prev => [...prev, branchForm.branch_name]);
       setShowBranchForm(false);
       setBranchForm({

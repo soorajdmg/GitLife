@@ -1,0 +1,29 @@
+/* src/App.css */
+
+.app {
+  background-color: #111827;
+  color: white;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  /* Ensure it spans the full viewport */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app-content {
+  width: 100%;
+  max-width: 1200px;
+  /* Limits the maximum width for readability */
+  margin: 0 auto;
+  /* Center horizontally */
+}

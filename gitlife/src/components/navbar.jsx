@@ -42,16 +42,21 @@ const Navbar = () => {
     const fetchBranches = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'branches'));
-        const branchList = querySnapshot.docs.map(doc => doc.data().branch_name);
+
+        const branchList = querySnapshot.docs
+          .map(doc => doc.data().name)
+          .filter(branch => branch !== undefined);
+
         if (branchList.length > 0) {
           setBranches(branchList);
           setDecisionForm(prev => ({
             ...prev,
-            branch: branchList[0]
+            branch: 'main-timeline'
           }));
         }
       } catch (error) {
         console.error('Error fetching branches:', error);
+        alert('Could not fetch branches. Please try again later.');
       }
     };
 

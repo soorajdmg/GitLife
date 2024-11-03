@@ -1,6 +1,6 @@
 # 🌍 GitLife - Version Control System for your Life Decisions.
 
-![gitlifeVideo-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/f4400bca-0d64-4b63-82b4-f874c0137171)
+![gitlifeVideoGIF](https://github.com/user-attachments/assets/e8623512-85ee-4cda-b70a-a25f428e4a73)
 
 
 Welcome to GitLife, the app that proves version control can be as chaotic and unpredictable as your life! Forget the boring Git tutorials; we’re here to turn your life decisions into a version control system. Because who doesn’t want to commit their choices like they’re pushing code?

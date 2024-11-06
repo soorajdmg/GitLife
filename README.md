@@ -67,6 +67,12 @@ Got questions, funny life stories, or want to share your version control mishaps
 
 ⭐️ If you enjoy this wonderfully chaotic experience, please give it a star! It might not fix your life, but it will definitely bring a smile.
 ---
+
+
+Uploading gitLifeVideocomp.mp4…
+
+
+---
 ![image](https://github.com/user-attachments/assets/3a9a825d-f65e-4344-b677-998a67992c24)
 ---
 ![image](https://github.com/user-attachments/assets/db7dafec-8720-4703-8b8c-af2bb967ef18)

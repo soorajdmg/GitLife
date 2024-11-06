@@ -69,7 +69,7 @@ Got questions, funny life stories, or want to share your version control mishaps
 ---
 
 
-Uploading gitLifeVideocomp.mp4…
+https://github.com/user-attachments/assets/00ead1d0-1049-4503-b670-b0468cc75418
 
 
 ---

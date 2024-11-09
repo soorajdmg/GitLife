@@ -67,7 +67,8 @@ Got questions, funny life stories, or want to share your version control mishaps
 
 ⭐️ If you enjoy this wonderfully chaotic experience, please give it a star! It might not fix your life, but it will definitely bring a smile.
 ---
-![Demo Video](https://github.com/user-attachments/assets/df37758a-d087-4122-87bc-ca94d0bcdf35)
+https://github.com/user-attachments/assets/7acb1e31-8391-48df-a619-65012ed8fb7c
+
 ---
 ![image](https://github.com/user-attachments/assets/3a9a825d-f65e-4344-b677-998a67992c24)
 ---

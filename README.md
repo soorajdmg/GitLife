@@ -72,9 +72,9 @@ Got questions, funny life stories, or want to share your version control mishaps
 ![image](https://github.com/user-attachments/assets/3a9a825d-f65e-4344-b677-998a67992c24)
 ---
 ![image](https://github.com/user-attachments/assets/db7dafec-8720-4703-8b8c-af2bb967ef18)
-
 ---
-![image](https://github.com/user-attachments/assets/7fe9f665-eb05-4556-9c57-56748ee10d9c)
+![image](https://github.com/user-attachments/assets/d7e8adb0-ab60-4e2a-b922-bc16601ac25a)
+
 
 ---
 ![image](https://github.com/user-attachments/assets/291c788f-a175-40ec-b539-96907d69540f)

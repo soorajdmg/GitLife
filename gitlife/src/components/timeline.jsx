@@ -1,38 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import { GitFork, Heart, GitBranch } from 'lucide-react';
-import { db } from '../config/firebase';  // Import the Firestore db
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { collection, onSnapshot, query, writeBatch, doc } from 'firebase/firestore';
 import './timeline.css';
 
 const Timelines = () => {
-  const [timelines, setTimelines] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     try {
-      // Create a reference to the branches collection
+      // Create references and queries
       const branchesRef = collection(db, 'branches');
+      const decisionsRef = collection(db, 'decisions');
       const branchesQuery = query(branchesRef);
+      const decisionsQuery = query(decisionsRef);
 
-      // Set up real-time listener
-      const unsubscribe = onSnapshot(branchesQuery, (snapshot) => {
-        const timelinesList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setTimelines(timelinesList);
-        setLoading(false);
+      // Store branch and decision data
+      let branchesMap = new Map();
+      let decisionsMap = new Map();
+      let dataLoaded = { branches: false, decisions: false };
+
+      // Listen for branches changes
+      const unsubscribeBranches = onSnapshot(branchesQuery, (snapshot) => {
+        snapshot.docs.forEach((doc) => {
+          branchesMap.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+        dataLoaded.branches = true;
+        calculateStats();
       }, (error) => {
-        console.error('Error fetching timelines:', error);
+        console.error('Error fetching branches:', error);
         setError(error.message);
         setLoading(false);
       });
 
-      // Cleanup listener on component unmount
-      return () => unsubscribe();
+      // Listen for decisions changes
+      const unsubscribeDecisions = onSnapshot(decisionsQuery, (snapshot) => {
+        snapshot.docs.forEach((doc) => {
+          decisionsMap.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+        dataLoaded.decisions = true;
+        calculateStats();
+      }, (error) => {
+        console.error('Error fetching decisions:', error);
+        setError(error.message);
+        setLoading(false);
+      });
+
+      // Calculate and update branch statistics
+      const calculateStats = () => {
+        if (!dataLoaded.branches || !dataLoaded.decisions) return;
+
+        const updatedBranches = new Map();
+
+        // Initialize branch stats
+        branchesMap.forEach((branch, branchId) => {
+          updatedBranches.set(branchId, {
+            ...branch,
+            commits: 0,
+            impact: 0
+          });
+        });
+
+        // Calculate totals from decisions
+        decisionsMap.forEach((decision) => {
+          if (decision.branch && updatedBranches.has(decision.branch)) {
+            const branchStats = updatedBranches.get(decision.branch);
+            branchStats.commits += 1;
+            branchStats.impact += parseInt(decision.impact, 10) || 0;
+          }
+        });
+
+        // Update Firestore with new stats
+        const batch = writeBatch(db);
+        updatedBranches.forEach((stats, branchId) => {
+          const branchRef = doc(db, 'branches', branchId);
+          batch.update(branchRef, {
+            commits: stats.commits,
+            impact: stats.impact
+          });
+        });
+
+        batch.commit()
+          .then(() => {
+            setBranches(Array.from(updatedBranches.values()));
+            setLoading(false);
+          })
+          .catch((error) => {
+            console.error('Error updating branch stats:', error);
+            setError(error.message);
+            setLoading(false);
+          });
+      };
+
+      return () => {
+        unsubscribeBranches();
+        unsubscribeDecisions();
+      };
     } catch (err) {
-      console.error('Error setting up listener:', err);
+      console.error('Error setting up listeners:', err);
       setError(err.message);
       setLoading(false);
     }
@@ -62,10 +129,10 @@ const Timelines = () => {
       </div>
 
       <div className="timelines-container">
-        {timelines.length === 0 ? (
+        {branches.length === 0 ? (
           <div className="no-timelines">No timelines found</div>
         ) : (
-          timelines.map(timeline => (
+          branches.map((timeline) => (
             <div key={timeline.id} className="timeline-card">
               <div className="timeline-content">
                 <div className="timeline-info">

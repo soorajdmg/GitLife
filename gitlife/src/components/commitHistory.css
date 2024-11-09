@@ -124,7 +124,7 @@
   font-size: 0.75rem;
 }
 
-.copy-hash-btn {
+.copy-impact-btn {
   background-color: rgba(96, 165, 250, 0.1);
   color: #60a5fa;
   border: none;
@@ -135,7 +135,11 @@
   transition: background-color 0.2s ease;
 }
 
-.copy-hash-btn:hover {
+.copy-impact-btn svg {
+  margin-right: 0.5rem;
+}
+
+.copy-impact-btn:hover {
   background-color: rgba(96, 165, 250, 0.2);
 }
 

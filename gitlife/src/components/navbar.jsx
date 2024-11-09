@@ -12,10 +12,10 @@ const Navbar = () => {
 
   const [decisionForm, setDecisionForm] = useState({
     decision: '',
-    branch: 'main-timeline',
+    branch_name: 'main-timeline',
     mood: '😊',
     impact: 5,
-    commitType: 'feat'
+    type: 'feat'
   });
 
   const [branchForm, setBranchForm] = useState({
@@ -59,7 +59,7 @@ const Navbar = () => {
       // Add the decision to decisions collection
       await addDoc(collection(db, 'decisions'), {
         ...decisionForm,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       });
 
       // Update or create stats document
@@ -67,16 +67,9 @@ const Navbar = () => {
       const statsSnapshot = await getDocs(statsRef);
 
       if (statsSnapshot.empty) {
-        // Create new stats document
-        await addDoc(statsRef, {
-          totalDecisions: 1,
-          impactScore: Number(decisionForm.impact)
-        });
-      } else {
         // Update existing stats
         const statsDoc = statsSnapshot.docs[0];
         await updateDoc(doc(db, 'stats', statsDoc.id), {
-          commits: increment(1),
           impacts: increment(Number(decisionForm.impact))
         });
       }
@@ -84,10 +77,10 @@ const Navbar = () => {
       setShowLifeChoiceForm(false);
       setDecisionForm({
         decision: '',
-        branch: branches[0],
+        branch_name: branches[0],
         mood: '😊',
         impact: 5,
-        commitType: 'feat'
+        type: 'feat'
       });
     } catch (error) {
       console.error('Error adding decision:', error);
@@ -107,8 +100,11 @@ const Navbar = () => {
 
       await addDoc(collection(db, 'branches'), {
         name: branchForm.branch_name,
-        type: branchForm.branch_type,
-        timestamp: new Date()
+        type: branchForm.branch_name,
+        commits: 0,
+        impact: 0,
+        status: 'catastrophic',
+        timestamp: new Date().toISOString()
       });
 
       setBranches(prev => [...prev, branchForm.branch_name]);

@@ -13,13 +13,13 @@ const CommitHistory = () => {
   // Helper function to safely convert timestamp to Date
   const convertTimestamp = (timestamp) => {
     if (!timestamp) return null;
-    
+
     // Handle ISO date string (e.g., "2024-11-02T12:40:27.766Z")
     const date = new Date(timestamp);
     if (!isNaN(date.getTime())) {
       return date;
     }
-    
+
     return null;
   };
 
@@ -36,7 +36,7 @@ const CommitHistory = () => {
         const commitsList = snapshot.docs.map(doc => {
           const data = doc.data();
           const date = convertTimestamp(data.timestamp);
-          
+
           return {
             id: doc.id,
             hash: doc.id.substring(0, 7),
@@ -44,9 +44,11 @@ const CommitHistory = () => {
             message: data.message || 'No message provided',
             type: data.type || 'default',
             fullHash: doc.id,
+            impact: data.impact,
             timestamp: date,
-            branch_name: data.branch_name || doc.id.substring(0, 7),
-            decision: data.decision || data.message || 'No description available'
+            branch_name: data.branch || doc.id.substring(0, 7),
+            decision: data.decision || data.message || 'No description available',
+            mood: data.mood
           };
         });
         setCommits(commitsList);
@@ -67,24 +69,24 @@ const CommitHistory = () => {
 
   const calculateTimeAgo = (date) => {
     if (!date) return 'unknown time ago';
-    
+
     const seconds = Math.floor((new Date() - date) / 1000);
-    
+
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + ' years ago';
-    
+
     interval = seconds / 2592000;
     if (interval > 1) return Math.floor(interval) + ' months ago';
-    
+
     interval = seconds / 86400;
     if (interval > 1) return Math.floor(interval) + ' days ago';
-    
+
     interval = seconds / 3600;
     if (interval > 1) return Math.floor(interval) + ' hours ago';
-    
+
     interval = seconds / 60;
     if (interval > 1) return Math.floor(interval) + ' minutes ago';
-    
+
     return Math.floor(seconds) + ' seconds ago';
   };
 
@@ -92,16 +94,15 @@ const CommitHistory = () => {
     const types = {
       fix: '#f87171',
       feat: '#4ade80',
-      merge: '#60a5fa',
-      refactor: '#a78bfa',
+      chore: '#a78bfa',
       default: '#9ca3af'
     };
     return types[type.split('(')[0]] || types.default;
   };
 
-  const copyToClipboard = (hash) => {
-    navigator.clipboard.writeText(hash);
-    setCopiedHash(hash);
+  const copyToClipboard = (impact) => {
+    navigator.clipboard.writeText(impact);
+    setCopiedHash(impact);
     setTimeout(() => setCopiedHash(null), 2000);
   };
 
@@ -139,29 +140,30 @@ const CommitHistory = () => {
                 <code className="commit-hash">{commit.branch_name}</code>
                 <span className="commit-time">{commit.timeAgo}</span>
               </div>
-              
+
               <div className="commit-message-container">
-                <span 
+                <span
                   className="commit-type"
                   style={{ color: getCommitTypeColor(commit.type) }}
                 >
                   {commit.type}
                 </span>
                 <p className="commit-message">
-                  {commit.decision.includes(':') 
+                  {commit.decision.includes(':')
                     ? commit.decision.substring(commit.decision.indexOf(':') + 1).trim()
-                    : commit.decision}
+                    : commit.decision+' '}
+                  {commit.mood}
                 </p>
               </div>
-              
+
               <div className="commit-hover-info">
                 <div className="commit-details">
-                  <span className="detail-label">Branch name:</span>
-                  <code className="detail-value">{commit.branch_name}</code>
+                  <span className="detail-label">Impact Score:</span>
+                  <code className="detail-value">{commit.impact}</code>
                 </div>
-                <button 
-                  className="copy-hash-btn"
-                  onClick={() => copyToClipboard(commit.branch_name)}
+                <button
+                  className="copy-impact-btn"
+                  onClick={() => copyToClipboard(commit.impact)}
                 >
                   {copiedHash === commit.branch_name ? (
                     <>
@@ -171,7 +173,7 @@ const CommitHistory = () => {
                   ) : (
                     <>
                       <Copy className="w-4 h-4 mr-1" />
-                      Copy Hash
+                      Copy Impact Score
                     </>
                   )}
                 </button>

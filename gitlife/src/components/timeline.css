@@ -128,9 +128,16 @@
 }
 
 .status-badge.stable-ish {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #4ade80;
+  background-color: rgba(74, 222, 128, 0.1);
+  width: 4rem;
+  color: rgb(74, 222, 128);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 1.1rem;
+  border-radius: 0.25rem;
 }
+
 
 .status-badge.catastrophic {
   background-color: rgba(239, 68, 68, 0.1);

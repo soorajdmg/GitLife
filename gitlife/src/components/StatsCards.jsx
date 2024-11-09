@@ -49,6 +49,11 @@ const StatsCards = () => {
         const statsSnapshot = await getDocs(statsRef);
         const statsDoc = statsSnapshot.docs[0]?.data();
 
+        // Fetch total decisions
+        const decisionsRef = collection(db, 'decisions');
+        const decisionsSnapshot = await getDocs(decisionsRef);
+        const totalDecisions = decisionsSnapshot.size;
+
         // Fetch total branches
         const branchesRef = collection(db, 'branches');
         const branchesSnapshot = await getDocs(branchesRef);
@@ -57,11 +62,11 @@ const StatsCards = () => {
         setStatsData(prevStats => prevStats.map(stat => {
           switch (stat.id) {
             case 1: // Decisions Made
-              return { ...stat, value: (statsDoc?.totalDecisions || 0).toString() };
+              return { ...stat, value: totalDecisions.toString() };
             case 3: // Branches created
               return { ...stat, value: totalBranches.toString() };
             case 4: // Impact Score
-              return { ...stat, value: (statsDoc?.impactScore || 0).toString() };
+              return { ...stat, value: (statsDoc?.impacts || 0).toString() };
             default:
               return stat;
           }
@@ -75,13 +80,6 @@ const StatsCards = () => {
     };
 
     fetchStats();
-
-    // Set up a listener for real-time updates (optional)
-    // const unsubscribe = onSnapshot(collection(db, 'stats'), (snapshot) => {
-    //   fetchStats();
-    // });
-
-    // return () => unsubscribe();
   }, []);
 
   if (isLoading) {

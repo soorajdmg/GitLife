@@ -2,6 +2,9 @@
 
 ![gitlifeVideoGIF](https://github.com/user-attachments/assets/e8623512-85ee-4cda-b70a-a25f428e4a73)
 
+---
+Video Link: https://github.com/user-attachments/assets/fffc5474-a644-4cc9-8bed-7e239f70668d
+---
 
 Welcome to GitLife, the app that proves version control can be as chaotic and unpredictable as your life! Forget the boring Git tutorials; we’re here to turn your life decisions into a version control system. Because who doesn’t want to commit their choices like they’re pushing code?
 

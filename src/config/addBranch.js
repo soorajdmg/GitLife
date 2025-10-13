@@ -1,5 +1,4 @@
-import { db } from '../config/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { api } from './api';
 
 export const addBranch = async (branchData) => {
   try {
@@ -11,7 +10,6 @@ export const addBranch = async (branchData) => {
       status: branchData.status || "catastrophic",
       type: branchData.branch_type || "main-timeline",
       timestamp: branchData.timestamp || new Date().toISOString(),
-      // Add any additional metadata or tracking fields here
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -25,14 +23,11 @@ export const addBranch = async (branchData) => {
       throw new Error("Invalid branch type");
     }
 
-    // Add the document to Firestore
-    const docRef = await addDoc(collection(db, 'branches'), branch);
-    
+    // Add the branch via API
+    const result = await api.createBranch(branch);
+
     // Return the created branch with its ID
-    return { 
-      id: docRef.id, 
-      ...branch 
-    };
+    return result;
   } catch (error) {
     console.error("Error adding branch: ", error);
     throw error;

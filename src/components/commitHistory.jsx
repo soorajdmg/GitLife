@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, GitBranch, Copy, Check } from 'lucide-react';
-import { db } from '../config/firebase';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { api } from '../config/api';
 import './commitHistory.css';
 
 const CommitHistory = () => {
@@ -24,47 +23,48 @@ const CommitHistory = () => {
   };
 
   useEffect(() => {
-    try {
-      const decisionsRef = collection(db, 'decisions');
-      const decisionsQuery = query(
-        decisionsRef,
-        orderBy('timestamp', 'desc'),
-        limit(10)
-      );
+    const fetchCommits = async () => {
+      try {
+        setLoading(true);
+        const decisions = await api.getDecisions({
+          limit: 10,
+          sortBy: 'timestamp',
+          sortOrder: 'desc'
+        });
 
-      const unsubscribe = onSnapshot(decisionsQuery, (snapshot) => {
-        const commitsList = snapshot.docs.map(doc => {
-          const data = doc.data();
+        const commitsList = decisions.map(data => {
           const date = convertTimestamp(data.timestamp);
 
           return {
-            id: doc.id,
-            hash: doc.id.substring(0, 7),
+            id: data.id,
+            hash: data.id.substring(0, 7),
             timeAgo: date ? calculateTimeAgo(date) : 'unknown time ago',
             message: data.message || 'No message provided',
             type: data.type || 'default',
-            fullHash: doc.id,
+            fullHash: data.id,
             impact: data.impact,
             timestamp: date,
-            branch_name: data.branch || doc.id.substring(0, 7),
+            branch_name: data.branch_name || data.branch || data.id.substring(0, 7),
             decision: data.decision || data.message || 'No description available',
             mood: data.mood
           };
         });
+
         setCommits(commitsList);
         setLoading(false);
-      }, (err) => {
+      } catch (err) {
         console.error('Error fetching commits:', err);
         setError(err.message);
         setLoading(false);
-      });
+      }
+    };
 
-      return () => unsubscribe();
-    } catch (err) {
-      console.error('Error setting up listener:', err);
-      setError(err.message);
-      setLoading(false);
-    }
+    fetchCommits();
+
+    // Poll for updates every 5 seconds (replaces real-time listeners)
+    const interval = setInterval(fetchCommits, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const calculateTimeAgo = (date) => {

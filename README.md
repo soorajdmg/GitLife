@@ -21,26 +21,94 @@ Welcome to GitLife! Here, you can interact with your life decisions just like yo
 
 ## 🌟 Features
 
-- **Decision Commits**: Turn every life choice into a commit—because it’s easier to track regrets this way!
-- **Branch Out**: Create branches for alternative paths in life, so you can wonder “what if?” without any real commitment.
+- **Multi-User Support**: Create your own account and keep your existential crises private!
+- **Secure Authentication**: JWT-based login system—because your life decisions deserve encryption.
+- **Decision Commits**: Turn every life choice into a commit—because it's easier to track regrets this way!
+- **Branch Out**: Create branches for alternative paths in life, so you can wonder "what if?" without any real commitment.
 - **Graphical Timeline**: Visualize your life as a graph, showing your ups, downs, and existential crises.
+- **Impact Tracking**: Measure the impact of your decisions with a fancy slider (1-100).
+- **Mood Logging**: Track your emotional state with emojis—because words are overrated.
+- **Private Data**: Each user's data is completely isolated—no one else needs to see your chaos.
 - **User-Friendly Interface**: Enjoy navigating through choices with an interface that may or may not make sense.
 - **Community Shenanigans**: Join others who are just as lost as you are, sharing the joys of turning life into code.
 
 ## 🛠 Installation
 
-Ready to embark on this emotional rollercoaster? Here’s how to get started:
+Ready to embark on this emotional rollercoaster? Here's how to get started:
+
+### Prerequisites
+- Node.js (v16 or higher)
+- MongoDB (local installation or MongoDB Atlas account)
+
+### Quick Start
 
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/soorajdmg/GitLife
+    cd GitLife
     ```
 
-2. **Open the project in your favorite IDE:**
-    - Good luck navigating your file system!
+2. **Install dependencies:**
+    ```sh
+    # Install frontend dependencies
+    npm install
 
-3. **Run the application:**
-    - If things go wrong, just remember: it’s not you; it’s the universe.
+    # Install backend dependencies
+    cd server
+    npm install
+    cd ..
+    ```
+
+3. **Set up environment variables:**
+
+    Create `.env` file in root directory:
+    ```
+    VITE_API_URL=http://localhost:5000/api
+    ```
+
+    Create `server/.env` file:
+    ```
+    MONGODB_URI=mongodb://localhost:27017/gitlife
+    PORT=5000
+    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+    ```
+
+4. **Start MongoDB:**
+    ```sh
+    # On macOS (if installed via homebrew)
+    brew services start mongodb-community
+
+    # On Windows/Linux
+    mongod
+    ```
+
+5. **Run the application:**
+
+    Terminal 1 - Start backend:
+    ```sh
+    cd server
+    npm start
+    ```
+
+    Terminal 2 - Start frontend:
+    ```sh
+    npm run dev
+    ```
+
+6. **Open the app:**
+    - Visit `http://localhost:5173`
+    - Create an account and start tracking your life decisions!
+    - If things go wrong, just remember: it's not you; it's the universe.
+
+### Tech Stack
+- **Frontend**: React + Vite + Tailwind CSS
+- **Backend**: Express.js + MongoDB
+- **Authentication**: JWT tokens
+- **Database**: MongoDB
+
+📚 For detailed setup and migration information, see:
+- [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) - Firebase to MongoDB migration
+- [AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md) - Multi-user authentication
 
 ## 🎮 Usage
 

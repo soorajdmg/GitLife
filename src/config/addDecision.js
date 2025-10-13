@@ -1,6 +1,5 @@
 // addDecision.js
-import { db } from './firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { api } from './api';
 
 export const addDecision = async (decisionFormData) => {
   try {
@@ -14,8 +13,8 @@ export const addDecision = async (decisionFormData) => {
       mood: decisionFormData.mood
     };
 
-    const docRef = await addDoc(collection(db, 'decisions'), decision);
-    return { id: docRef.id, ...decision };
+    const result = await api.createDecision(decision);
+    return result;
   } catch (error) {
     console.error("Error adding decision: ", error);
     throw error;

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Heart, Trophy, GitCommitHorizontal } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { api } from '../config/api';
 import './StatsCards.css';
 
 const StatsCards = () => {
@@ -44,29 +43,21 @@ const StatsCards = () => {
       try {
         setIsLoading(true);
 
-        // Fetch stats document
-        const statsRef = collection(db, 'stats');
-        const statsSnapshot = await getDocs(statsRef);
-        const statsDoc = statsSnapshot.docs[0]?.data();
-
-        // Fetch total decisions
-        const decisionsRef = collection(db, 'decisions');
-        const decisionsSnapshot = await getDocs(decisionsRef);
-        const totalDecisions = decisionsSnapshot.size;
-
-        // Fetch total branches
-        const branchesRef = collection(db, 'branches');
-        const branchesSnapshot = await getDocs(branchesRef);
-        const totalBranches = branchesSnapshot.size;
+        // Fetch stats, decisions count, and branches count in parallel
+        const [stats, decisionCount, branches] = await Promise.all([
+          api.getStats(),
+          api.getDecisionCount(),
+          api.getBranches()
+        ]);
 
         setStatsData(prevStats => prevStats.map(stat => {
           switch (stat.id) {
             case 1: // Decisions Made
-              return { ...stat, value: totalDecisions.toString() };
+              return { ...stat, value: decisionCount.toString() };
             case 3: // Branches created
-              return { ...stat, value: totalBranches.toString() };
+              return { ...stat, value: branches.length.toString() };
             case 4: // Impact Score
-              return { ...stat, value: (statsDoc?.impacts || 0).toString() };
+              return { ...stat, value: (stats?.impacts || 0).toString() };
             default:
               return stat;
           }
@@ -80,6 +71,11 @@ const StatsCards = () => {
     };
 
     fetchStats();
+
+    // Poll for updates every 10 seconds
+    const interval = setInterval(fetchStats, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {

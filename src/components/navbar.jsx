@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { GitBranch } from 'lucide-react';
-import { addDoc, collection, getDocs, updateDoc, doc, increment } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { GitBranch, LogOut } from 'lucide-react';
+import { api } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
+  const { user, logout } = useAuth();
   const [showLifeChoiceForm, setShowLifeChoiceForm] = useState(false);
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,13 +28,13 @@ const Navbar = () => {
   const commitTypes = ['feat', 'fix', 'chore'];
   const branchTypes = ['main', 'what-if', 'alternative'];
 
-  // Fetch branches from Firestore
+  // Fetch branches from MongoDB
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'branches'));
-        const branchList = querySnapshot.docs
-          .map(doc => doc.data().name)
+        const branchData = await api.getBranches();
+        const branchList = branchData
+          .map(branch => branch.name)
           .filter(branch => branch !== undefined);
 
         if (branchList.length > 0) {
@@ -57,22 +58,10 @@ const Navbar = () => {
     setLoading(true);
     try {
       // Add the decision to decisions collection
-      await addDoc(collection(db, 'decisions'), {
+      await api.createDecision({
         ...decisionForm,
         timestamp: new Date().toISOString(),
       });
-
-      // Update or create stats document
-      const statsRef = collection(db, 'stats');
-      const statsSnapshot = await getDocs(statsRef);
-
-      if (statsSnapshot.empty) {
-        // Update existing stats
-        const statsDoc = statsSnapshot.docs[0];
-        await updateDoc(doc(db, 'stats', statsDoc.id), {
-          impacts: increment(Number(decisionForm.impact))
-        });
-      }
 
       setShowLifeChoiceForm(false);
       setDecisionForm({
@@ -98,9 +87,9 @@ const Navbar = () => {
         throw new Error('Branch name is required');
       }
 
-      await addDoc(collection(db, 'branches'), {
+      await api.createBranch({
         name: branchForm.branch_name,
-        type: branchForm.branch_name,
+        type: branchForm.branch_type,
         commits: 0,
         impact: 0,
         status: 'catastrophic',
@@ -151,6 +140,7 @@ const Navbar = () => {
           </div>
 
           <div className="navbar-right">
+            <span className="user-email">{user?.username || user?.email}</span>
             <button
               className="btn btn-primary"
               onClick={() => setShowLifeChoiceForm(!showLifeChoiceForm)}
@@ -162,6 +152,13 @@ const Navbar = () => {
               onClick={() => setShowBranchForm(!showBranchForm)}
             >
               Create "What If" Branch
+            </button>
+            <button
+              className="btn btn-logout"
+              onClick={logout}
+              title="Logout"
+            >
+              <LogOut size={18} />
             </button>
           </div>
         </div>

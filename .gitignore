@@ -22,7 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-*.claude
 
 # dotenv environment variables file
 .env

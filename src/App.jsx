@@ -5,7 +5,7 @@ import Auth from './components/Auth';
 import Navbar from './components/navbar';
 import StatsCards from './components/StatsCards';
 import TimelineGraph from './components/timelineGraph';
-import Timeline from './components/Timeline';
+import Timeline from './components/timeline';
 import CommitHistory from './components/commitHistory';
 import './App.css';
 

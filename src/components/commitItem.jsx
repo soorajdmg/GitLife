@@ -1,6 +1,6 @@
 // src/components/CommitItem.jsx
 import React from 'react';
-import './CommitItem.css';
+import './commitItem.css';
 
 function CommitItem({ hash, time, message }) {
   return (

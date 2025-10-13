@@ -1,7 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartLine } from 'lucide-react';
-import './TimelineGraph.css';
+import './timelineGraph.css';
 
 const TimelineGraph = ({ data = [] }) => {
     const sampleData = [

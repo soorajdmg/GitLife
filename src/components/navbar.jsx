@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GitBranch, LogOut } from 'lucide-react';
 import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
-import './Navbar.css';
+import './navbar.css';
 
 const Navbar = () => {
   const { user, logout } = useAuth();

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run build)",
       "Bash(ping:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

@@ -4,7 +4,8 @@
       "Bash(npm run build)",
       "Bash(ping:*)",
       "Bash(git remote set-url:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { GitFork, Heart, GitBranch } from 'lucide-react';
 import { api } from '../config/api';
+import { useDataRefresh } from '../contexts/DataRefreshContext';
 import './timeline.css';
 
 const Timelines = () => {
+  const { refreshTrigger } = useDataRefresh();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,7 +74,7 @@ const Timelines = () => {
     const interval = setInterval(fetchData, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
 
   if (loading) {
     return (

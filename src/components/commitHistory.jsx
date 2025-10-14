@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, GitBranch, Copy, Check } from 'lucide-react';
 import { api } from '../config/api';
+import { useDataRefresh } from '../contexts/DataRefreshContext';
 import './commitHistory.css';
 
 const CommitHistory = () => {
+  const { refreshTrigger } = useDataRefresh();
   const [commits, setCommits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -65,7 +67,7 @@ const CommitHistory = () => {
     const interval = setInterval(fetchCommits, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
 
   const calculateTimeAgo = (date) => {
     if (!date) return 'unknown time ago';

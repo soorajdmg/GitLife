@@ -1,7 +1,8 @@
 .commit-section {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 2rem auto;
-  padding: 0 1rem;
+  padding: 0 2rem;
+  width: 100%;
 }
 
 .commit-header {
@@ -15,6 +16,7 @@
   width: 20px;
   height: 20px;
   color: #60a5fa;
+  flex-shrink: 0;
 }
 
 .commit-title {
@@ -28,13 +30,14 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: 100%;
 }
 
 .commit-card {
   background-color: rgb(31, 41, 55);
   border-radius: 0.5rem;
   padding: 1rem;
-  width: 61rem;
+  width: 100%;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -160,17 +163,89 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .commit-section {
+    padding: 0 1.5rem;
+    margin: 1.5rem auto;
+  }
+
+  .commit-card {
+    padding: 0.875rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .commit-section {
+    padding: 0 1rem;
+    margin: 1.25rem auto;
+  }
+
+  .commit-title {
+    font-size: 1.125rem;
+  }
+
+  .commit-card {
+    padding: 0.875rem;
+  }
+
+  .commit-info {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .commit-hover-info {
+    padding: 0.75rem;
+  }
+}
+
 @media (max-width: 640px) {
+  .commit-section {
+    padding: 0 0.75rem;
+  }
+
+  .commit-card {
+    padding: 0.75rem;
+  }
+
   .commit-info {
     flex-wrap: wrap;
   }
 
   .commit-message-container {
     flex-direction: column;
+    gap: 0.375rem;
   }
 
   .commit-type {
     align-self: flex-start;
+  }
+
+  .commit-hash {
+    font-size: 0.8125rem;
+  }
+
+  .commit-message {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .commit-section {
+    padding: 0 0.5rem;
+  }
+
+  .commit-hover-info {
+    padding: 0.625rem;
+  }
+
+  .detail-label,
+  .detail-value {
+    font-size: 0.7rem;
+  }
+
+  .copy-impact-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
   }
 }
 

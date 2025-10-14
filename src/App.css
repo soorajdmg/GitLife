@@ -3,7 +3,7 @@
 .app {
   background-color: #111827;
   color: white;
-  font-family: Arial, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   padding: 0;
   margin: 0;
@@ -11,19 +11,30 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  /* Ensure it spans the full viewport */
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .app-content {
   width: 100%;
-  max-width: 1200px;
-  /* Limits the maximum width for readability */
+  max-width: 1400px;
   margin: 0 auto;
-  /* Center horizontally */
+  padding: 0;
+}
+
+/* Ensure responsive images and media */
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Touch target sizes for mobile */
+@media (max-width: 768px) {
+  button, a, input, select, textarea {
+    min-height: 44px;
+  }
 }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Heart, Trophy, GitCommitHorizontal } from 'lucide-react';
 import { api } from '../config/api';
+import { useDataRefresh } from '../contexts/DataRefreshContext';
 import './StatsCards.css';
 
 const StatsCards = () => {
+  const { refreshTrigger } = useDataRefresh();
   const [statsData, setStatsData] = useState([
     {
       id: 1,
@@ -76,7 +78,7 @@ const StatsCards = () => {
     const interval = setInterval(fetchStats, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
 
   if (isLoading) {
     return (

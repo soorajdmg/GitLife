@@ -1,6 +1,7 @@
 // src/App.jsx
 import React from 'react';
 import { useAuth } from './contexts/AuthContext';
+import { DataRefreshProvider } from './contexts/DataRefreshContext';
 import Auth from './components/Auth';
 import Navbar from './components/navbar';
 import StatsCards from './components/StatsCards';
@@ -17,13 +18,15 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <Navbar />
-      <StatsCards />
-      <TimelineGraph />
-      <Timeline />
-      <CommitHistory />
-    </div>
+    <DataRefreshProvider>
+      <div className="app">
+        <Navbar />
+        <StatsCards />
+        <TimelineGraph />
+        <Timeline />
+        <CommitHistory />
+      </div>
+    </DataRefreshProvider>
   );
 }
 

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { GitBranch, LogOut } from 'lucide-react';
 import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataRefresh } from '../contexts/DataRefreshContext';
 import './navbar.css';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { refreshAfterDecision, refreshAfterBranch } = useDataRefresh();
   const [showLifeChoiceForm, setShowLifeChoiceForm] = useState(false);
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,9 @@ const Navbar = () => {
         impact: 5,
         type: 'feat'
       });
+
+      // Trigger immediate refresh of all components
+      refreshAfterDecision();
     } catch (error) {
       console.error('Error adding decision:', error);
       alert('Failed to add decision. Please try again.');
@@ -102,6 +107,9 @@ const Navbar = () => {
         branch_name: '',
         branch_type: 'main'
       });
+
+      // Trigger immediate refresh of all components
+      refreshAfterBranch();
     } catch (error) {
       console.error('Error creating branch:', error);
       alert(error.message || 'Failed to create branch. Please try again.');

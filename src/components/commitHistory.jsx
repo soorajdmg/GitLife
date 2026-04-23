@@ -25,9 +25,11 @@ const CommitHistory = () => {
   };
 
   useEffect(() => {
+    let isFirstFetch = true;
+
     const fetchCommits = async () => {
       try {
-        setLoading(true);
+        if (isFirstFetch) setLoading(true);
         const decisions = await api.getDecisions({
           limit: 10,
           sortBy: 'timestamp',
@@ -53,18 +55,24 @@ const CommitHistory = () => {
         });
 
         setCommits(commitsList);
-        setLoading(false);
+        if (isFirstFetch) {
+          setLoading(false);
+          isFirstFetch = false;
+        }
       } catch (err) {
         console.error('Error fetching commits:', err);
         setError(err.message);
-        setLoading(false);
+        if (isFirstFetch) {
+          setLoading(false);
+          isFirstFetch = false;
+        }
       }
     };
 
     fetchCommits();
 
-    // Poll for updates every 5 seconds (replaces real-time listeners)
-    const interval = setInterval(fetchCommits, 5000);
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchCommits, 30000);
 
     return () => clearInterval(interval);
   }, [refreshTrigger]); // Re-fetch when refreshTrigger changes

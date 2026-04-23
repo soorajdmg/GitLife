@@ -12,9 +12,11 @@ const TimelineGraph = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        let isFirstFetch = true;
+
         const fetchAndProcessData = async () => {
             try {
-                setLoading(true);
+                if (isFirstFetch) setLoading(true);
 
                 // Fetch all decisions and branches
                 const [decisions, branches] = await Promise.all([
@@ -24,25 +26,35 @@ const TimelineGraph = () => {
 
                 if (decisions.length === 0) {
                     setChartData([]);
-                    setLoading(false);
+                    if (isFirstFetch) {
+                        setLoading(false);
+                        isFirstFetch = false;
+                    }
                     return;
                 }
 
                 // Process data to create timeline graph
                 const processedData = processDecisionsForGraph(decisions, branches);
                 setChartData(processedData);
-                setLoading(false);
+
+                if (isFirstFetch) {
+                    setLoading(false);
+                    isFirstFetch = false;
+                }
             } catch (err) {
                 console.error('Error fetching timeline data:', err);
                 setError(err.message);
-                setLoading(false);
+                if (isFirstFetch) {
+                    setLoading(false);
+                    isFirstFetch = false;
+                }
             }
         };
 
         fetchAndProcessData();
 
-        // Poll for updates every 10 seconds
-        const interval = setInterval(fetchAndProcessData, 10000);
+        // Poll for updates every 30 seconds
+        const interval = setInterval(fetchAndProcessData, 30000);
         return () => clearInterval(interval);
     }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
 

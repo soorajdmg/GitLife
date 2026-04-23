@@ -41,9 +41,11 @@ const StatsCards = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isFirstFetch = true;
+
     const fetchStats = async () => {
       try {
-        setIsLoading(true);
+        if (isFirstFetch) setIsLoading(true);
 
         // Fetch stats, decisions count, and branches count in parallel
         const [stats, decisionCount, branches] = await Promise.all([
@@ -68,14 +70,17 @@ const StatsCards = () => {
         console.error('Error processing stats data:', err);
         setError('Error loading stats data');
       } finally {
-        setIsLoading(false);
+        if (isFirstFetch) {
+          setIsLoading(false);
+          isFirstFetch = false;
+        }
       }
     };
 
     fetchStats();
 
-    // Poll for updates every 10 seconds
-    const interval = setInterval(fetchStats, 10000);
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
 
     return () => clearInterval(interval);
   }, [refreshTrigger]); // Re-fetch when refreshTrigger changes

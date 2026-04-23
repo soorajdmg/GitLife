@@ -11,9 +11,11 @@ const Timelines = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isFirstFetch = true;
+
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (isFirstFetch) setLoading(true);
 
         // Fetch branches and decisions
         const [branchesData, decisionsData] = await Promise.all([
@@ -43,35 +45,27 @@ const Timelines = () => {
           }
         });
 
-        // Update branches with calculated stats
-        const updatedBranches = await Promise.all(
-          Array.from(branchStatsMap.values()).map(async (branch) => {
-            try {
-              await api.updateBranch(branch.id, {
-                commits: branch.commits,
-                impact: branch.impact
-              });
-              return branch;
-            } catch (error) {
-              console.error(`Error updating branch ${branch.id}:`, error);
-              return branch;
-            }
-          })
-        );
-
+        const updatedBranches = Array.from(branchStatsMap.values());
         setBranches(updatedBranches);
-        setLoading(false);
+
+        if (isFirstFetch) {
+          setLoading(false);
+          isFirstFetch = false;
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
-        setLoading(false);
+        if (isFirstFetch) {
+          setLoading(false);
+          isFirstFetch = false;
+        }
       }
     };
 
     fetchData();
 
-    // Poll for updates every 5 seconds (replaces real-time listeners)
-    const interval = setInterval(fetchData, 5000);
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchData, 30000);
 
     return () => clearInterval(interval);
   }, [refreshTrigger]); // Re-fetch when refreshTrigger changes

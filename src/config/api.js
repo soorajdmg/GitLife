@@ -26,7 +26,9 @@ class ApiClient {
       const response = await fetch(url, config);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Request failed');
+        // Handle express-validator errors array
+        const message = error.error || (error.errors && error.errors[0]?.msg) || 'Request failed';
+        throw new Error(message);
       }
       return await response.json();
     } catch (error) {

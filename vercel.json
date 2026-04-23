@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "functions": {
+    "server/api/index.js": {
+      "includeFiles": "server/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/server/api/index.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

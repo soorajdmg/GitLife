@@ -3,12 +3,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "functions": {
-    "server/api/index.js": {
+    "api/index.js": {
       "includeFiles": "server/**"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/server/api/index.js" },
+    { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

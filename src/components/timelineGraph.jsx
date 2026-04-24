@@ -1,269 +1,161 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartLine } from 'lucide-react';
 import { api } from '../config/api';
 import { useDataRefresh } from '../contexts/DataRefreshContext';
+import SkeletonCard from './shared/SkeletonCard';
+import EmptyState from './shared/EmptyState';
 import './timelineGraph.css';
 
-const TimelineGraph = () => {
-    const { refreshTrigger } = useDataRefresh();
-    const [chartData, setChartData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+const RANGES = [
+  { label: '7D', days: 7 },
+  { label: '30D', days: 30 },
+  { label: 'All', days: null },
+];
 
-    useEffect(() => {
-        let isFirstFetch = true;
+function processDecisions(decisions, branches, days) {
+  if (decisions.length === 0) return [];
 
-        const fetchAndProcessData = async () => {
-            try {
-                if (isFirstFetch) setLoading(true);
+  let filtered = decisions;
+  if (days) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    filtered = decisions.filter(d => new Date(d.timestamp) >= cutoff);
+  }
+  if (filtered.length === 0) return [];
 
-                // Fetch all decisions and branches
-                const [decisions, branches] = await Promise.all([
-                    api.getDecisions({ sortBy: 'timestamp', sortOrder: 'asc' }),
-                    api.getBranches()
-                ]);
+  const byDate = {};
+  filtered.forEach(d => {
+    const dateKey = new Date(d.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (!byDate[dateKey]) byDate[dateKey] = { main: [], whatIf: [] };
+    const branch = branches.find(b => b.name === d.branch_name);
+    const isWhatIf = branch && (branch.type === 'what-if' || branch.type === 'alternative');
+    if (isWhatIf) byDate[dateKey].whatIf.push(d);
+    else byDate[dateKey].main.push(d);
+  });
 
-                if (decisions.length === 0) {
-                    setChartData([]);
-                    if (isFirstFetch) {
-                        setLoading(false);
-                        isFirstFetch = false;
-                    }
-                    return;
-                }
-
-                // Process data to create timeline graph
-                const processedData = processDecisionsForGraph(decisions, branches);
-                setChartData(processedData);
-
-                if (isFirstFetch) {
-                    setLoading(false);
-                    isFirstFetch = false;
-                }
-            } catch (err) {
-                console.error('Error fetching timeline data:', err);
-                setError(err.message);
-                if (isFirstFetch) {
-                    setLoading(false);
-                    isFirstFetch = false;
-                }
-            }
-        };
-
-        fetchAndProcessData();
-
-        // Poll for updates every 30 seconds
-        const interval = setInterval(fetchAndProcessData, 30000);
-        return () => clearInterval(interval);
-    }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
-
-    // Process decisions into graph data points
-    const processDecisionsForGraph = (decisions, branches) => {
-        if (decisions.length === 0) return [];
-
-        // Group decisions by date
-        const decisionsByDate = {};
-
-        decisions.forEach(decision => {
-            const date = new Date(decision.timestamp);
-            const dateKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-
-            if (!decisionsByDate[dateKey]) {
-                decisionsByDate[dateKey] = {
-                    main: [],
-                    whatIf: []
-                };
-            }
-
-            // Determine if this is main timeline or what-if branch
-            const branch = branches.find(b => b.name === decision.branch_name);
-            const isWhatIf = branch && (branch.type === 'what-if' || branch.type === 'alternative');
-
-            if (isWhatIf) {
-                decisionsByDate[dateKey].whatIf.push(decision);
-            } else {
-                decisionsByDate[dateKey].main.push(decision);
-            }
-        });
-
-        // Calculate cumulative impact scores for each date
-        let cumulativeMain = 0;
-        let cumulativeWhatIf = 0;
-
-        const graphData = Object.entries(decisionsByDate).map(([date, data]) => {
-            // Calculate average impact for decisions on this date
-            const mainImpact = data.main.length > 0
-                ? data.main.reduce((sum, d) => sum + (d.impact || 0), 0) / data.main.length
-                : 0;
-
-            const whatIfImpact = data.whatIf.length > 0
-                ? data.whatIf.reduce((sum, d) => sum + (d.impact || 0), 0) / data.whatIf.length
-                : 0;
-
-            cumulativeMain += mainImpact;
-            cumulativeWhatIf += whatIfImpact;
-
-            return {
-                day: date,
-                currentTimeline: Math.min(Math.round(cumulativeMain), 100),
-                whatIf: Math.min(Math.round(cumulativeWhatIf), 100),
-                mainDecisions: data.main.length,
-                whatIfDecisions: data.whatIf.length
-            };
-        });
-
-        // Return the last 7-14 data points for better visualization
-        return graphData.slice(-14);
+  let cumMain = 0, cumWhatIf = 0;
+  return Object.entries(byDate).map(([date, data]) => {
+    const mainAvg = data.main.length ? data.main.reduce((s, d) => s + (d.impact || 0), 0) / data.main.length : 0;
+    const whatIfAvg = data.whatIf.length ? data.whatIf.reduce((s, d) => s + (d.impact || 0), 0) / data.whatIf.length : 0;
+    cumMain += mainAvg;
+    cumWhatIf += whatIfAvg;
+    return {
+      day: date,
+      currentTimeline: Math.min(Math.round(cumMain), 100),
+      whatIf: Math.min(Math.round(cumWhatIf), 100),
+      mainDecisions: data.main.length,
+      whatIfDecisions: data.whatIf.length,
     };
+  });
+}
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            const data = payload[0]?.payload;
-            return (
-                <div className="timeline-tooltip">
-                    <p className="tooltip-label">{`${label}`}</p>
-                    <p className="timeline-value">
-                        <span className="dot current-dot"></span>
-                        Main Timeline: {payload[0]?.value || 0}
-                        {data?.mainDecisions > 0 && ` (${data.mainDecisions} decisions)`}
-                    </p>
-                    {payload[1] && (
-                        <p className="whatif-value">
-                            <span className="dot whatif-dot"></span>
-                            What If: {payload[1]?.value || 0}
-                            {data?.whatIfDecisions > 0 && ` (${data.whatIfDecisions} decisions)`}
-                        </p>
-                    )}
-                </div>
-            );
-        }
-        return null;
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const data = payload[0]?.payload;
+  return (
+    <div className="timeline-tooltip">
+      <p className="tooltip-label">{label}</p>
+      <p className="timeline-value">
+        <span className="dot current-dot" />
+        Main: {payload[0]?.value || 0}
+        {data?.mainDecisions > 0 && ` (${data.mainDecisions})`}
+      </p>
+      {payload[1] && (
+        <p className="whatif-value">
+          <span className="dot whatif-dot" />
+          What If: {payload[1]?.value || 0}
+          {data?.whatIfDecisions > 0 && ` (${data.whatIfDecisions})`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function TimelineGraph() {
+  const { refreshTrigger } = useDataRefresh();
+  const [allDecisions, setAllDecisions] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rangeIdx, setRangeIdx] = useState(2); // default All
+
+  useEffect(() => {
+    let first = true;
+    const fetch = async () => {
+      try {
+        const [decisions, branchData] = await Promise.all([
+          api.getDecisions({ sortBy: 'timestamp', sortOrder: 'asc' }),
+          api.getBranches()
+        ]);
+        setAllDecisions(decisions);
+        setBranches(branchData);
+      } catch { /* keep previous */ }
+      finally { if (first) { setLoading(false); first = false; } }
     };
+    fetch();
+    const interval = setInterval(fetch, 30000);
+    return () => clearInterval(interval);
+  }, [refreshTrigger]);
 
-    if (loading) {
-        return (
-            <div className="timelineg-section">
-                <div className="timelinesg-header">
-                    <ChartLine className="timelineg-header-icon" />
-                    <h2 className="timelineg-title">Life Branches</h2>
-                </div>
-                <div className="timelineg-container">
-                    <div className="timelineg-content">
-                        <div className="chart-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <p style={{ color: '#9ca3af' }}>Loading your life timeline...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+  const chartData = processDecisions(allDecisions, branches, RANGES[rangeIdx].days);
 
-    if (error) {
-        return (
-            <div className="timelineg-section">
-                <div className="timelinesg-header">
-                    <ChartLine className="timelineg-header-icon" />
-                    <h2 className="timelineg-title">Life Branches</h2>
-                </div>
-                <div className="timelineg-container">
-                    <div className="timelineg-content">
-                        <div className="chart-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <p style={{ color: '#f87171' }}>Error loading timeline: {error}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (chartData.length === 0) {
-        return (
-            <div className="timelineg-section">
-                <div className="timelinesg-header">
-                    <ChartLine className="timelineg-header-icon" />
-                    <h2 className="timelineg-title">Life Branches</h2>
-                </div>
-                <div className="timelineg-container">
-                    <div className="timelineg-content">
-                        <div className="chart-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
-                            <p style={{ color: '#9ca3af', textAlign: 'center' }}>No decisions yet!</p>
-                            <p style={{ color: '#6b7280', fontSize: '0.875rem', textAlign: 'center' }}>
-                                Start making life choices to see your timeline graph
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="timelineg-section">
-            <div className="timelinesg-header">
-                <ChartLine className="timelineg-header-icon" />
-                <h2 className="timelineg-title">Life Branches</h2>
-            </div>
-            <div className="timelineg-container">
-                <div className="timelineg-content">
-                    <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={400}>
-                            <LineChart
-                                data={chartData}
-                                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                                className="timelineg-chart"
-                            >
-                                <CartesianGrid strokeDasharray="3 3" className="timelineg-grid" />
-                                <XAxis
-                                    dataKey="day"
-                                    stroke="#9ca3af"
-                                    tick={{ fill: '#9ca3af' }}
-                                />
-                                <YAxis
-                                    stroke="#9ca3af"
-                                    domain={[0, 100]}
-                                    tick={{ fill: '#9ca3af' }}
-                                    label={{ value: 'Impact Score', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
-                                />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Line
-                                    type="monotone"
-                                    dataKey="currentTimeline"
-                                    stroke="#8884d8"
-                                    strokeWidth={3}
-                                    name="Main Timeline"
-                                    dot={{ r: 4, className: 'timeline-dot-current' }}
-                                    activeDot={{ r: 6, className: 'timeline-dot-current-active' }}
-                                    className="timeline-line-current"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="whatIf"
-                                    stroke="#82ca9d"
-                                    strokeWidth={3}
-                                    name="What If..."
-                                    strokeDasharray="5 5"
-                                    dot={{ r: 4, className: 'timeline-dot-whatif' }}
-                                    activeDot={{ r: 6, className: 'timeline-dot-whatif-active' }}
-                                    className="timeline-line-whatif"
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="timelineg-legend">
-                        <div className="legend-item">
-                            <span className="legend-line current"></span>
-                            <span>Main Timeline (main-timeline branch)</span>
-                        </div>
-                        <div className="legend-item">
-                            <span className="legend-line whatif"></span>
-                            <span>What If Branches (alternative paths)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="timelineg-section">
+      <div className="timelinesg-header">
+        <ChartLine className="timelineg-header-icon" />
+        <div className="timelineg-title-group">
+          <h2 className="timelineg-title">Life Branches</h2>
+          <p className="timelineg-subtitle">Cumulative impact across your life branches</p>
         </div>
-    );
-};
+        <div className="timelineg-range-pills">
+          {RANGES.map((r, i) => (
+            <button
+              key={r.label}
+              className={`range-pill ${rangeIdx === i ? 'active' : ''}`}
+              onClick={() => setRangeIdx(i)}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-export default TimelineGraph;
+      <div className="timelineg-container">
+        {loading ? (
+          <SkeletonCard height="400px" lines={3} />
+        ) : chartData.length === 0 ? (
+          <EmptyState
+            icon={ChartLine}
+            title="No data yet"
+            description="Start making life choices to see your timeline graph."
+          />
+        ) : (
+          <div className="timelineg-content">
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={380}>
+                <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                  <XAxis dataKey="day" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
+                  <YAxis stroke="var(--text-muted)" domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+                    label={{ value: 'Impact', angle: -90, position: 'insideLeft', fill: 'var(--text-muted)', fontSize: 12 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="currentTimeline" stroke="#8884d8" strokeWidth={3}
+                    name="Main Timeline" dot={{ r: 4, fill: '#8884d8', stroke: 'var(--bg-elevated)', strokeWidth: 2 }}
+                    activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="whatIf" stroke="#82ca9d" strokeWidth={3}
+                    name="What If..." strokeDasharray="5 5"
+                    dot={{ r: 4, fill: '#82ca9d', stroke: 'var(--bg-elevated)', strokeWidth: 2 }}
+                    activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="timelineg-legend">
+              <div className="legend-item"><span className="legend-line current" /><span>Main Timeline</span></div>
+              <div className="legend-item"><span className="legend-line whatif" /><span>What If Branches</span></div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

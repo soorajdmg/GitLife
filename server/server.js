@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { connectDB, closeDB } from './config/database.js';
 import { User } from './models/User.js';

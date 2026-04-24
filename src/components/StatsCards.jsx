@@ -1,123 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { GitBranch, Heart, Trophy, GitCommitHorizontal } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { GitBranch, Wrench, Trophy, GitCommitHorizontal, Zap } from 'lucide-react';
 import { api } from '../config/api';
 import { useDataRefresh } from '../contexts/DataRefreshContext';
+import SkeletonCard from './shared/SkeletonCard';
 import './StatsCards.css';
 
-const StatsCards = () => {
-  const { refreshTrigger } = useDataRefresh();
-  const [statsData, setStatsData] = useState([
-    {
-      id: 1,
-      icon: <GitCommitHorizontal className="stats-icon yellow" />,
-      label: "Decisions Made",
-      value: "0",
-      labelColor: "#fbbf24"
-    },
-    {
-      id: 2,
-      icon: <Heart className="stats-icon red" />,
-      label: "Regrets",
-      value: "∞",
-      labelColor: "#f87171"
-    },
-    {
-      id: 3,
-      icon: <GitBranch className="stats-icon blue" />,
-      label: "Branches created",
-      value: "0",
-      labelColor: "#60a5fa"
-    },
-    {
-      id: 4,
-      icon: <Trophy className="stats-icon purple" />,
-      label: "Impact Score",
-      value: "0",
-      labelColor: "#a78bfa"
-    }
-  ]);
+function useCountUp(target, duration = 600) {
+  const [value, setValue] = useState(0);
+  const raf = useRef(null);
+  useEffect(() => {
+    if (target === 0) { setValue(0); return; }
+    const start = performance.now();
+    const tick = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(target * ease));
+      if (progress < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [target, duration]);
+  return value;
+}
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+function computeStreak(decisions) {
+  const days = new Set(decisions.map(d => new Date(d.timestamp || d.createdAt).toDateString()));
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    if (days.has(d.toDateString())) streak++;
+    else if (i > 0) break;
+  }
+  return streak;
+}
+
+function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
+  const animated = useCountUp(typeof value === 'number' ? value : 0);
+  return (
+    <div className="stats-card" style={{ borderLeftColor: color }}>
+      <div className="stats-header">
+        <Icon size={20} style={{ color }} />
+        <span className="stats-label">{label}</span>
+      </div>
+      <div className="stats-value">
+        {typeof value === 'number' ? animated : value}{suffix}
+      </div>
+    </div>
+  );
+}
+
+export default function StatsCards() {
+  const { refreshTrigger } = useDataRefresh();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isFirstFetch = true;
-
+    let first = true;
     const fetchStats = async () => {
       try {
-        if (isFirstFetch) setIsLoading(true);
-
-        // Fetch stats, decisions count, and branches count in parallel
-        const [stats, decisionCount, branches] = await Promise.all([
+        const [stats, decisions, branches] = await Promise.all([
           api.getStats(),
-          api.getDecisionCount(),
+          api.getDecisions({ limit: 500, sortBy: 'timestamp', sortOrder: 'desc' }),
           api.getBranches()
         ]);
-
-        setStatsData(prevStats => prevStats.map(stat => {
-          switch (stat.id) {
-            case 1: // Decisions Made
-              return { ...stat, value: decisionCount.toString() };
-            case 3: // Branches created
-              return { ...stat, value: branches.length.toString() };
-            case 4: // Impact Score
-              return { ...stat, value: (stats?.impacts || 0).toString() };
-            default:
-              return stat;
-          }
-        }));
-      } catch (err) {
-        console.error('Error processing stats data:', err);
-        setError('Error loading stats data');
+        const fixes = decisions.filter(d => d.type === 'fix').length;
+        const streak = computeStreak(decisions);
+        setData({
+          decisions: decisions.length,
+          fixes,
+          branches: branches.length,
+          impact: stats?.impacts || 0,
+          streak,
+        });
+      } catch {
+        // silently fail — keep previous data
       } finally {
-        if (isFirstFetch) {
-          setIsLoading(false);
-          isFirstFetch = false;
-        }
+        if (first) { setLoading(false); first = false; }
       }
     };
-
     fetchStats();
-
-    // Poll for updates every 30 seconds
     const interval = setInterval(fetchStats, 30000);
-
     return () => clearInterval(interval);
-  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
+  }, [refreshTrigger]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="stats-container">
-        <div className="flex items-center justify-center w-full h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="stats-container">
-        <div className="text-red-500">Error loading stats: {error}</div>
+        {[1, 2, 3, 4, 5].map(i => <SkeletonCard key={i} height="90px" lines={2} />)}
       </div>
     );
   }
 
   return (
     <div className="stats-container">
-      {statsData.map(stat => (
-        <div key={stat.id} className="stats-card">
-          <div className="stats-header">
-            {stat.icon}
-            <span className="stats-label" style={{ color: stat.labelColor }}>
-              {stat.label}
-            </span>
-          </div>
-          <div className="stats-value">{stat.value}</div>
-        </div>
-      ))}
+      <StatCard icon={GitCommitHorizontal} label="Decisions Made"    value={data.decisions} color="var(--accent-yellow)" />
+      <StatCard icon={Wrench}             label="Course Corrections" value={data.fixes}     color="var(--accent-red)" />
+      <StatCard icon={GitBranch}          label="Branches Created"   value={data.branches}  color="var(--accent-blue)" />
+      <StatCard icon={Trophy}             label="Impact Score"       value={data.impact}    color="var(--accent-purple)" />
+      <StatCard icon={Zap}                label="Day Streak"         value={data.streak}    color="var(--accent-green)" suffix={data.streak === 1 ? ' day' : ' days'} />
     </div>
   );
-};
-
-export default StatsCards;
+}

@@ -1,0 +1,80 @@
+.mood-chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mood-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mood-chart-title-area {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mood-chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mood-avg-badge {
+  padding: 0.15rem 0.5rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 99px;
+  color: var(--accent-green);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.recent-moods {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.recent-mood-emoji {
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: default;
+  transition: transform 0.15s;
+}
+
+.recent-mood-emoji:hover { transform: scale(1.2); }
+
+.mood-area-chart {
+  width: 100%;
+}
+
+.mood-tooltip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mood-tooltip-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.mood-tooltip-val {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-green);
+}

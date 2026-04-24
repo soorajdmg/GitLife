@@ -1,47 +1,23 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  width: 100%;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: oklch(98.5% 0.005 80);
+  color: oklch(18% 0.015 260);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: oklch(87% 0.008 260); border-radius: 99px; }
 
-  a:hover {
-    color: #747bff;
-  }
+button { font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-  button {
-    background-color: #f9f9f9;
-  }
-}
+#root { width: 100%; height: 100%; }

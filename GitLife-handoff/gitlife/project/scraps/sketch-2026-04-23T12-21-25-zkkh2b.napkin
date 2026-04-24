@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "created": "2026-04-23T12:21:25.587Z",
+  "modified": "2026-04-23T12:22:34.385Z",
+  "objects": [
+    {
+      "id": "mzfsgxohf",
+      "type": "rect",
+      "x": 21,
+      "y": 17.011791229248047,
+      "width": 1013,
+      "height": 629,
+      "data": {
+        "fill": null,
+        "stroke": "#000000",
+        "strokeWidth": 2
+      }
+    },
+    {
+      "id": "gv2xyce3h",
+      "type": "line",
+      "x": 18,
+      "y": 70.01179122924805,
+      "endX": 1048,
+      "endY": 66.01179122924805,
+      "data": {
+        "fill": null,
+        "stroke": "#000000",
+        "strokeWidth": 2
+      }
+    }
+  ]
+}

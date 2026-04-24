@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GitLife</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:oklch(98.5% 0.005 80);color:oklch(18% 0.015 260);line-height:1.5;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:oklch(87% 0.008 260);border-radius:99px;}
+button{font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;}
+textarea{font-family:'Plus Jakarta Sans',sans-serif;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "timelineViz": "graph",
+  "accentHue": "260",
+  "density": "compact"
+}/*EDITMODE-END*/;
+
+/* ─── DATA ─── */
+const USERS = {
+  alex:   { id:'alex',   name:'Alex Chen',    handle:'@alex.chen',    ini:'AC', color:'oklch(52% 0.2 260)',  bio:'Building things. Living intentionally.',  commits:47, branches:5,  followers:1240, following:89  },
+  maya:   { id:'maya',   name:'Maya Patel',   handle:'@maya.patel',   ini:'MP', color:'oklch(56% 0.2 330)',  bio:'UX designer. Coffee person.',             commits:31, branches:3,  followers:892,  following:156 },
+  jordan: { id:'jordan', name:'Jordan Lee',   handle:'@jordan.lee',   ini:'JL', color:'oklch(50% 0.18 155)', bio:'Trying new things every year.',           commits:88, branches:11, followers:3401, following:234 },
+  sam:    { id:'sam',    name:'Sam Rivera',   handle:'@sam.rivera',   ini:'SR', color:'oklch(60% 0.19 55)',  bio:'Optimist. Builder.',                      commits:22, branches:2,  followers:445,  following:67  },
+  taylor: { id:'taylor', name:'Taylor Kim',   handle:'@taylor.kim',   ini:'TK', color:'oklch(52% 0.18 200)', bio:'Data scientist by day.',                  commits:56, branches:7,  followers:2100, following:311 },
+};
+const ME = USERS.alex;
+const CATEGORIES = ['Career','Health','Relationships','Finance','Education','Travel','Housing'];
+
+const MY_BRANCHES = [
+  { id:'main',       name:'main',                color:'oklch(52% 0.2 260)',  merged:false },
+  { id:'wi-startup', name:'what-if/startup',     color:'oklch(60% 0.19 55)',  merged:false },
+  { id:'wi-nyc',     name:'what-if/move-to-nyc', color:'oklch(56% 0.18 200)', merged:false },
+  { id:'wi-phd',     name:'what-if/phd',         color:'oklch(56% 0.2 330)',  merged:true  },
+];
+
+const INIT_FEED = [
+  { id:'c1', userId:'jordan', branch:'main',                   message:'Quit corporate job to freelance full-time',          body:'After 4 years at the agency, I finally made the call. Saved 8 months of runway. Scared but ready.',      category:'Career',        ts:'2h ago',  rx:{fork:142,merge:67, support:203}, ur:{}, wi:false, img:'https://picsum.photos/seed/desk1/600/280' },
+  { id:'c2', userId:'maya',   branch:'what-if/move-abroad',    message:'What if I moved to Lisbon for a year?',              body:'Remote-friendly company, lower cost of living, beautiful city. Running the numbers on a 12-month stint.', category:'Travel',        ts:'4h ago',  rx:{fork:88, merge:31, support:167}, ur:{}, wi:true,  img:'https://picsum.photos/seed/lisbon/600/280' },
+  { id:'c3', userId:'sam',    branch:'main',                   message:'Started therapy — first session done',               body:null,                                                                                                    category:'Health',        ts:'6h ago',  rx:{fork:12, merge:89, support:412}, ur:{}, wi:false, img:null },
+  { id:'c4', userId:'taylor', branch:'main',                   message:'Paid off student loans',                             body:"Took 6 years but we're finally here. $48k gone. Immediately opened a brokerage account.",               category:'Finance',       ts:'1d ago',  rx:{fork:5,  merge:201,support:678}, ur:{}, wi:false, img:'https://picsum.photos/seed/finance1/600/280' },
+  { id:'c5', userId:'jordan', branch:'what-if/phd-cs',         message:'What if I went back for a PhD in CS?',               body:'Applied to 3 programs. Pros: research freedom. Cons: 5 years on a stipend.',                           category:'Education',     ts:'1d ago',  rx:{fork:54, merge:18, support:92 }, ur:{}, wi:true,  img:null },
+  { id:'c6', userId:'maya',   branch:'main',                   message:'Moved in with partner after 2 years of dating',      body:null,                                                                                                    category:'Relationships', ts:'2d ago',  rx:{fork:23, merge:189,support:534}, ur:{}, wi:false, img:'https://picsum.photos/seed/home22/600/280' },
+  { id:'c7', userId:'sam',    branch:'what-if/house-purchase', message:'What if I bought a house in the suburbs?',           body:'Rates are high, but renting feels like burning money. Ran the 5-year break-even calc.',                 category:'Housing',       ts:'3d ago',  rx:{fork:71, merge:44, support:98 }, ur:{}, wi:true,  img:'https://picsum.photos/seed/house9/600/280' },
+  { id:'c8', userId:'taylor', branch:'what-if/career-switch',  message:'What if I switched to product management?',          body:'Have the technical skills. Not sure I want the politics. But the pay bump is real.',                    category:'Career',        ts:'3d ago',  rx:{fork:93, merge:37, support:141}, ur:{}, wi:true,  img:null },
+];
+
+const MY_TIMELINE = [
+  { id:'m1', branch:'main',       message:'Joined Series A startup as lead engineer',  category:'Career',    date:'Apr 2026', wi:false, merged:false },
+  { id:'m2', branch:'main',       message:'Relocated to San Francisco',                category:'Housing',   date:'Jan 2026', wi:false, merged:false },
+  { id:'m3', branch:'wi-startup', message:'What if I co-founded my own startup?',      category:'Career',    date:'Jan 2026', wi:true,  merged:false },
+  { id:'m4', branch:'main',       message:'Ran first marathon — finished in 3:47',     category:'Health',    date:'Oct 2025', wi:false, merged:false },
+  { id:'m5', branch:'wi-phd',     message:'What if I pursued a CS PhD instead?',       category:'Education', date:'Sep 2025', wi:true,  merged:true  },
+  { id:'m6', branch:'main',       message:'Left grad school, joined industry',          category:'Career',    date:'Jun 2025', wi:false, merged:false },
+  { id:'m7', branch:'wi-nyc',     message:'What if I moved to New York instead?',      category:'Housing',   date:'Mar 2025', wi:true,  merged:false },
+  { id:'m8', branch:'main',       message:'Started learning Japanese (N5 → N4)',       category:'Education', date:'Feb 2025', wi:false, merged:false },
+  { id:'m9', branch:'main',       message:"Moved out of parents' home",                category:'Housing',   date:'Aug 2024', wi:false, merged:false },
+];
+
+/* ─── ACTIVITY DATA ─── */
+const WEEK_DATA = [
+  [0,1,0,2,0,1,0],[1,0,3,1,0,2,1],[0,2,1,0,1,0,2],[1,1,0,3,1,2,0],
+  [0,0,2,1,0,1,0],[2,1,0,0,3,1,2],[0,1,1,2,0,0,1],[1,0,2,1,1,3,0],
+  [0,2,0,1,0,1,0],[3,1,2,0,1,0,2],[1,0,1,2,0,3,1],[0,1,0,0,2,1,0],
+  [2,0,3,1,0,2,0],[1,2,0,1,1,0,3],[0,1,2,0,1,2,1],[2,0,1,3,0,1,0],
+  [1,1,0,2,1,0,2],[0,3,1,0,2,1,0],[1,0,2,1,0,3,2],[0,1,0,2,1,0,1],
+];
+const WEEK_MONTHS = ['Dec','Dec','Dec','Jan','Jan','Jan','Jan','Feb','Feb','Feb','Mar','Mar','Mar','Mar','Apr','Apr','Apr','Apr','Apr','Apr'];
+const DAY_LABELS  = ['M','','W','','F','',''];
+const CELL_COLORS = ['oklch(93% 0.04 260)','oklch(80% 0.1 260)','oklch(68% 0.15 260)','oklch(58% 0.18 260)','oklch(52% 0.2 260)'];
+const totalCommits = WEEK_DATA.flat().reduce((a,b)=>a+b,0);
+// Start date: 20 weeks back from Apr 23 2026 = Dec 10 2025
+const GRAPH_START = new Date(2025, 11, 10);
+
+/* ─── HELPERS ─── */
+const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
+const catColor = cat => {
+  const h = {Career:'260',Health:'155',Relationships:'330',Finance:'60',Education:'200',Travel:'25',Housing:'80'}[cat]||'260';
+  return { bg:`oklch(93% 0.04 ${h})`, fg:`oklch(40% 0.12 ${h})` };
+};
+const branchMeta = id => MY_BRANCHES.find(b=>b.id===id) || { color:'oklch(52% 0.2 260)', name:'main', merged:false };
+
+const Avatar = ({ u, size=36 }) => (
+  <div style={{width:size,height:size,borderRadius:'50%',background:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.3,fontWeight:700,color:'white',flexShrink:0,letterSpacing:'-0.5px'}}>
+    {u.ini}
+  </div>
+);
+
+const BranchPill = ({ name, wi, merged }) => {
+  let bg,fg;
+  if (merged)  { bg='oklch(92% 0.05 155)'; fg='oklch(38% 0.18 155)'; }
+  else if (wi) { bg='oklch(93% 0.06 60)';  fg='oklch(45% 0.19 55)';  }
+  else         { bg='oklch(93% 0.05 260)'; fg='oklch(42% 0.2 260)';  }
+  return (
+    <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:5,fontFamily:"'JetBrains Mono',monospace",fontSize:11,fontWeight:500,background:bg,color:fg,whiteSpace:'nowrap'}}>
+      {merged?'✓':wi?'⎇':'●'} {name}
+    </span>
+  );
+};
+
+const Tag = ({ cat }) => {
+  const c = catColor(cat);
+  return <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:500,background:c.bg,color:c.fg}}>{cat}</span>;
+};
+
+/* ─── COMMIT CARD ─── */
+const CommitCard = ({ c, onReact, compact }) => {
+  const user = USERS[c.userId];
+  const [open, setOpen] = useState(false);
+  const rxStyle = (type, active) => {
+    const m = { fork:{b:'oklch(60% 0.19 55)',f:'oklch(45% 0.19 55)',bg:'oklch(96% 0.015 60)'}, merge:{b:'oklch(52% 0.2 260)',f:'oklch(42% 0.2 260)',bg:'oklch(95% 0.015 260)'}, support:{b:'oklch(50% 0.18 155)',f:'oklch(40% 0.18 155)',bg:'oklch(95% 0.015 155)'} }[type];
+    return active ? {border:`1px solid ${m.b}`,color:m.f,background:m.bg} : {border:'1px solid oklch(90% 0.006 260)',color:'oklch(50% 0.01 260)',background:'white'};
+  };
+  return (
+    <div onClick={()=>setOpen(!open)} style={{background:c.wi?'oklch(99.5% 0.012 65)':'white',border:`1px solid ${c.wi?'oklch(88% 0.1 60)':'oklch(91% 0.006 80)'}`,borderRadius:14,padding:compact?'14px 16px':'18px 20px',marginBottom:10,cursor:'pointer',transition:'box-shadow 0.15s'}}
+      onMouseEnter={e=>e.currentTarget.style.boxShadow='0 2px 16px oklch(70% 0.01 260 / 0.1)'}
+      onMouseLeave={e=>e.currentTarget.style.boxShadow='none'}>
+      {c.wi && <div style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'oklch(48% 0.19 55)',fontWeight:500,marginBottom:8}}>⎇ what-if branch</div>}
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+        <Avatar u={user} size={compact?32:36} />
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:14,fontWeight:600}}>{user.name}</div>
+          <div style={{fontSize:12,color:'oklch(58% 0.01 260)',display:'flex',gap:6,alignItems:'center'}}>
+            <span>{user.handle}</span><span>·</span><span>{c.ts}</span>
+          </div>
+        </div>
+        <BranchPill name={c.branch} wi={c.wi} merged={false} />
+      </div>
+      <div style={{fontSize:15,fontWeight:600,lineHeight:1.4,marginBottom:c.body?6:10,color:c.wi?'oklch(42% 0.18 55)':'oklch(15% 0.015 260)'}}>{c.message}</div>
+      {c.body && (open || c.body.length < 90) && <div style={{fontSize:13.5,color:'oklch(44% 0.01 260)',lineHeight:1.65,marginBottom:10}}>{c.body}</div>}
+      {c.body && c.body.length >= 90 && !open && <div style={{fontSize:12,color:'oklch(52% 0.2 260)',marginBottom:8,marginTop:-2}}>Read more</div>}
+      {c.img && <div style={{margin:'10px 0',borderRadius:10,overflow:'hidden',maxHeight:220}}>
+        <img src={c.img} alt="" style={{width:'100%',objectFit:'cover',display:'block',maxHeight:220}} onError={e=>e.target.style.display='none'}/>
+      </div>}
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}><Tag cat={c.category} /></div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:10,borderTop:'1px solid oklch(95% 0.004 80)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',gap:6}}>
+          {[['⎇','fork'],['↩','merge'],['♡','support']].map(([icon,type]) => {
+            const active = c.ur[type];
+            return (
+              <button key={type} onClick={()=>onReact(c.id,type)}
+                style={{display:'flex',alignItems:'center',gap:5,padding:'5px 10px',borderRadius:8,fontSize:12,fontWeight:500,transition:'all 0.12s',...rxStyle(type,active)}}>
+                {icon} {fmt(c.rx[type]+(active?1:0))}
+              </button>
+            );
+          })}
+        </div>
+        <span style={{fontSize:11,color:'oklch(68% 0.006 260)'}}>{fmt(c.rx.fork+c.rx.merge+c.rx.support)} reactions</span>
+      </div>
+    </div>
+  );
+};
+
+/* ─── FEED VIEW ─── */
+const FeedView = ({ commits, onReact, onNew, compact }) => {
+  const [filter, setFilter] = useState('All');
+  const shown = filter === 'All' ? commits : commits.filter(c=>c.category===filter);
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <div style={{background:'white',borderBottom:'1px solid oklch(91% 0.006 80)',padding:'12px 24px',flexShrink:0}}>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {['All',...CATEGORIES].map(f => (
+            <button key={f} onClick={()=>setFilter(f)}
+              style={{padding:'5px 13px',borderRadius:20,fontSize:12.5,fontWeight:500,border:`1px solid ${filter===f?'oklch(52% 0.2 260)':'oklch(88% 0.008 260)'}`,background:filter===f?'oklch(52% 0.2 260)':'white',color:filter===f?'white':'oklch(48% 0.01 260)',transition:'all 0.12s',cursor:'pointer'}}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto'}}>
+        <div style={{maxWidth:620,margin:'0 auto',padding:'20px 0 80px'}}>
+          {shown.map(c=><CommitCard key={c.id} c={c} onReact={onReact} compact={compact}/>)}
+          {shown.length===0 && <div style={{textAlign:'center',padding:'60px 20px',color:'oklch(58% 0.01 260)',fontSize:14}}>Nothing here yet.</div>}
+        </div>
+      </div>
+      <button onClick={onNew}
+        style={{position:'fixed',bottom:28,right:28,background:'oklch(52% 0.2 260)',color:'white',border:'none',borderRadius:13,padding:'12px 22px',fontSize:14,fontWeight:600,display:'flex',alignItems:'center',gap:8,boxShadow:'0 4px 20px oklch(52% 0.2 260 / 0.35)',transition:'all 0.15s',cursor:'pointer'}}
+        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 6px 26px oklch(52% 0.2 260 / 0.42)';}}
+        onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px oklch(52% 0.2 260 / 0.35)';}}>
+        + New commit
+      </button>
+    </div>
+  );
+};
+
+/* ─── TIMELINE: GIT GRAPH ─── */
+const GitGraph = ({ commits }) => {
+  const COL = { main:0, 'wi-startup':1, 'wi-phd':2, 'wi-nyc':3 };
+  const COLORS = ['oklch(52% 0.2 260)','oklch(60% 0.19 55)','oklch(56% 0.2 330)','oklch(52% 0.18 200)'];
+  const CW=22, RH=70;
+  const svgW = CW*4+4;
+  return (
+    <div>
+      {commits.map((c,i) => {
+        const col = COL[c.branch]??1;
+        const color = c.wi ? COLORS[col] : COLORS[0];
+        const mainX=CW/2, cx=col*CW+CW/2, midY=RH/2;
+        return (
+          <div key={c.id} style={{display:'flex',alignItems:'stretch'}}>
+            <svg width={svgW} height={RH} style={{flexShrink:0,display:'block'}}>
+              <line x1={mainX} y1={0} x2={mainX} y2={RH} stroke="oklch(52% 0.2 260)" strokeWidth={2}/>
+              {col>0 && <line x1={cx} y1={0} x2={cx} y2={RH} stroke={COLORS[col]} strokeWidth={1.5} strokeDasharray="5 3"/>}
+              {col>0 && i>0 && COL[commits[i-1]?.branch]===0 && <path d={`M ${mainX} 0 C ${mainX} ${midY*0.6} ${cx} ${midY*0.4} ${cx} ${midY}`} fill="none" stroke={COLORS[col]} strokeWidth={1.5} strokeDasharray="5 3"/>}
+              {c.merged && <path d={`M ${cx} ${midY} C ${cx} ${midY+14} ${mainX} ${RH-10} ${mainX} ${RH}`} fill="none" stroke="oklch(50% 0.18 155)" strokeWidth={1.5}/>}
+              {c.wi ? <><circle cx={cx} cy={midY} r={6} fill="white" stroke={color} strokeWidth={2}/><circle cx={cx} cy={midY} r={2.5} fill={color}/></> : <circle cx={cx} cy={midY} r={6} fill={color} stroke="white" strokeWidth={2}/>}
+            </svg>
+            <div style={{flex:1,padding:`${(RH-52)/2}px 0 ${(RH-52)/2}px 14px`,borderBottom:i<commits.length-1?'1px solid oklch(96% 0.004 80)':'none',display:'flex',flexDirection:'column',justifyContent:'center',gap:3}}>
+              <div style={{display:'flex',alignItems:'center',gap:7}}>
+                <span style={{fontSize:13.5,fontWeight:600,lineHeight:1.35,color:c.wi?'oklch(45% 0.18 55)':'oklch(15% 0.015 260)'}}>{c.message}</span>
+                {c.merged && <span style={{fontSize:10,padding:'1px 5px',background:'oklch(92% 0.05 155)',color:'oklch(38% 0.18 155)',borderRadius:4,fontWeight:600,flexShrink:0}}>merged</span>}
+              </div>
+              <div style={{display:'flex',gap:7,alignItems:'center'}}>
+                <span style={{fontSize:11,color:'oklch(60% 0.008 260)',fontFamily:"'JetBrains Mono',monospace"}}>{c.date}</span>
+                <Tag cat={c.category}/>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+/* ─── TIMELINE: COMMIT LOG ─── */
+const CommitLog = ({ commits }) => (
+  <div>
+    {commits.map((c,i) => {
+      const bm = branchMeta(c.branch);
+      return (
+        <div key={c.id} style={{display:'flex',gap:14,padding:'14px 0',borderBottom:i<commits.length-1?'1px solid oklch(96% 0.004 80)':'none'}}>
+          <div style={{width:3,borderRadius:2,background:bm.color,flexShrink:0,alignSelf:'stretch',opacity:c.wi?0.6:1}}/>
+          <div style={{flex:1}}>
+            <div style={{display:'flex',gap:7,alignItems:'center',marginBottom:5}}>
+              <BranchPill name={c.branch==='main'?'main':bm.name} wi={c.wi} merged={c.merged}/>
+              {c.merged && <span style={{fontSize:10,padding:'1px 5px',background:'oklch(92% 0.05 155)',color:'oklch(38% 0.18 155)',borderRadius:4,fontWeight:600}}>merged</span>}
+            </div>
+            <div style={{fontSize:13.5,fontWeight:600,marginBottom:5,color:c.wi?'oklch(45% 0.18 55)':'oklch(15% 0.015 260)',lineHeight:1.35}}>{c.message}</div>
+            <div style={{display:'flex',gap:7,alignItems:'center'}}>
+              <span style={{fontSize:11,color:'oklch(60% 0.008 260)',fontFamily:"'JetBrains Mono',monospace"}}>{c.date}</span>
+              <Tag cat={c.category}/>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
+
+/* ─── TIMELINE: HORIZONTAL ─── */
+const HorizTimeline = ({ commits }) => {
+  const main = commits.filter(c=>c.branch==='main');
+  const branches = commits.filter(c=>c.branch!=='main');
+  const NW=190, totalW=Math.max(main.length*NW+60,700);
+  return (
+    <div style={{overflowX:'auto',paddingBottom:16}}>
+      <div style={{width:totalW,position:'relative',height:240}}>
+        <div style={{position:'absolute',top:80,left:40,width:totalW-60,height:2,background:'oklch(52% 0.2 260)',borderRadius:1}}/>
+        {main.map((c,i) => {
+          const x=40+i*NW;
+          const forks = branches.filter(b=>{ const bi=commits.indexOf(b),ci=commits.indexOf(c),ni=commits.indexOf(main[i+1]); return bi>ci&&(ni===-1||bi<ni); });
+          return (
+            <div key={c.id} style={{position:'absolute',top:0,left:x}}>
+              <div style={{position:'absolute',top:72,left:-7,width:16,height:16,borderRadius:'50%',background:'oklch(52% 0.2 260)',border:'3px solid white',boxShadow:'0 0 0 2px oklch(52% 0.2 260)'}}/>
+              <div style={{position:'absolute',top:98,left:-NW/2+10,width:NW-20,textAlign:'center'}}>
+                <div style={{fontSize:12,fontWeight:600,color:'oklch(15% 0.015 260)',lineHeight:1.35,marginBottom:3}}>{c.message}</div>
+                <div style={{fontSize:10,color:'oklch(60% 0.008 260)',marginBottom:4,fontFamily:"'JetBrains Mono',monospace"}}>{c.date}</div>
+                <Tag cat={c.category}/>
+              </div>
+              {forks.map((f,fi) => {
+                const bm=branchMeta(f.branch);
+                return (
+                  <div key={f.id} style={{position:'absolute',top:80-(fi+1)*60-14,left:0}}>
+                    <div style={{position:'absolute',bottom:14,left:0,width:NW*0.55,height:1.5,background:bm.color,opacity:0.7}}/>
+                    <div style={{position:'absolute',bottom:6,left:0,width:13,height:13,borderRadius:'50%',background:'white',border:`2px solid ${bm.color}`}}>
+                      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:5,height:5,borderRadius:'50%',background:bm.color}}/>
+                    </div>
+                    <div style={{position:'absolute',bottom:22,left:0,width:NW*0.8,fontSize:11,color:'oklch(45% 0.18 55)',fontWeight:500,lineHeight:1.3}}>{f.message}</div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ─── ACTIVITY GRAPH ─── */
+const ActivityGraph = () => {
+  const [hovered, setHovered] = useState(null);
+  const CELL=10, GAP=2;
+
+  const getDate = (week, day) => {
+    const d = new Date(GRAPH_START);
+    d.setDate(d.getDate() + week*7 + day);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  };
+
+  const monthLabels = [];
+  WEEK_MONTHS.forEach((m,i) => {
+    if (i===0 || m!==WEEK_MONTHS[i-1]) monthLabels.push({ week:i, label:m });
+  });
+
+  return (
+    <div>
+      <div style={{fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(58% 0.01 260)',marginBottom:10}}>Commit activity</div>
+      <div style={{display:'flex',gap:8,marginBottom:12}}>
+        {[[String(totalCommits),'commits'],['6wk','streak'],['Career','top area']].map(([val,lbl]) => (
+          <div key={lbl} style={{flex:1,padding:'7px 8px',background:'oklch(97% 0.006 260)',borderRadius:8,textAlign:'center'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'oklch(25% 0.015 260)'}}>{val}</div>
+            <div style={{fontSize:10,color:'oklch(58% 0.01 260)',marginTop:1}}>{lbl}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{position:'relative'}}>
+        <div style={{marginLeft:18,marginBottom:3,position:'relative',height:14}}>
+          {monthLabels.map(({week,label}) => (
+            <div key={week} style={{position:'absolute',left:week*(CELL+GAP),fontSize:9.5,fontWeight:600,color:'oklch(58% 0.01 260)',whiteSpace:'nowrap'}}>{label}</div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:0}}>
+          <div style={{display:'flex',flexDirection:'column',gap:GAP,marginRight:4,flexShrink:0}}>
+            {DAY_LABELS.map((d,i) => <div key={i} style={{height:CELL,fontSize:9,color:'oklch(62% 0.01 260)',lineHeight:`${CELL}px`,textAlign:'right',width:14}}>{d}</div>)}
+          </div>
+          <div style={{display:'flex',gap:GAP}}>
+            {WEEK_DATA.map((week,wi) => (
+              <div key={wi} style={{display:'flex',flexDirection:'column',gap:GAP}}>
+                {week.map((count,di) => {
+                  const isHov = hovered?.week===wi && hovered?.day===di;
+                  return (
+                    <div key={di}
+                      onMouseEnter={()=>setHovered({week:wi,day:di,count,date:getDate(wi,di)})}
+                      onMouseLeave={()=>setHovered(null)}
+                      style={{width:CELL,height:CELL,borderRadius:2,background:CELL_COLORS[count],transition:'transform 0.1s',transform:isHov?'scale(1.4)':'scale(1)',cursor:'default',position:'relative',zIndex:isHov?2:1}}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        {hovered && (
+          <div style={{position:'absolute',bottom:-42,left:18,background:'oklch(18% 0.015 260)',color:'white',padding:'5px 10px',borderRadius:7,fontSize:11,fontWeight:500,whiteSpace:'nowrap',pointerEvents:'none',zIndex:10,lineHeight:1.6}}>
+            <div style={{opacity:0.65,fontSize:10}}>{hovered.date}</div>
+            <div>{hovered.count===0?'No commits':`${hovered.count} commit${hovered.count>1?'s':''}`}</div>
+          </div>
+        )}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:4,marginTop:16,justifyContent:'flex-end'}}>
+        <span style={{fontSize:9.5,color:'oklch(62% 0.01 260)'}}>Less</span>
+        {CELL_COLORS.map((bg,i) => <div key={i} style={{width:9,height:9,borderRadius:2,background:bg}}/>)}
+        <span style={{fontSize:9.5,color:'oklch(62% 0.01 260)'}}>More</span>
+      </div>
+    </div>
+  );
+};
+
+/* ─── PROFILE VIEW ─── */
+const ProfileView = ({ viz }) => {
+  const [activeBranch, setActiveBranch] = useState('all');
+  const shown = activeBranch==='all' ? MY_TIMELINE : MY_TIMELINE.filter(c=>c.branch===activeBranch);
+  const Viz = { graph:GitGraph, log:CommitLog, horizontal:HorizTimeline }[viz] || GitGraph;
+  return (
+    <div style={{height:'100%',overflowY:'auto'}}>
+      <div style={{maxWidth:940,margin:'0 auto',padding:'28px 28px 60px'}}>
+        {/* Header */}
+        <div style={{display:'flex',gap:24,alignItems:'flex-start',marginBottom:32}}>
+          <div style={{width:72,height:72,borderRadius:'50%',background:ME.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,fontWeight:700,color:'white',flexShrink:0}}>{ME.ini}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:21,fontWeight:700,marginBottom:1}}>{ME.name}</div>
+            <div style={{fontSize:12.5,color:'oklch(55% 0.01 260)',fontFamily:"'JetBrains Mono',monospace",marginBottom:7}}>{ME.handle}</div>
+            <div style={{fontSize:13.5,color:'oklch(44% 0.01 260)',lineHeight:1.55,marginBottom:12}}>{ME.bio}</div>
+            <div style={{display:'flex',gap:22}}>
+              {[['commits',ME.commits],['branches',ME.branches],['followers',ME.followers],['following',ME.following]].map(([lbl,val]) => (
+                <div key={lbl}><span style={{fontSize:15,fontWeight:700}}>{fmt(val)}</span> <span style={{fontSize:12,color:'oklch(58% 0.01 260)'}}>{lbl}</span></div>
+              ))}
+            </div>
+          </div>
+          <button style={{padding:'8px 16px',borderRadius:9,border:'1px solid oklch(88% 0.008 260)',background:'white',fontSize:13,fontWeight:500,color:'oklch(42% 0.01 260)',cursor:'pointer',flexShrink:0}}>Edit profile</button>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:20}}>
+          {/* Left */}
+          <div>
+            <div style={{fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(58% 0.01 260)',marginBottom:9}}>Branches</div>
+            {[{id:'all',name:'all',color:'oklch(80% 0.01 260)',merged:false},...MY_BRANCHES].map(b => (
+              <div key={b.id} onClick={()=>setActiveBranch(b.id)}
+                style={{display:'flex',alignItems:'center',gap:8,padding:'7px 9px',borderRadius:8,cursor:'pointer',marginBottom:2,background:activeBranch===b.id?'oklch(95% 0.015 260)':'transparent',transition:'background 0.12s'}}>
+                <div style={{width:7,height:7,borderRadius:'50%',background:b.color,flexShrink:0}}/>
+                <span style={{fontSize:11.5,fontFamily:"'JetBrains Mono',monospace",fontWeight:500,flex:1,whiteSpace:'nowrap'}}>{b.name}</span>
+                {b.merged && <span style={{fontSize:9,padding:'1px 5px',background:'oklch(92% 0.05 155)',color:'oklch(38% 0.18 155)',borderRadius:3,fontWeight:600}}>merged</span>}
+              </div>
+            ))}
+            <div style={{marginTop:18,padding:'14px',background:'white',borderRadius:12,border:'1px solid oklch(91% 0.006 80)'}}>
+              <ActivityGraph/>
+            </div>
+          </div>
+          {/* Timeline */}
+          <div style={{background:'white',borderRadius:14,border:'1px solid oklch(91% 0.006 80)',padding:'20px 22px'}}>
+            <div style={{fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(58% 0.01 260)',marginBottom:16}}>
+              {{graph:'Git Graph',log:'Commit Log',horizontal:'Timeline'}[viz]||'Git Graph'}
+            </div>
+            <Viz commits={shown}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── NEW COMMIT MODAL ─── */
+const NewCommitModal = ({ onClose, onSubmit }) => {
+  const [commitType, setCommitType] = useState('main');
+  const [msg, setMsg] = useState('');
+  const [body, setBody] = useState('');
+  const [cat, setCat] = useState('');
+  const [branchName, setBranchName] = useState('');
+  const submit = () => {
+    if (!msg.trim()) return;
+    onSubmit({ message:msg.trim(), body:body.trim()||null, category:cat||'Career', branch:commitType==='main'?'main':`what-if/${branchName||'untitled'}`, wi:commitType==='whatif' });
+    onClose();
+  };
+  const iStyle = {width:'100%',padding:'9px 13px',border:'1px solid oklch(88% 0.008 260)',borderRadius:9,fontSize:13.5,color:'oklch(18% 0.015 260)',background:'white',outline:'none',transition:'border-color 0.15s'};
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'oklch(15% 0.02 260 / 0.38)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,backdropFilter:'blur(4px)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:18,padding:'28px',width:520,maxWidth:'calc(100vw - 32px)',boxShadow:'0 24px 64px oklch(25% 0.05 260 / 0.18)'}}>
+        <div style={{fontSize:17,fontWeight:700,marginBottom:22,display:'flex',alignItems:'center',gap:9}}>
+          <span style={{width:32,height:32,borderRadius:8,background:'oklch(93% 0.05 260)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:'oklch(42% 0.2 260)'}}>+</span>
+          New commit
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.07em',color:'oklch(50% 0.01 260)',marginBottom:7}}>Branch type</div>
+          <div style={{display:'flex',gap:8}}>
+            {[['main','● main — real life','oklch(52% 0.2 260)'],['whatif','⎇ what-if branch','oklch(60% 0.19 55)']].map(([val,lbl,clr]) => (
+              <button key={val} onClick={()=>setCommitType(val)} style={{flex:1,padding:'8px 12px',borderRadius:9,fontSize:13,fontWeight:500,cursor:'pointer',transition:'all 0.12s',border:commitType===val?`1px solid ${clr}`:'1px solid oklch(88% 0.008 260)',background:commitType===val?clr:'white',color:commitType===val?'white':'oklch(48% 0.01 260)'}}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+        {commitType==='whatif' && (
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.07em',color:'oklch(50% 0.01 260)',marginBottom:7}}>Branch name</div>
+            <input style={iStyle} placeholder="e.g. move-to-berlin" value={branchName} onChange={e=>setBranchName(e.target.value)}
+              onFocus={e=>e.target.style.borderColor='oklch(52% 0.2 260)'} onBlur={e=>e.target.style.borderColor='oklch(88% 0.008 260)'}/>
+            <div style={{fontSize:11,color:'oklch(60% 0.01 260)',marginTop:4,fontFamily:"'JetBrains Mono',monospace"}}>what-if/{branchName||'branch-name'}</div>
+          </div>
+        )}
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.07em',color:'oklch(50% 0.01 260)',marginBottom:7}}>Commit message</div>
+          <input style={iStyle} placeholder="What decision did you make (or imagine)?" value={msg} onChange={e=>setMsg(e.target.value)}
+            onFocus={e=>e.target.style.borderColor='oklch(52% 0.2 260)'} onBlur={e=>e.target.style.borderColor='oklch(88% 0.008 260)'}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.07em',color:'oklch(50% 0.01 260)',marginBottom:7}}>Description <span style={{fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(optional)</span></div>
+          <textarea style={{...iStyle,resize:'vertical'}} rows={3} placeholder="Context, reasoning, how it felt..." value={body} onChange={e=>setBody(e.target.value)}
+            onFocus={e=>e.target.style.borderColor='oklch(52% 0.2 260)'} onBlur={e=>e.target.style.borderColor='oklch(88% 0.008 260)'}/>
+        </div>
+        <div style={{marginBottom:22}}>
+          <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.07em',color:'oklch(50% 0.01 260)',marginBottom:7}}>Category</div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {CATEGORIES.map(c => (
+              <button key={c} onClick={()=>setCat(c)} style={{padding:'4px 12px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',transition:'all 0.12s',border:`1px solid ${cat===c?'oklch(52% 0.2 260)':'oklch(88% 0.008 260)'}`,background:cat===c?'oklch(52% 0.2 260)':'white',color:cat===c?'white':'oklch(48% 0.01 260)'}}>{c}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
+          <button onClick={onClose} style={{padding:'9px 18px',borderRadius:9,border:'1px solid oklch(88% 0.008 260)',background:'white',fontSize:13.5,fontWeight:500,color:'oklch(44% 0.01 260)',cursor:'pointer'}}>Cancel</button>
+          <button onClick={submit} disabled={!msg.trim()} style={{padding:'9px 22px',borderRadius:9,border:'none',background:msg.trim()?'oklch(52% 0.2 260)':'oklch(80% 0.05 260)',color:'white',fontSize:13.5,fontWeight:600,cursor:msg.trim()?'pointer':'not-allowed',transition:'background 0.15s'}}>Commit</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── EXPLORE ─── */
+const ALL_USERS = {
+  ...USERS,
+  priya: { id:'priya', name:'Priya Sharma',   handle:'@priya.sharma',   ini:'PS', color:'oklch(58% 0.2 40)',   bio:'Architect. Slow traveler. Dog person.',    commits:34, branches:4, followers:890,  following:120 },
+  luca:  { id:'luca',  name:'Luca Ferretti',  handle:'@luca.ferretti',  ini:'LF', color:'oklch(50% 0.18 230)', bio:'Writer. Ex-lawyer. Figuring it out.',      commits:19, branches:6, followers:654,  following:88  },
+  sofia: { id:'sofia', name:'Sofia Andersen', handle:'@sofia.andersen', ini:'SA', color:'oklch(52% 0.18 160)', bio:'Product manager. Marathon runner.',         commits:61, branches:8, followers:1780, following:203 },
+};
+const EXPLORE_COMMITS = [
+  ...INIT_FEED,
+  { id:'e1', userId:'priya', branch:'main',               message:'Quit architecture firm to go independent',    body:'7 years, 3 promotions. But I wanted to design things I believed in. Took the leap last Friday.',  category:'Career',    ts:'5h ago',  rx:{fork:201,merge:134,support:512}, ur:{}, wi:false },
+  { id:'e2', userId:'sofia', branch:'main',               message:'Adopted a dog — best commit I ever made',     body:null,                                                                                              category:'Health',    ts:'8h ago',  rx:{fork:18, merge:445,support:891}, ur:{}, wi:false },
+  { id:'e3', userId:'luca',  branch:'what-if/leave-city', message:'What if I moved to a small town for 2 years?',body:'Cheaper, quieter, more creative. But my whole network is here. 50/50.',                          category:'Housing',   ts:'12h ago', rx:{fork:178,merge:62, support:241}, ur:{}, wi:true  },
+  { id:'e4', userId:'priya', branch:'what-if/sabbatical', message:'What if I took a 6-month unpaid sabbatical?', body:'Have the savings. Have the ideas. Just need the courage to pull the trigger.',                    category:'Career',    ts:'1d ago',  rx:{fork:234,merge:88, support:390}, ur:{}, wi:true  },
+  { id:'e5', userId:'sofia', branch:'main',               message:'Negotiated a 32-hour work week',              body:'Took 3 months and a competing offer. Worth every awkward conversation.',                          category:'Career',    ts:'2d ago',  rx:{fork:89, merge:312,support:674}, ur:{}, wi:false },
+  { id:'e6', userId:'luca',  branch:'main',               message:'Published first essay — 40k reads',           body:null,                                                                                              category:'Education', ts:'2d ago',  rx:{fork:34, merge:156,support:423}, ur:{}, wi:false },
+  { id:'e7', userId:'taylor',branch:'what-if/freelance',  message:'What if I freelanced instead of full-time?',  body:'Better pay, more autonomy. Worse benefits. Running the math.',                                    category:'Finance',   ts:'3d ago',  rx:{fork:112,merge:44, support:189}, ur:{}, wi:true  },
+  { id:'e8', userId:'maya',  branch:'what-if/cofounder',  message:'What if I joined a startup as a cofounder?',  body:'The team is solid. The idea is risky. Equity vs salary feels like a coin flip right now.',          category:'Career',    ts:'4d ago',  rx:{fork:167,merge:55, support:290}, ur:{}, wi:true  },
+];
+const TRENDING = [...EXPLORE_COMMITS].sort((a,b)=>(b.rx.fork+b.rx.merge+b.rx.support)-(a.rx.fork+a.rx.merge+a.rx.support));
+const WHATIFS  = [...EXPLORE_COMMITS].filter(c=>c.wi).sort((a,b)=>b.rx.fork-a.rx.fork);
+const SUGGESTED_PEOPLE = [
+  { ...ALL_USERS.priya, mutual:2,  followed:false },
+  { ...ALL_USERS.sofia, mutual:5,  followed:false },
+  { ...ALL_USERS.luca,  mutual:1,  followed:false },
+  { ...USERS.jordan,    mutual:12, followed:true  },
+  { ...USERS.taylor,    mutual:8,  followed:true  },
+];
+
+const ExploreCard = ({ c, rank }) => {
+  const user = ALL_USERS[c.userId];
+  const [reacted, setReacted] = useState({});
+  if (!user) return null;
+  const rankBg = ['oklch(72% 0.18 60)','oklch(78% 0.06 260)','oklch(68% 0.12 30)'][rank-1];
+  return (
+    <div style={{background:c.wi?'oklch(99.5% 0.012 65)':'white',border:`1px solid ${c.wi?'oklch(88% 0.1 60)':'oklch(91% 0.006 80)'}`,borderRadius:14,padding:'16px 18px',marginBottom:10,position:'relative',overflow:'hidden'}}>
+      {rank && rank<=3 && <div style={{position:'absolute',top:12,right:12,width:22,height:22,borderRadius:6,background:rankBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10.5,fontWeight:700,color:'white'}}>#{rank}</div>}
+      {c.wi && <div style={{fontSize:11.5,color:'oklch(48% 0.19 55)',fontWeight:500,marginBottom:7}}>⎇ what-if</div>}
+      <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:10}}>
+        <div style={{width:32,height:32,borderRadius:'50%',background:user.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10.5,fontWeight:700,color:'white',flexShrink:0}}>{user.ini}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <span style={{fontSize:13,fontWeight:600}}>{user.name}</span>
+          <span style={{fontSize:12,color:'oklch(58% 0.01 260)',marginLeft:6}}>{c.ts}</span>
+        </div>
+        <BranchPill name={c.branch} wi={c.wi} merged={false}/>
+      </div>
+      <div style={{fontSize:14.5,fontWeight:600,lineHeight:1.4,marginBottom:c.body?7:10,color:c.wi?'oklch(42% 0.18 55)':'oklch(15% 0.015 260)'}}>{c.message}</div>
+      {c.body && <div style={{fontSize:13,color:'oklch(44% 0.01 260)',lineHeight:1.6,marginBottom:10}}>{c.body}</div>}
+      <div style={{marginBottom:10}}><Tag cat={c.category}/></div>
+      <div style={{display:'flex',gap:5,paddingTop:10,borderTop:'1px solid oklch(96% 0.004 80)'}}>
+        {[['⎇','fork',c.rx.fork],['↩','merge',c.rx.merge],['♡','support',c.rx.support]].map(([icon,type,base]) => (
+          <button key={type} onClick={()=>setReacted(p=>({...p,[type]:!p[type]}))}
+            style={{display:'flex',alignItems:'center',gap:5,padding:'4px 9px',borderRadius:7,fontSize:12,fontWeight:500,border:`1px solid ${reacted[type]?'oklch(52% 0.2 260)':'oklch(90% 0.006 260)'}`,background:reacted[type]?'oklch(95% 0.015 260)':'white',color:reacted[type]?'oklch(42% 0.2 260)':'oklch(50% 0.01 260)',cursor:'pointer',transition:'all 0.12s'}}>
+            {icon} {fmt(base+(reacted[type]?1:0))}
+          </button>
+        ))}
+        <span style={{marginLeft:'auto',fontSize:11,color:'oklch(68% 0.006 260)',display:'flex',alignItems:'center'}}>{fmt(c.rx.fork+c.rx.merge+c.rx.support)} reactions</span>
+      </div>
+    </div>
+  );
+};
+
+const ExploreView = () => {
+  const [search, setSearch]       = useState('');
+  const [tab, setTab]             = useState('trending');
+  const [catFilter, setCatFilter] = useState('All');
+  const [followed, setFollowed]   = useState(()=>new Set(['jordan','taylor']));
+  const base = tab==='trending' ? TRENDING : WHATIFS;
+  const shownCommits = base.filter(c => {
+    const u = ALL_USERS[c.userId];
+    return (catFilter==='All'||c.category===catFilter) && (!search||c.message.toLowerCase().includes(search.toLowerCase())||(u?.name||'').toLowerCase().includes(search.toLowerCase()));
+  });
+  const peopleResults = search ? Object.values(ALL_USERS).filter(u=>u.id!=='alex'&&(u.name.toLowerCase().includes(search.toLowerCase())||u.handle.toLowerCase().includes(search.toLowerCase()))) : [];
+  const toggleFollow = id => setFollowed(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <div style={{background:'white',borderBottom:'1px solid oklch(91% 0.006 80)',padding:'12px 22px',flexShrink:0}}>
+        <div style={{position:'relative',maxWidth:640}}>
+          <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',fontSize:15,color:'oklch(62% 0.01 260)',pointerEvents:'none'}}>⌕</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search decisions, people, branches..."
+            style={{width:'100%',padding:'9px 36px 9px 36px',borderRadius:10,border:'1px solid oklch(88% 0.008 260)',fontSize:13.5,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:'none',background:'oklch(98.5% 0.005 80)',color:'oklch(18% 0.015 260)',transition:'border-color 0.15s'}}
+            onFocus={e=>e.target.style.borderColor='oklch(52% 0.2 260)'} onBlur={e=>e.target.style.borderColor='oklch(88% 0.008 260)'}/>
+          {search && <button onClick={()=>setSearch('')} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',border:'none',background:'none',cursor:'pointer',fontSize:17,color:'oklch(60% 0.01 260)',lineHeight:1,padding:0}}>×</button>}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto'}}>
+        <div style={{maxWidth:660,margin:'0 auto',padding:'18px 0 60px'}}>
+          {!search && (
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(58% 0.01 260)',marginBottom:12,padding:'0 2px'}}>Suggested people</div>
+              <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6}}>
+                {SUGGESTED_PEOPLE.map(u => (
+                  <div key={u.id} style={{flexShrink:0,width:130,background:'white',border:'1px solid oklch(91% 0.006 80)',borderRadius:14,padding:'18px 12px 14px',display:'flex',flexDirection:'column',alignItems:'center',boxShadow:'0 1px 4px oklch(70% 0.01 260 / 0.06)',transition:'box-shadow 0.15s'}}
+                    onMouseEnter={e=>e.currentTarget.style.boxShadow='0 3px 14px oklch(70% 0.01 260 / 0.12)'}
+                    onMouseLeave={e=>e.currentTarget.style.boxShadow='0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
+                    <div style={{width:54,height:54,borderRadius:'50%',background:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:700,color:'white',marginBottom:10,position:'relative'}}>
+                      {u.ini}
+                      <div style={{position:'absolute',bottom:1,right:1,width:12,height:12,borderRadius:'50%',background:'oklch(58% 0.18 155)',border:'2px solid white'}}/>
+                    </div>
+                    <div style={{fontSize:13,fontWeight:700,textAlign:'center',marginBottom:2,lineHeight:1.2}}>{u.name.split(' ')[0]} {u.name.split(' ')[1]?.[0]}.</div>
+                    <div style={{fontSize:11,color:'oklch(58% 0.01 260)',textAlign:'center',marginBottom:12}}>{fmt(u.followers)} followers</div>
+                    <button onClick={()=>toggleFollow(u.id)}
+                      style={{width:'100%',padding:'6px 0',borderRadius:8,border:`1px solid ${followed.has(u.id)?'oklch(88% 0.008 260)':'oklch(52% 0.2 260)'}`,background:followed.has(u.id)?'white':'oklch(52% 0.2 260)',color:followed.has(u.id)?'oklch(44% 0.01 260)':'white',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.14s'}}>
+                      {followed.has(u.id)?'Following':'Follow'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {peopleResults.length>0 && (
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(58% 0.01 260)',marginBottom:11,padding:'0 2px'}}>People</div>
+              {peopleResults.map(u => (
+                <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'white',borderRadius:12,border:'1px solid oklch(91% 0.006 80)',marginBottom:8}}>
+                  <div style={{width:44,height:44,borderRadius:'50%',background:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'white',flexShrink:0}}>{u.ini}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:600}}>{u.name}</div>
+                    <div style={{fontSize:11.5,color:'oklch(58% 0.01 260)',fontFamily:"'JetBrains Mono',monospace"}}>{u.handle}</div>
+                    <div style={{fontSize:12,color:'oklch(50% 0.01 260)',marginTop:2}}>{u.bio}</div>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    <div style={{fontSize:14,fontWeight:700}}>{fmt(u.commits)}</div>
+                    <div style={{fontSize:11,color:'oklch(58% 0.01 260)'}}>commits</div>
+                  </div>
+                </div>
+              ))}
+              {shownCommits.length>0 && <div style={{fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(58% 0.01 260)',marginBottom:11,marginTop:22,padding:'0 2px'}}>Decisions</div>}
+            </div>
+          )}
+
+          {!search && (
+            <>
+              <div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:12,paddingBottom:2}}>
+                {['All',...CATEGORIES].map(cat => {
+                  const active=catFilter===cat, c=cat!=='All'?catColor(cat):null;
+                  return (
+                    <button key={cat} onClick={()=>setCatFilter(cat)}
+                      style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontSize:12.5,fontWeight:500,cursor:'pointer',transition:'all 0.13s',border:`1px solid ${active?(c?c.fg:'oklch(52% 0.2 260)'):'oklch(88% 0.008 260)'}`,background:active?(c?c.bg:'oklch(93% 0.05 260)'):'white',color:active?(c?c.fg:'oklch(42% 0.2 260)'):'oklch(48% 0.01 260)'}}>
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{display:'flex',gap:0,marginBottom:14,background:'white',borderRadius:10,border:'1px solid oklch(91% 0.006 80)',padding:4}}>
+                {[['trending','🔥  Trending'],['whatifs','⎇  What-ifs']].map(([id,lbl]) => (
+                  <button key={id} onClick={()=>setTab(id)}
+                    style={{flex:1,padding:'7px',borderRadius:7,border:'none',fontSize:13,fontWeight:600,background:tab===id?'oklch(52% 0.2 260)':'transparent',color:tab===id?'white':'oklch(50% 0.01 260)',cursor:'pointer',transition:'all 0.14s'}}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {shownCommits.map((c,i)=><ExploreCard key={c.id} c={c} rank={!search&&tab==='trending'?i+1:null}/>)}
+          {shownCommits.length===0 && <div style={{textAlign:'center',padding:'60px 20px',color:'oklch(58% 0.01 260)'}}><div style={{fontSize:32,marginBottom:10}}>⌕</div><div style={{fontSize:14,fontWeight:500}}>No results found</div></div>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── SETTINGS VIEW ─── */
+const SettingsView = () => {
+  const [notifs, setNotifs] = useState({ reactions:true, follows:true, whatifs:false, digest:true });
+  const [privacy, setPrivacy] = useState({ mainPublic:true, branchesPublic:false, activityPublic:true });
+  const [theme, setTheme] = useState('system');
+  const [defaultBranch, setDefaultBranch] = useState('main');
+  const [language, setLanguage] = useState('en');
+
+  const Section = ({ title, children }) => (
+    <div style={{background:'white',borderRadius:14,border:'1px solid oklch(91% 0.006 80)',padding:'22px 24px',marginBottom:16}}>
+      <div style={{fontSize:13,fontWeight:700,color:'oklch(22% 0.01 260)',marginBottom:18,paddingBottom:12,borderBottom:'1px solid oklch(94% 0.004 80)'}}>{title}</div>
+      {children}
+    </div>
+  );
+
+  const Toggle = ({ checked, onChange }) => (
+    <div onClick={()=>onChange(!checked)}
+      style={{width:36,height:20,borderRadius:10,background:checked?'oklch(52% 0.2 260)':'oklch(85% 0.008 260)',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}>
+      <div style={{position:'absolute',top:3,left:checked?17:3,width:14,height:14,borderRadius:'50%',background:'white',transition:'left 0.2s',boxShadow:'0 1px 3px oklch(0% 0 0 / 0.2)'}}/>
+    </div>
+  );
+
+  const Row = ({ label, sub, right }) => (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0',borderBottom:'1px solid oklch(96% 0.004 80)'}}>
+      <div>
+        <div style={{fontSize:13.5,fontWeight:500,color:'oklch(20% 0.01 260)'}}>{label}</div>
+        {sub && <div style={{fontSize:11.5,color:'oklch(58% 0.01 260)',marginTop:2}}>{sub}</div>}
+      </div>
+      {right}
+    </div>
+  );
+
+  const Select = ({ value, onChange, opts }) => (
+    <select value={value} onChange={e=>onChange(e.target.value)}
+      style={{padding:'5px 10px',borderRadius:7,border:'1px solid oklch(88% 0.008 260)',fontSize:12.5,fontFamily:"'Plus Jakarta Sans',sans-serif",color:'oklch(25% 0.01 260)',background:'white',cursor:'pointer',outline:'none'}}>
+      {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+    </select>
+  );
+
+  return (
+    <div style={{height:'100%',overflowY:'auto'}}>
+      <div style={{maxWidth:680,margin:'0 auto',padding:'28px 28px 60px'}}>
+
+        <Section title="Account">
+          <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:18}}>
+            <div style={{width:60,height:60,borderRadius:'50%',background:ME.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:700,color:'white'}}>{ME.ini}</div>
+            <div>
+              <div style={{fontSize:15,fontWeight:700}}>{ME.name}</div>
+              <div style={{fontSize:12,color:'oklch(55% 0.01 260)',fontFamily:"'JetBrains Mono',monospace"}}>{ME.handle}</div>
+            </div>
+            <button style={{marginLeft:'auto',padding:'7px 16px',borderRadius:8,border:'1px solid oklch(88% 0.008 260)',background:'white',fontSize:13,fontWeight:500,color:'oklch(42% 0.01 260)',cursor:'pointer'}}>Edit profile</button>
+          </div>
+          <Row label="Email" sub="alex@gitlife.app" right={<button style={{padding:'5px 12px',borderRadius:7,border:'1px solid oklch(88% 0.008 260)',background:'white',fontSize:12,color:'oklch(42% 0.01 260)',cursor:'pointer'}}>Change</button>}/>
+          <Row label="Password" sub="Last changed 3 months ago" right={<button style={{padding:'5px 12px',borderRadius:7,border:'1px solid oklch(88% 0.008 260)',background:'white',fontSize:12,color:'oklch(42% 0.01 260)',cursor:'pointer'}}>Update</button>}/>
+          <Row label="Two-factor authentication" sub="Add extra security to your account" right={<button style={{padding:'5px 12px',borderRadius:7,border:'1px solid oklch(52% 0.2 260)',background:'oklch(93% 0.05 260)',fontSize:12,color:'oklch(42% 0.2 260)',cursor:'pointer',fontWeight:500}}>Enable</button>}/>
+        </Section>
+
+        <Section title="Notifications">
+          {[
+            ['reactions', 'Reactions on your commits', 'When someone forks, merges or supports your decisions'],
+            ['follows',   'New followers',             'When someone starts following your life'],
+            ['whatifs',   'Branch activity',           'Updates on your what-if branches'],
+            ['digest',    'Weekly digest',             'A summary of what people in your network are up to'],
+          ].map(([key,label,sub]) => (
+            <Row key={key} label={label} sub={sub} right={<Toggle checked={notifs[key]} onChange={v=>setNotifs(p=>({...p,[key]:v}))}/>}/>
+          ))}
+        </Section>
+
+        <Section title="Privacy">
+          {[
+            ['mainPublic',     'Public main branch',  'Anyone can see your real-life decisions'],
+            ['branchesPublic', 'Public what-if branches', 'Anyone can see your hypothetical branches'],
+            ['activityPublic', 'Show activity graph', 'Display your commit activity on your profile'],
+          ].map(([key,label,sub]) => (
+            <Row key={key} label={label} sub={sub} right={<Toggle checked={privacy[key]} onChange={v=>setPrivacy(p=>({...p,[key]:v}))}/>}/>
+          ))}
+        </Section>
+
+        <Section title="Preferences">
+          <Row label="Appearance" sub="Choose your interface theme" right={<Select value={theme} onChange={setTheme} opts={[['system','System'],['light','Light'],['dark','Dark']]}/>}/>
+          <Row label="Default branch" sub="Where new commits are added by default" right={<Select value={defaultBranch} onChange={setDefaultBranch} opts={[['main','main'],['prompt','Ask each time']]}/>}/>
+          <Row label="Language" sub="Interface language" right={<Select value={language} onChange={setLanguage} opts={[['en','English'],['es','Español'],['fr','Français'],['de','Deutsch'],['ja','日本語']]}/>}/>
+        </Section>
+
+        <Section title="Data & Export">
+          <Row label="Export my life data" sub="Download all your commits and branches as JSON" right={<button style={{padding:'5px 12px',borderRadius:7,border:'1px solid oklch(88% 0.008 260)',background:'white',fontSize:12,color:'oklch(42% 0.01 260)',cursor:'pointer'}}>Export</button>}/>
+          <Row label="Delete account" sub="Permanently remove your account and all data" right={<button style={{padding:'5px 12px',borderRadius:7,border:'1px solid oklch(75% 0.15 20)',background:'oklch(97% 0.015 20)',fontSize:12,color:'oklch(48% 0.2 20)',cursor:'pointer',fontWeight:500}}>Delete</button>}/>
+        </Section>
+
+      </div>
+    </div>
+  );
+};
+
+/* ─── MESSAGES VIEW ─── */
+const CONVOS = [
+  { id:'cv1', userId:'jordan', lastMsg:'Dude that freelance jump was terrifying but so worth it', ts:'2m',  unread:3 },
+  { id:'cv2', userId:'maya',   lastMsg:'Did you see that Lisbon what-if I posted?',               ts:'1h',  unread:1 },
+  { id:'cv3', userId:'taylor', lastMsg:'How did you negotiate the 4-day week?',                   ts:'3h',  unread:0 },
+  { id:'cv4', userId:'sam',    lastMsg:'Congrats on the marathon! Insane time 🏃',                ts:'1d',  unread:0 },
+];
+
+const THREAD_MSGS = {
+  cv1: [
+    { id:'m1', from:'jordan', text:'Bro I saw you quit your job. How are you feeling??', ts:'10:02 AM' },
+    { id:'m2', from:'alex',   text:'Honestly terrified. But also the most alive I\'ve felt in years.', ts:'10:05 AM' },
+    { id:'m3', from:'jordan', text:'That\'s exactly how I felt. Give it 3 months.', ts:'10:06 AM' },
+    { id:'m4', from:'alex',   text:'Did you have clients lined up before you quit?', ts:'10:08 AM' },
+    { id:'m5', from:'jordan', text:'Two warm leads. Enough to survive the first month.', ts:'10:09 AM' },
+    { id:'m6', from:'jordan', text:'Dude that freelance jump was terrifying but so worth it', ts:'10:11 AM', sharedCommit: { message:'Quit corporate job to freelance full-time', branch:'main', category:'Career', userId:'jordan' } },
+  ],
+  cv2: [
+    { id:'m1', from:'alex',   text:'Your Lisbon what-if post got so many forks!', ts:'Yesterday' },
+    { id:'m2', from:'maya',   text:'I know right! Makes me want to actually do it.', ts:'Yesterday' },
+    { id:'m3', from:'maya',   text:'Did you see that Lisbon what-if I posted?', ts:'Yesterday' },
+  ],
+  cv3: [
+    { id:'m1', from:'taylor', text:'How did you negotiate the 4-day week?', ts:'3h ago' },
+  ],
+  cv4: [
+    { id:'m1', from:'sam',    text:'Congrats on the marathon! Insane time 🏃', ts:'Yesterday' },
+  ],
+};
+
+const MessagesView = () => {
+  const [active, setActive] = useState('cv1');
+  const [input, setInput]   = useState('');
+  const [threads, setThreads] = useState(THREAD_MSGS);
+  const bottomRef = useRef();
+  const scrollRef = useRef();
+
+  const convo = CONVOS.find(c=>c.id===active);
+  const user  = convo ? USERS[convo.userId] : null;
+  const msgs  = threads[active] || [];
+
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior:'smooth' });
+    }
+  }, [threads, active]);
+
+  const send = () => {
+    if (!input.trim()) return;
+    const newMsg = { id:`msg_${Date.now()}`, from:'alex', text:input.trim(), ts:'just now' };
+    setThreads(p=>({...p,[active]:[...(p[active]||[]),newMsg]}));
+    setInput('');
+  };
+
+  return (
+    <div style={{height:'100%',display:'flex',overflow:'hidden'}}>
+      {/* Conversation list */}
+      <div style={{width:280,flexShrink:0,borderRight:'1px solid oklch(91% 0.006 80)',overflowY:'auto',background:'white'}}>
+        <div style={{padding:'16px 16px 10px',borderBottom:'1px solid oklch(94% 0.004 80)'}}>
+          <div style={{fontSize:12,fontWeight:700,color:'oklch(32% 0.01 260)',marginBottom:10}}>Messages</div>
+          <div style={{position:'relative'}}>
+            <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'oklch(65% 0.01 260)'}}>⌕</span>
+            <input placeholder="Search messages..." style={{width:'100%',padding:'7px 10px 7px 28px',borderRadius:8,border:'1px solid oklch(90% 0.008 260)',fontSize:12.5,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:'none',background:'oklch(98.5% 0.005 80)'}}/>
+          </div>
+        </div>
+        {CONVOS.map(cv => {
+          const u = USERS[cv.userId];
+          const isActive = cv.id === active;
+          return (
+            <div key={cv.id} onClick={()=>setActive(cv.id)}
+              style={{display:'flex',alignItems:'center',gap:11,padding:'12px 16px',cursor:'pointer',background:isActive?'oklch(95% 0.015 260)':'white',borderBottom:'1px solid oklch(96% 0.004 80)',transition:'background 0.12s'}}>
+              <div style={{position:'relative',flexShrink:0}}>
+                <div style={{width:40,height:40,borderRadius:'50%',background:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'white'}}>{u.ini}</div>
+                {cv.unread>0 && <div style={{position:'absolute',top:-2,right:-2,width:16,height:16,borderRadius:'50%',background:'oklch(52% 0.2 260)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'white',border:'2px solid white'}}>{cv.unread}</div>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:2}}>
+                  <span style={{fontSize:13,fontWeight:cv.unread?700:500,color:'oklch(18% 0.015 260)'}}>{u.name}</span>
+                  <span style={{fontSize:10.5,color:'oklch(62% 0.01 260)',flexShrink:0}}>{cv.ts}</span>
+                </div>
+                <div style={{fontSize:12,color:'oklch(52% 0.01 260)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:cv.unread?500:400}}>{cv.lastMsg}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Chat area */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        {/* Header */}
+        {user && (
+          <div style={{flexShrink:0,padding:'14px 20px',borderBottom:'1px solid oklch(91% 0.006 80)',background:'white',display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:36,height:36,borderRadius:'50%',background:user.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'white'}}>{user.ini}</div>
+            <div>
+              <div style={{fontSize:14,fontWeight:600}}>{user.name}</div>
+              <div style={{fontSize:11.5,color:'oklch(58% 0.01 260)',fontFamily:"'JetBrains Mono',monospace"}}>{user.handle}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        <div ref={scrollRef} style={{flex:1,overflowY:'auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:4}}>
+          {(() => {
+            // Group consecutive messages by sender+timestamp
+            const groups = [];
+            msgs.forEach(msg => {
+              const last = groups[groups.length-1];
+              if (last && last.from===msg.from && last.ts===msg.ts) {
+                last.messages.push(msg);
+              } else {
+                groups.push({ from:msg.from, ts:msg.ts, messages:[msg] });
+              }
+            });
+            return groups.map((g, gi) => {
+              const isMe = g.from === 'alex';
+              const sender = USERS[g.from];
+              return (
+                <div key={gi} style={{display:'flex',flexDirection:isMe?'row-reverse':'row',alignItems:'flex-end',gap:8,marginBottom:8}}>
+                  {!isMe && <div style={{width:28,height:28,borderRadius:'50%',background:sender?.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'white',flexShrink:0,alignSelf:'flex-end'}}>{sender?.ini}</div>}
+                  <div style={{maxWidth:'65%',display:'flex',flexDirection:'column',gap:3,alignItems:isMe?'flex-end':'flex-start'}}>
+                    {g.messages.map((msg,mi) => (
+                      <div key={msg.id}>
+                        {msg.sharedCommit && (
+                          <div style={{background:'white',border:'1px solid oklch(88% 0.008 260)',borderRadius:10,padding:'10px 12px',marginBottom:4}}>
+                            <div style={{fontSize:10,color:'oklch(58% 0.01 260)',marginBottom:4,display:'flex',alignItems:'center',gap:4}}><span>⎇</span> Shared commit</div>
+                            <div style={{fontSize:12.5,fontWeight:600,marginBottom:4,color:'oklch(18% 0.015 260)'}}>{msg.sharedCommit.message}</div>
+                            <BranchPill name={msg.sharedCommit.branch} wi={false} merged={false}/>
+                          </div>
+                        )}
+                        <div style={{
+                          padding:'9px 14px',
+                          borderRadius: (() => {
+                            const only = g.messages.length===1, first=mi===0, last=mi===g.messages.length-1;
+                            if (only) return '14px';
+                            if (isMe) {
+                              if (first) return '14px 14px 4px 14px';
+                              if (last)  return '14px 14px 14px 4px';
+                              return '14px 14px 4px 4px';
+                            } else {
+                              if (first) return '14px 14px 14px 4px';
+                              if (last)  return '4px 14px 14px 14px';
+                              return '4px 14px 14px 4px';
+                            }
+                          })(),
+                          background:isMe?'oklch(52% 0.2 260)':'white',
+                          color:isMe?'white':'oklch(18% 0.015 260)',
+                          fontSize:13.5, lineHeight:1.5,
+                          border:isMe?'none':'1px solid oklch(91% 0.006 80)',
+                          boxShadow:'0 1px 4px oklch(70% 0.01 260 / 0.06)',
+                        }}>{msg.text}</div>
+                      </div>
+                    ))}
+                    {/* Single timestamp for the whole group */}
+                    <div style={{fontSize:10.5,color:'oklch(65% 0.01 260)',marginTop:2,textAlign:isMe?'right':'left'}}>{g.ts}</div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+          <div ref={bottomRef}/>
+        </div>
+
+        {/* Input */}
+        <div style={{flexShrink:0,padding:'14px 20px',borderTop:'1px solid oklch(91% 0.006 80)',background:'white',display:'flex',gap:10,alignItems:'flex-end'}}>
+          <div style={{flex:1,border:'1px solid oklch(88% 0.008 260)',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,background:'oklch(98.5% 0.005 80)'}}>
+            <input value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&send()}
+              placeholder="Send a message..."
+              style={{flex:1,border:'none',background:'none',outline:'none',fontSize:13.5,fontFamily:"'Plus Jakarta Sans',sans-serif",color:'oklch(18% 0.015 260)'}}/>
+            <button style={{border:'none',background:'none',cursor:'pointer',fontSize:16,color:'oklch(65% 0.01 260)',padding:0}}>📎</button>
+          </div>
+          <button onClick={send}
+            style={{width:40,height:40,borderRadius:11,border:'none',background:'oklch(52% 0.2 260)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,fontSize:16}}>
+            ↑
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── NOTIFICATIONS VIEW ─── */
+const NOTIF_DATA = [
+  { id:'n1', type:'fork',    userId:'priya',  message:'forked your commit', commit:'Joined Series A startup as lead engineer', ts:'2m ago',  unread:true  },
+  { id:'n2', type:'support', userId:'sofia',  message:'supported your commit', commit:'Ran first marathon — finished in 3:47',   ts:'15m ago', unread:true  },
+  { id:'n3', type:'follow',  userId:'luca',   message:'started following you', commit:null,                                        ts:'1h ago',  unread:true  },
+  { id:'n4', type:'merge',   userId:'jordan', message:'merged your decision', commit:'Relocated to San Francisco',                ts:'2h ago',  unread:false },
+  { id:'n5', type:'fork',    userId:'taylor', message:'forked your what-if', commit:'What if I co-founded my own startup?',       ts:'3h ago',  unread:false },
+  { id:'n6', type:'support', userId:'maya',   message:'supported your commit', commit:'Left grad school, joined industry',         ts:'5h ago',  unread:false },
+  { id:'n7', type:'follow',  userId:'sam',    message:'started following you', commit:null,                                        ts:'1d ago',  unread:false },
+  { id:'n8', type:'merge',   userId:'priya',  message:'merged your decision', commit:'Started learning Japanese (N5 → N4)',       ts:'1d ago',  unread:false },
+  { id:'n9', type:'fork',    userId:'sofia',  message:'forked your what-if',  commit:'What if I moved to New York instead?',      ts:'2d ago',  unread:false },
+];
+
+const NotificationsView = () => {
+  const [notifs, setNotifs] = useState(NOTIF_DATA);
+  const unreadCount = notifs.filter(n=>n.unread).length;
+
+  const markAllRead = () => setNotifs(p=>p.map(n=>({...n,unread:false})));
+
+  const typeIcon = type => ({ fork:'⎇', merge:'↩', support:'♡', follow:'👤' }[type]||'●');
+  const typeBg   = type => ({ fork:'oklch(93% 0.06 60)', merge:'oklch(93% 0.05 260)', support:'oklch(93% 0.05 155)', follow:'oklch(93% 0.05 330)' }[type]||'oklch(93% 0.05 260)');
+  const typeFg   = type => ({ fork:'oklch(45% 0.19 55)', merge:'oklch(42% 0.2 260)',  support:'oklch(40% 0.18 155)', follow:'oklch(42% 0.18 330)' }[type]||'oklch(42% 0.2 260)');
+
+  return (
+    <div style={{height:'100%',overflowY:'auto'}}>
+      <div style={{maxWidth:620,margin:'0 auto',padding:'24px 0 60px'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,padding:'0 2px'}}>
+          <div style={{fontSize:13,fontWeight:600,color:'oklch(45% 0.01 260)'}}>
+            {unreadCount>0 ? `${unreadCount} unread` : 'All caught up'}
+          </div>
+          {unreadCount>0 && (
+            <button onClick={markAllRead} style={{fontSize:12.5,fontWeight:500,color:'oklch(42% 0.2 260)',background:'none',border:'none',cursor:'pointer',padding:0}}>Mark all read</button>
+          )}
+        </div>
+
+        {notifs.map(n => {
+          const u = ALL_USERS[n.userId];
+          return (
+            <div key={n.id} onClick={()=>setNotifs(p=>p.map(x=>x.id===n.id?{...x,unread:false}:x))}
+              style={{display:'flex',alignItems:'flex-start',gap:12,padding:'14px 16px',background:n.unread?'oklch(96.5% 0.012 260)':'white',border:`1px solid ${n.unread?'oklch(89% 0.04 260)':'oklch(92% 0.006 80)'}`,borderRadius:13,marginBottom:8,cursor:'pointer',transition:'background 0.15s'}}
+              onMouseEnter={e=>e.currentTarget.style.background=n.unread?'oklch(95% 0.018 260)':'oklch(98.5% 0.005 80)'}
+              onMouseLeave={e=>e.currentTarget.style.background=n.unread?'oklch(96.5% 0.012 260)':'white'}>
+              {/* Avatar + type icon */}
+              <div style={{position:'relative',flexShrink:0}}>
+                <div style={{width:40,height:40,borderRadius:'50%',background:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'white'}}>{u.ini}</div>
+                <div style={{position:'absolute',bottom:-2,right:-2,width:18,height:18,borderRadius:'50%',background:typeBg(n.type),border:'2px solid white',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:typeFg(n.type)}}>{typeIcon(n.type)}</div>
+              </div>
+              {/* Content */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13.5,lineHeight:1.45,marginBottom:n.commit?5:0}}>
+                  <span style={{fontWeight:700}}>{u.name}</span>
+                  <span style={{color:'oklch(44% 0.01 260)'}}> {n.message}</span>
+                </div>
+                {n.commit && (
+                  <div style={{fontSize:12,color:'oklch(48% 0.01 260)',background:'oklch(96% 0.006 80)',borderRadius:7,padding:'4px 9px',display:'inline-block',marginBottom:4,maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    "{n.commit}"
+                  </div>
+                )}
+                <div style={{fontSize:11,color:'oklch(62% 0.01 260)',marginTop:3}}>{n.ts}</div>
+              </div>
+              {n.unread && <div style={{width:8,height:8,borderRadius:'50%',background:'oklch(52% 0.2 260)',flexShrink:0,marginTop:4}}/>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ─── TWEAKS PANEL ─── */
+const TweaksPanel = ({ visible, tweaks, setTweaks }) => {
+  if (!visible) return null;
+  const set = (k,v) => { const n={...tweaks,[k]:v}; setTweaks(n); window.parent.postMessage({type:'__edit_mode_set_keys',edits:{[k]:v}},'*'); };
+  return (
+    <div style={{position:'fixed',bottom:80,right:24,background:'white',borderRadius:14,padding:'18px',boxShadow:'0 8px 40px oklch(30% 0.05 260 / 0.14)',border:'1px solid oklch(91% 0.006 80)',width:230,zIndex:50}}>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:14,color:'oklch(32% 0.01 260)'}}>Tweaks</div>
+      {[
+        { label:'Timeline view', key:'timelineViz', opts:[['graph','Git Graph'],['log','Commit Log'],['horizontal','Timeline']] },
+        { label:'Density',       key:'density',     opts:[['comfortable','Comfortable'],['compact','Compact']] },
+      ].map(g => (
+        <div key={g.key} style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'oklch(60% 0.01 260)',marginBottom:6}}>{g.label}</div>
+          <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+            {g.opts.map(([val,lbl]) => (
+              <button key={val} onClick={()=>set(g.key,val)} style={{padding:'4px 10px',borderRadius:6,fontSize:11.5,cursor:'pointer',border:`1px solid ${tweaks[g.key]===val?'oklch(52% 0.2 260)':'oklch(88% 0.008 260)'}`,background:tweaks[g.key]===val?'oklch(52% 0.2 260)':'white',color:tweaks[g.key]===val?'white':'oklch(48% 0.01 260)',transition:'all 0.12s'}}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── NAV ICONS ─── */
+const NAV_ICONS = {
+  feed: (a) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="4" cy="4" r="1.2" fill={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} stroke="none"/><line x1="7.5" y1="4" x2="13" y2="4"/>
+      <circle cx="4" cy="8" r="1.2" fill={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} stroke="none"/><line x1="7.5" y1="8" x2="13" y2="8"/>
+      <circle cx="4" cy="12" r="1.2" fill={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} stroke="none"/><line x1="7.5" y1="12" x2="13" y2="12"/>
+    </svg>
+  ),
+  explore: (a) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6"/>
+      <polygon points="10.5,5.5 6,7 5.5,10.5 10,9" fill={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} stroke="none"/>
+    </svg>
+  ),
+  profile: (a) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="5.5" r="2.5"/>
+      <path d="M2.5 13.5c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"/>
+    </svg>
+  ),
+  messages: (a) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3.5C2 2.7 2.7 2 3.5 2h9C13.3 2 14 2.7 14 3.5v6c0 .8-.7 1.5-1.5 1.5H9l-3 2.5V11H3.5C2.7 11 2 10.3 2 9.5v-6z"/>
+      <line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="8.5" y2="8"/>
+    </svg>
+  ),
+  branches: (a) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5" cy="3.5" r="1.5"/><circle cx="5" cy="12.5" r="1.5"/><circle cx="11" cy="6.5" r="1.5"/>
+      <line x1="5" y1="5" x2="5" y2="11"/><path d="M5 5c0 0 0-1.5 6 0"/>
+    </svg>
+  ),
+  notifications: (a) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a?'oklch(42% 0.2 260)':'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z"/>
+      <path d="M6.5 13.5a1.5 1.5 0 0 0 3 0"/>
+    </svg>
+  ),
+};
+const NAV = [{ id:'feed', label:'Feed' },{ id:'explore', label:'Explore' },{ id:'profile', label:'My Life' },{ id:'messages', label:'Messages' },{ id:'notifications', label:'Notifications' }];
+
+/* ─── APP ─── */
+function App() {
+  const [view, setView]         = useState(()=>localStorage.getItem('gl_view')||'feed');
+  const [commits, setCommits]   = useState(INIT_FEED);
+  const [modal, setModal]       = useState(false);
+  const [tweaksVis, setTweaksVis] = useState(false);
+  const [tweaks, setTweaks]     = useState(TWEAK_DEFAULTS);
+
+  useEffect(() => {
+    const h = e => {
+      if (e.data?.type==='__activate_edit_mode')   setTweaksVis(true);
+      if (e.data?.type==='__deactivate_edit_mode') setTweaksVis(false);
+    };
+    window.addEventListener('message', h);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return () => window.removeEventListener('message', h);
+  }, []);
+
+  useEffect(()=>{ localStorage.setItem('gl_view',view); },[view]);
+
+  const react = (id,type) => setCommits(prev=>prev.map(c=>c.id!==id?c:{...c,ur:{...c.ur,[type]:!c.ur[type]}}));
+  const addCommit = data => { setCommits(prev=>[{id:`c_${Date.now()}`,userId:'alex',branch:data.branch,message:data.message,body:data.body,category:data.category,ts:'just now',rx:{fork:0,merge:0,support:0},ur:{},wi:data.wi},...prev]); setView('feed'); };
+  const compact = tweaks.density==='compact';
+
+  return (
+    <div style={{display:'flex',height:'100vh',background:'oklch(98.5% 0.005 80)'}}>
+      <aside style={{width:230,flexShrink:0,background:'white',borderRight:'1px solid oklch(91% 0.006 80)',display:'flex',flexDirection:'column',padding:'18px 14px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'4px 8px 20px',fontSize:17,fontWeight:700}}>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="8" fill="oklch(52% 0.2 260)"/>
+            <line x1="10" y1="6" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+            <path d="M10 11 C10 11 10 8 18 8" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+            <circle cx="10" cy="19" r="2.5" fill="white"/>
+            <circle cx="10" cy="11" r="2.5" fill="white"/>
+            <circle cx="18" cy="8" r="2.5" fill="white" opacity="0.7"/>
+          </svg>
+          GitLife
+        </div>
+
+        {NAV.map(item => (
+          <button key={item.id} onClick={()=>setView(item.id)}
+            style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:8,fontSize:13.5,fontWeight:view===item.id?600:500,color:view===item.id?'oklch(42% 0.2 260)':'oklch(48% 0.01 260)',background:view===item.id?'oklch(94% 0.015 260)':'transparent',border:'none',cursor:'pointer',marginBottom:1,transition:'all 0.12s',textAlign:'left'}}>
+            <span style={{width:18,display:'flex',alignItems:'center',justifyContent:'center'}}>{NAV_ICONS[item.id](view===item.id)}</span>
+            {item.label}
+          </button>
+        ))}
+
+        <div style={{marginTop:24}}>
+          <div style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.09em',color:'oklch(60% 0.01 260)',padding:'0 10px',marginBottom:7}}>Following</div>
+          {Object.values(USERS).filter(u=>u.id!=='alex').slice(0,4).map(u => (
+            <button key={u.id} style={{display:'flex',alignItems:'center',gap:9,padding:'7px 10px',borderRadius:8,border:'none',background:'transparent',cursor:'pointer',width:'100%',transition:'background 0.12s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='oklch(96% 0.008 80)'}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <div style={{width:24,height:24,borderRadius:'50%',background:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'white',flexShrink:0}}>{u.ini}</div>
+              <div style={{fontSize:12.5,fontWeight:500,color:'oklch(28% 0.01 260)',textAlign:'left'}}>{u.name}</div>
+            </button>
+          ))}
+        </div>
+
+        <div style={{marginTop:'auto',paddingTop:14,borderTop:'1px solid oklch(91% 0.006 80)'}}>
+          <button onClick={()=>setView('profile')}
+            style={{display:'flex',alignItems:'center',gap:10,padding:'8px',borderRadius:9,border:'none',background:'transparent',cursor:'pointer',width:'100%',transition:'background 0.12s'}}
+            onMouseEnter={e=>e.currentTarget.style.background='oklch(96% 0.008 80)'}
+            onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:ME.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'white',flexShrink:0}}>{ME.ini}</div>
+            <div style={{textAlign:'left'}}>
+              <div style={{fontSize:13,fontWeight:600}}>{ME.name}</div>
+              <div style={{fontSize:11,color:'oklch(58% 0.01 260)',fontFamily:"'JetBrains Mono',monospace"}}>{ME.handle}</div>
+            </div>
+          </button>
+        </div>
+      </aside>
+
+      <main style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div style={{height:52,flexShrink:0,background:'white',borderBottom:'1px solid oklch(91% 0.006 80)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 22px'}}>
+          <div style={{fontSize:15,fontWeight:700}}>{{feed:'Feed',explore:'Explore',profile:'My Life',messages:'Messages',branches:'Branches',settings:'Settings'}[view]}</div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div style={{width:32,height:32,borderRadius:8,background:'oklch(96% 0.008 80)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'oklch(48% 0.01 260)'}}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="13.5" y2="13.5"/></svg>
+            </div>
+            <div style={{width:32,height:32,borderRadius:8,background:'oklch(96% 0.008 80)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'oklch(48% 0.01 260)'}}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div style={{flex:1,overflow:'hidden'}}>
+          {view==='feed'     && <FeedView commits={commits} onReact={react} onNew={()=>setModal(true)} compact={compact}/>}
+          {view==='explore'  && <ExploreView/>}
+          {view==='profile'  && <ProfileView viz={tweaks.timelineViz}/>}
+          {view==='messages' && <MessagesView/>}
+          {view==='settings' && <SettingsView/>}
+          {view==='branches' && (
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:10,color:'oklch(60% 0.01 260)'}}>
+              <div style={{fontSize:36}}>⎇</div>
+              <div style={{fontSize:14,fontWeight:600}}>Coming soon</div>
+              <div style={{fontSize:12.5}}>This section is in development</div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {modal && <NewCommitModal onClose={()=>setModal(false)} onSubmit={addCommit}/>}
+      <TweaksPanel visible={tweaksVis} tweaks={tweaks} setTweaks={setTweaks}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

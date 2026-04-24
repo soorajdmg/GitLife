@@ -61,50 +61,110 @@ function Avatar({ user, size = 40, showOnline = false, isOnline = false }) {
 
 // ─── New chat modal ───────────────────────────────────────────────────────────
 
-function NewChatModal({ onClose, onStart }) {
+function NewChatModal({ onClose, onStart, currentUserId }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Load suggested users on open
+  useEffect(() => {
+    api.searchUsers('', 12).then(data => {
+      const arr = Array.isArray(data) ? data : (data.users || []);
+      setResults(arr.filter(u => u.id !== currentUserId));
+    }).catch(() => {});
+  }, [currentUserId]);
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (!query.trim()) { setResults([]); return; }
+    if (!query.trim()) {
+      // Restore suggested list when query cleared
+      api.searchUsers('', 12).then(data => {
+        const arr = Array.isArray(data) ? data : (data.users || []);
+        setResults(arr.filter(u => u.id !== currentUserId));
+      }).catch(() => setResults([]));
+      return;
+    }
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         const data = await api.searchUsers(query, 10);
-        setResults(data.users || []);
+        const arr = Array.isArray(data) ? data : (data.users || []);
+        setResults(arr.filter(u => u.id !== currentUserId));
       } catch { setResults([]); }
       setLoading(false);
-    }, 300);
+    }, 280);
     return () => clearTimeout(timerRef.current);
-  }, [query]);
+  }, [query, currentUserId]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'white', borderRadius: 16, width: 380, maxHeight: 480, display: 'flex', flexDirection: 'column', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
-        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid oklch(93% 0.004 80)' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>New message</div>
-          <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-            placeholder="Search by name or username..."
-            style={{ width: '100%', padding: '9px 12px', border: '1px solid oklch(88% 0.008 260)', borderRadius: 10, fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none', boxSizing: 'border-box' }} />
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'oklch(20% 0.03 260 / 0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
+      <div style={{ background: 'white', borderRadius: 16, width: 400, maxHeight: 520, display: 'flex', flexDirection: 'column', boxShadow: '0 8px 48px oklch(25% 0.05 260 / 0.18), 0 1px 3px oklch(25% 0.05 260 / 0.08)', border: '1px solid oklch(91% 0.006 80)' }}>
+
+        {/* Header */}
+        <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid oklch(93% 0.004 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>New message</div>
+          <button onClick={onClose}
+            style={{ border: 'none', background: 'oklch(95% 0.006 80)', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(48% 0.01 260)', fontSize: 14, lineHeight: 1 }}>
+            ✕
+          </button>
         </div>
+
+        {/* Search input */}
+        <div style={{ padding: '10px 18px', borderBottom: '1px solid oklch(94% 0.004 80)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'oklch(97.5% 0.006 260)', border: '1px solid oklch(90% 0.008 260)', borderRadius: 10, padding: '8px 12px', transition: 'border 0.12s' }}
+            onFocusCapture={e => e.currentTarget.style.border = '1px solid oklch(72% 0.12 260)'}
+            onBlurCapture={e => e.currentTarget.style.border = '1px solid oklch(90% 0.008 260)'}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="oklch(58% 0.01 260)" strokeWidth="1.6" strokeLinecap="round"><circle cx="6" cy="6" r="4" /><line x1="9.5" y1="9.5" x2="12.5" y2="12.5" /></svg>
+            <input
+              ref={inputRef}
+              autoFocus
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search by name or @username…"
+              style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)' }}
+            />
+            {query && (
+              <button onClick={() => setQuery('')}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: 'oklch(60% 0.01 260)', fontSize: 13, lineHeight: 1 }}>✕</button>
+            )}
+          </div>
+        </div>
+
+        {/* Results */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loading && <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'oklch(60% 0.01 260)' }}>Searching…</div>}
-          {!loading && results.length === 0 && query.trim() && (
-            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'oklch(60% 0.01 260)' }}>No users found</div>
+          {!query.trim() && results.length > 0 && (
+            <div style={{ padding: '8px 18px 4px', fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)' }}>
+              Suggested
+            </div>
           )}
-          {results.map(u => (
-            <div key={u.id} onClick={() => onStart(u)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', cursor: 'pointer', borderBottom: '1px solid oklch(96% 0.004 80)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.005 260)'}
+          {loading && (
+            <div style={{ padding: '20px 18px', fontSize: 13, color: 'oklch(60% 0.01 260)', textAlign: 'center' }}>Searching…</div>
+          )}
+          {!loading && results.length === 0 && query.trim() && (
+            <div style={{ padding: '28px 18px', textAlign: 'center' }}>
+              <div style={{ fontSize: 20, marginBottom: 8 }}>🔍</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'oklch(35% 0.01 260)', marginBottom: 4 }}>No users found</div>
+              <div style={{ fontSize: 12, color: 'oklch(60% 0.01 260)' }}>Try a different name or username</div>
+            </div>
+          )}
+          {!loading && results.map(u => (
+            <div
+              key={u.id}
+              onClick={() => onStart(u)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: '1px solid oklch(96.5% 0.003 80)', transition: 'background 0.1s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'oklch(96.5% 0.01 260)'}
               onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-              <Avatar user={u} size={38} />
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{u.fullName || u.username}</div>
-                <div style={{ fontSize: 12, color: 'oklch(55% 0.01 260)' }}>@{u.username}</div>
+              <Avatar user={u} size={36} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.username}</div>
+                <div style={{ fontSize: 11.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{u.username}</div>
+              </div>
+              <div style={{ fontSize: 11, color: 'oklch(62% 0.01 260)', flexShrink: 0 }}>
+                {u.commitCount > 0 && `${u.commitCount} commits`}
               </div>
             </div>
           ))}
@@ -423,7 +483,7 @@ export default function MessagesView({ initialUserId = null }) {
 
   return (
     <div style={{ height: '100%', display: 'flex', overflow: 'hidden' }}>
-      {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} onStart={handleStartChat} />}
+      {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} onStart={handleStartChat} currentUserId={user?.id} />}
 
       {/* ── Conversation list ─────────────────────────────────────────────── */}
       <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(91% 0.006 80)', overflowY: 'auto', background: 'white', display: 'flex', flexDirection: 'column' }}>

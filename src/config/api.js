@@ -12,14 +12,15 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}) {
+    const { silent, ...fetchOptions } = options;
     const url = `${this.baseURL}${endpoint}`;
     const config = {
       headers: {
         'Content-Type': 'application/json',
         ...this.getAuthHeader(),
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
+      ...fetchOptions,
     };
 
     try {
@@ -32,17 +33,21 @@ class ApiClient {
       }
       return await response.json();
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
+      if (!silent) console.error(`API request failed: ${endpoint}`, error);
       throw error;
     }
   }
 
   // Auth methods
-  async register(email, username, password) {
+  async register(email, fullName, username, password) {
     return this.request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, username, password }),
+      body: JSON.stringify({ email, fullName, username, password }),
     });
+  }
+
+  async checkUsername(username) {
+    return this.request(`/auth/check-username?username=${encodeURIComponent(username)}`, { silent: true });
   }
 
   async login(email, password) {
@@ -59,6 +64,13 @@ class ApiClient {
   async logout() {
     return this.request('/auth/logout', {
       method: 'POST',
+    });
+  }
+
+  async googleCallback(code) {
+    return this.request('/auth/google/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
     });
   }
 
@@ -132,6 +144,35 @@ class ApiClient {
     return result.count;
   }
 
+  // Explore methods
+  async getExploreFeed(options = {}) {
+    const params = new URLSearchParams();
+    if (options.limit) params.append('limit', options.limit);
+    if (options.type) params.append('type', options.type);
+    if (options.search) params.append('search', options.search);
+    const query = params.toString();
+    return this.request(`/explore${query ? `?${query}` : ''}`);
+  }
+
+  async searchUsers(search = '', limit = 20) {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (limit) params.append('limit', limit);
+    return this.request(`/explore/users?${params.toString()}`);
+  }
+
+  async getSuggestedUsers(limit = 12) {
+    return this.request(`/explore/suggested?limit=${limit}`);
+  }
+
+  async followUser(userId) {
+    return this.request(`/explore/follow/${userId}`, { method: 'POST' });
+  }
+
+  async unfollowUser(userId) {
+    return this.request(`/explore/follow/${userId}`, { method: 'DELETE' });
+  }
+
   // Stats methods
   async getStats() {
     return this.request('/stats');
@@ -148,6 +189,28 @@ class ApiClient {
     return this.request('/stats/reset', {
       method: 'POST',
     });
+  }
+
+  // Messages methods
+  async getConversations() {
+    return this.request('/messages/conversations');
+  }
+
+  async getOrCreateConversation(userId) {
+    return this.request('/messages/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  }
+
+  async getMessages(conversationId, { limit = 50, before } = {}) {
+    const params = new URLSearchParams({ limit });
+    if (before) params.append('before', before);
+    return this.request(`/messages/conversations/${conversationId}/messages?${params}`);
+  }
+
+  async markConversationRead(conversationId) {
+    return this.request(`/messages/conversations/${conversationId}/read`, { method: 'POST' });
   }
 }
 

@@ -15,7 +15,9 @@ export class User {
     const user = {
       email: userData.email.toLowerCase().trim(),
       username: userData.username.trim(),
+      fullName: userData.fullName ? userData.fullName.trim() : '',
       password: hashedPassword,
+      avatarUrl: userData.avatarUrl || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -23,6 +25,26 @@ export class User {
     const result = await this.getCollection().insertOne(user);
 
     // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    return {
+      id: result.insertedId.toString(),
+      ...userWithoutPassword
+    };
+  }
+
+  static async createOAuth(userData) {
+    const user = {
+      email: userData.email.toLowerCase().trim(),
+      username: userData.username.trim(),
+      fullName: userData.fullName ? userData.fullName.trim() : '',
+      password: null,
+      avatarUrl: userData.avatarUrl || null,
+      googleId: userData.googleId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await this.getCollection().insertOne(user);
     const { password, ...userWithoutPassword } = user;
     return {
       id: result.insertedId.toString(),

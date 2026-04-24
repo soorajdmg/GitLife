@@ -2,12 +2,16 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { User } from '../models/User.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
 
 // Validation middleware
 const registerValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('fullName').trim().notEmpty().withMessage('Full name is required'),
   body('username')
     .trim()
     .isLength({ min: 3, max: 30 })
@@ -24,6 +28,24 @@ const loginValidation = [
   body('password').notEmpty().withMessage('Password is required')
 ];
 
+// Check username availability
+router.get('/check-username', async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username || username.trim().length < 3) {
+      return res.json({ available: false, message: 'Username must be at least 3 characters' });
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return res.json({ available: false, message: 'Only letters, numbers, hyphens, underscores allowed' });
+    }
+    const existing = await User.findByUsername(username.trim());
+    return res.json({ available: !existing });
+  } catch (error) {
+    console.error('Username check error:', error);
+    res.status(500).json({ available: false, message: 'Check failed' });
+  }
+});
+
 // Register new user
 router.post('/register', registerValidation, async (req, res) => {
   try {
@@ -33,7 +55,7 @@ router.post('/register', registerValidation, async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, username, password } = req.body;
+    const { email, fullName, username, password } = req.body;
 
     // Check if user already exists
     const existingUserByEmail = await User.findByEmail(email);
@@ -47,7 +69,7 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     // Create new user
-    const user = await User.create({ email, username, password });
+    const user = await User.create({ email, fullName, username, password });
 
     // Generate token
     const token = generateToken(user.id, user.email, user.username);
@@ -58,7 +80,9 @@ router.post('/register', registerValidation, async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        username: user.username
+        username: user.username,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl || null
       }
     });
   } catch (error) {
@@ -102,7 +126,9 @@ router.post('/login', loginValidation, async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        username: user.username
+        username: user.username,
+        fullName: user.fullName || '',
+        avatarUrl: user.avatarUrl || null
       }
     });
   } catch (error) {
@@ -125,6 +151,8 @@ router.get('/me', authenticateToken, async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
+        fullName: user.fullName || '',
+        avatarUrl: user.avatarUrl || null,
         createdAt: user.createdAt
       }
     });
@@ -134,21 +162,91 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Google OAuth callback
+router.post('/google/callback', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Authorization code is required' });
+
+    const redirectUri = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/google/callback`;
+    const oauth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+
+    const { tokens } = await oauth2Client.getToken(code);
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const { email, name, picture, sub: googleId } = ticket.getPayload();
+
+    // Find or create user
+    let user = await User.findByEmail(email);
+    if (!user) {
+      // Generate unique username from email
+      let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_');
+      if (baseUsername.length < 3) baseUsername = `user_${baseUsername}`;
+      let username = baseUsername;
+      let counter = 1;
+      while (await User.findByUsername(username)) {
+        username = `${baseUsername}${counter++}`;
+      }
+      user = await User.createOAuth({ email, fullName: name, username, avatarUrl: picture, googleId });
+    } else if (!user.googleId) {
+      await User.update(user.id, { googleId, avatarUrl: picture || user.avatarUrl });
+    }
+
+    const token = generateToken(user.id, user.email, user.username);
+    res.json({
+      message: 'Google login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        fullName: user.fullName || '',
+        avatarUrl: user.avatarUrl || null
+      }
+    });
+  } catch (error) {
+    console.error('Google callback error:', error);
+    res.status(401).json({ error: 'Google authentication failed' });
+  }
+});
+
 // Logout (client-side handles token removal, this is just for completeness)
 router.post('/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logout successful' });
 });
 
 // Verify token
-router.get('/verify', authenticateToken, (req, res) => {
-  res.json({
-    valid: true,
-    user: {
-      id: req.user.userId,
-      email: req.user.email,
-      username: req.user.username
-    }
-  });
+router.get('/verify', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    res.json({
+      valid: true,
+      user: {
+        id: req.user.userId,
+        email: req.user.email,
+        username: req.user.username,
+        fullName: user?.fullName || '',
+        avatarUrl: user?.avatarUrl || null
+      }
+    });
+  } catch {
+    res.json({
+      valid: true,
+      user: {
+        id: req.user.userId,
+        email: req.user.email,
+        username: req.user.username,
+        fullName: '',
+        avatarUrl: null
+      }
+    });
+  }
 });
 
 export default router;

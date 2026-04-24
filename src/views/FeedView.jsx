@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CATEGORIES } from '../data/gitlife';
 import CommitCard from '../components/ui/CommitCard';
 
-export default function FeedView({ commits, onReact, onNew, compact }) {
+export default function FeedView({ commits, onReact, onNew, compact, loading }) {
   const [filter, setFilter] = useState('All');
   const shown = filter === 'All' ? commits : commits.filter(c => c.category === filter);
 
@@ -20,8 +20,19 @@ export default function FeedView({ commits, onReact, onNew, compact }) {
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: 620, margin: '0 auto', padding: '20px 0 80px' }}>
-          {shown.map(c => <CommitCard key={c.id} c={c} onReact={onReact} compact={compact} />)}
-          {shown.length === 0 && <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14 }}>Nothing here yet.</div>}
+          {loading ? (
+            [1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '18px 20px', marginBottom: 12 }}>
+                <div style={{ height: 14, width: '60%', background: 'oklch(93% 0.006 80)', borderRadius: 6, marginBottom: 10 }} />
+                <div style={{ height: 11, width: '40%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
+              </div>
+            ))
+          ) : (
+            <>
+              {shown.map(c => <CommitCard key={c.id} c={c} onReact={onReact} compact={compact} />)}
+              {shown.length === 0 && <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14 }}>Nothing here yet. Make your first commit!</div>}
+            </>
+          )}
         </div>
       </div>
       <button onClick={onNew}

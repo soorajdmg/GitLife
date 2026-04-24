@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { USERS, ME, INIT_FEED, NOTIF_DATA, ALL_USERS } from './data/gitlife';
+import { USERS, NOTIF_DATA, ALL_USERS } from './data/gitlife';
+import { api } from './config/api';
+import { useAuth } from './contexts/AuthContext';
 import FeedView from './views/FeedView';
 import ExploreView from './views/ExploreView';
 import ProfileView from './views/ProfileView';
@@ -59,15 +61,17 @@ const NAV = [
 const VIEW_TITLE = { feed: 'Feed', explore: 'Explore', profile: 'My Life', messages: 'Messages', branches: 'Branches', settings: 'Settings', notifications: 'Notifications' };
 
 /* ─── NOTIFICATIONS DROPDOWN ─── */
-function NotifDropdown({ onClose }) {
+function NotifDropdown({ onClose, triggerRef }) {
   const [notifs, setNotifs] = useState(NOTIF_DATA);
   const ref = useRef();
 
   useEffect(() => {
-    const handler = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    const handler = e => {
+      if (ref.current && !ref.current.contains(e.target) && !(triggerRef?.current && triggerRef.current.contains(e.target))) onClose();
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  }, [onClose, triggerRef]);
 
   const markAllRead = () => setNotifs(p => p.map(n => ({ ...n, unread: false })));
   const unreadCount = notifs.filter(n => n.unread).length;
@@ -151,14 +155,58 @@ function TweaksPanel({ visible, tweaks, setTweaks }) {
   );
 }
 
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return 'just now';
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function mapDecisionToCommit(d) {
+  return {
+    id: d.id,
+    userId: d.userId || 'alex',
+    branch: d.branch_name,
+    message: d.decision,
+    body: d.body || null,
+    category: d.type || 'Career',
+    ts: formatRelativeTime(d.timestamp),
+    rx: { fork: 0, merge: 0, support: 0 },
+    ur: {},
+    wi: d.branch_name !== 'main',
+  };
+}
+
 export default function App() {
+  const { user, logout } = useAuth();
   const [view, setView] = useState(() => localStorage.getItem('gl_view') || 'feed');
-  const [commits, setCommits] = useState(INIT_FEED);
+  const [messageUserId, setMessageUserId] = useState(null);
+  const [commits, setCommits] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [tweaksVis, setTweaksVis] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [notifOpen, setNotifOpen] = useState(false);
+  const bellRef = useRef();
+
+  const openMessage = (userId) => {
+    setMessageUserId(userId);
+    setView('messages');
+  };
   const unreadNotifCount = NOTIF_DATA.filter(n => n.unread).length;
+
+  useEffect(() => {
+    api.getDecisions({ sortOrder: 'desc' })
+      .then(decisions => setCommits(decisions.map(mapDecisionToCommit)))
+      .catch(() => setCommits([]))
+      .finally(() => setFeedLoading(false));
+  }, []);
 
   useEffect(() => {
     const h = e => {
@@ -173,8 +221,21 @@ export default function App() {
   useEffect(() => { localStorage.setItem('gl_view', view); }, [view]);
 
   const react = (id, type) => setCommits(prev => prev.map(c => c.id !== id ? c : { ...c, ur: { ...c.ur, [type]: !c.ur[type] } }));
-  const addCommit = data => {
-    setCommits(prev => [{ id: `c_${Date.now()}`, userId: 'alex', branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi }, ...prev]);
+  const addCommit = async data => {
+    try {
+      const saved = await api.createDecision({
+        decision: data.message,
+        branch_name: data.branch,
+        type: data.category,
+        body: data.body || undefined,
+        visibility: data.visibility || 'public',
+        image: data.image || undefined,
+      });
+      setCommits(prev => [mapDecisionToCommit(saved), ...prev]);
+    } catch {
+      // fallback: optimistic local add if not authenticated
+      setCommits(prev => [{ id: `c_${Date.now()}`, userId: 'alex', branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi }, ...prev]);
+    }
     setView('feed');
   };
   const compact = tweaks.density === 'compact';
@@ -225,11 +286,28 @@ export default function App() {
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 9, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
             onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: ME.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white', flexShrink: 0 }}>{ME.ini}</div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{ME.name}</div>
-              <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>{ME.handle}</div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
+            ) : (
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                {(user?.username || user?.email?.split('@')[0] || '?').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div style={{ textAlign: 'left', flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.username || user?.email?.split('@')[0] || 'You'}</div>
+              <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || ''}</div>
             </div>
+          </button>
+          <button onClick={logout}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 12.5, color: 'oklch(55% 0.01 260)', transition: 'all 0.12s', marginTop: 2 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'oklch(95% 0.02 20)'; e.currentTarget.style.color = 'oklch(42% 0.18 20)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'oklch(55% 0.01 260)'; }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 2H2.5A1.5 1.5 0 0 0 1 3.5v7A1.5 1.5 0 0 0 2.5 12H5" />
+              <polyline points="9 10 13 7 9 4" />
+              <line x1="13" y1="7" x2="5" y2="7" />
+            </svg>
+            Sign out
           </button>
         </div>
       </aside>
@@ -244,24 +322,24 @@ export default function App() {
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="13.5" y2="13.5" /></svg>
             </div>
             <div style={{ position: 'relative' }}>
-              <div onClick={() => setNotifOpen(p => !p)}
+              <div ref={bellRef} onClick={() => setNotifOpen(p => !p)}
                 style={{ width: 32, height: 32, borderRadius: 8, background: notifOpen ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: notifOpen ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z" /><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" /></svg>
               </div>
               {unreadNotifCount > 0 && !notifOpen && (
                 <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
               )}
-              {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
+              {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} />}
             </div>
           </div>
         </div>
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView commits={commits} onReact={react} onNew={() => setModal(true)} compact={compact} />}
-          {view === 'explore'       && <ExploreView />}
+          {view === 'feed'          && <FeedView commits={commits} onReact={react} onNew={() => setModal(true)} compact={compact} loading={feedLoading} />}
+          {view === 'explore'       && <ExploreView onMessage={openMessage} />}
           {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} />}
-          {view === 'messages' && <MessagesView />}
+          {view === 'messages' && <MessagesView initialUserId={messageUserId} />}
           {view === 'settings' && <SettingsView />}
           {view === 'branches'      && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'oklch(60% 0.01 260)' }}>

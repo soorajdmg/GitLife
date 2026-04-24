@@ -5,7 +5,7 @@ import BranchPill from './BranchPill';
 import Tag from './Tag';
 
 export default function CommitCard({ c, onReact, compact }) {
-  const user = USERS[c.userId];
+  const user = USERS[c.userId] || USERS.alex;
   const [open, setOpen] = useState(false);
 
   const rxStyle = (type, active) => {

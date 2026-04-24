@@ -10,6 +10,7 @@ import authRouter from '../routes/auth.js';
 import branchesRouter from '../routes/branches.js';
 import decisionsRouter from '../routes/decisions.js';
 import statsRouter from '../routes/stats.js';
+import exploreRouter from '../routes/explore.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/branches', branchesRouter);
 app.use('/api/decisions', decisionsRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/explore', exploreRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

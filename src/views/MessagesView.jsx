@@ -211,13 +211,18 @@ export default function MessagesView({ initialUserId = null }) {
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
   // ── If opened with a userId (from profile/explore), start that conversation ─
+  // NOTE: `conversations` intentionally excluded from deps — we only want this
+  // to run once after convos finish loading, not on every convo list update.
+  const initialUserHandledRef = useRef(false);
   useEffect(() => {
     if (!initialUserId || loadingConvs) return;
+    if (initialUserHandledRef.current) return;
+    initialUserHandledRef.current = true;
+
     const existing = conversations.find(c => c.otherUser?.id === initialUserId);
     if (existing) {
       setActiveConvId(existing.id);
     } else {
-      // Create new conversation
       api.getOrCreateConversation(initialUserId).then(({ conversation }) => {
         setConversations(prev => {
           if (prev.find(c => c.id === conversation.id)) return prev;
@@ -227,7 +232,8 @@ export default function MessagesView({ initialUserId = null }) {
         socket?.joinConversation(conversation.id);
       }).catch(console.error);
     }
-  }, [initialUserId, loadingConvs, conversations, socket]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUserId, loadingConvs]);
 
   // ── Load messages when active conversation changes ────────────────────────
   useEffect(() => {
@@ -254,6 +260,9 @@ export default function MessagesView({ initialUserId = null }) {
     if (!socket) return;
 
     const offMsg = socket.on('new_message', ({ conversationId, message }) => {
+      // Skip messages we sent — already handled optimistically in send()
+      if (message.senderId === user?.id) return;
+
       if (conversationId === activeConvId) {
         setMessages(prev => [...prev, message]);
         socket.emitMarkRead(conversationId);

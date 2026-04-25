@@ -1,26 +1,36 @@
 import { useState } from 'react';
-import { USERS } from '../../data/gitlife';
 import Avatar from './Avatar';
 import BranchPill from './BranchPill';
 import Tag from './Tag';
 import EngagementBar from './EngagementBar';
 import CommentThread from './CommentThread';
 
+function userColor(userId) {
+  const colors = [
+    'oklch(52% 0.2 260)', 'oklch(56% 0.2 330)', 'oklch(50% 0.18 155)',
+    'oklch(60% 0.19 55)', 'oklch(52% 0.18 200)', 'oklch(58% 0.2 40)',
+    'oklch(50% 0.18 230)', 'oklch(52% 0.18 160)',
+  ];
+  if (!userId) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
 export default function CommitCard({ c, onReact, onStash, compact, currentUser, openMessage }) {
-  const mockUser = USERS[c.userId] || USERS.alex;
   const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
 
-  // Resolve author info from userInfo (populated by backend) or fallback to currentUser/mock
+  // Resolve author info from userInfo (populated by backend) or fallback to currentUser
   const userInfo = c.userInfo || {};
-  const authorName   = userInfo.fullName || userInfo.username || c.fullName || c.username || (isOwnPost ? (currentUser.fullName || currentUser.username) : null) || mockUser.name;
-  const authorHandle = userInfo.username || c.username || (isOwnPost ? currentUser.username : null) || mockUser.handle;
+  const authorName   = userInfo.fullName || userInfo.username || c.fullName || c.username || (isOwnPost ? (currentUser.fullName || currentUser.username) : null) || 'User';
+  const authorHandle = userInfo.username || c.username || (isOwnPost ? currentUser.username : null) || 'user';
   const authorAvatar = userInfo.avatarUrl || c.avatarUrl || (isOwnPost ? currentUser.avatarUrl : null);
 
   const user = {
     name: authorName,
     handle: `@${authorHandle}`,
     ini: authorName.slice(0, 2).toUpperCase(),
-    color: mockUser.color,
+    color: userColor(c.userId),
     avatarUrl: authorAvatar,
   };
 

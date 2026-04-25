@@ -364,7 +364,6 @@ export default function App() {
       const newPost = { id: `c_${Date.now()}`, userId: user?.id, branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi };
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
     }
-    setView('feed');
   };
   const compact = tweaks.density === 'compact';
 

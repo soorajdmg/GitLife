@@ -6,15 +6,19 @@ import Tag from './Tag';
 
 export default function CommitCard({ c, onReact, compact, currentUser }) {
   const mockUser = USERS[c.userId] || USERS.alex;
-  const user = currentUser
-    ? {
-        name: currentUser.fullName || currentUser.username || mockUser.name,
-        handle: `@${currentUser.username || mockUser.handle}`,
-        ini: (currentUser.fullName || currentUser.username || 'U').slice(0, 2).toUpperCase(),
-        color: mockUser.color,
-        avatarUrl: currentUser.avatarUrl,
-      }
-    : mockUser;
+  // Use post-level author fields if present (feed posts from other users),
+  // fall back to currentUser only if the post belongs to the logged-in user.
+  const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
+  const authorName = c.fullName || c.username || (isOwnPost ? (currentUser.fullName || currentUser.username) : null) || mockUser.name;
+  const authorHandle = c.username || (isOwnPost ? currentUser.username : null) || mockUser.handle;
+  const authorAvatar = c.avatarUrl || (isOwnPost ? currentUser.avatarUrl : null);
+  const user = {
+    name: authorName,
+    handle: `@${authorHandle}`,
+    ini: authorName.slice(0, 2).toUpperCase(),
+    color: mockUser.color,
+    avatarUrl: authorAvatar,
+  };
   const [open, setOpen] = useState(false);
 
   const rxStyle = (type, active) => {

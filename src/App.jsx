@@ -210,8 +210,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
     api.getFollowing().then(setSidebarFollowing).catch(() => setSidebarFollowing([]));
-  }, []);
+  }, [user, view]);
 
   useEffect(() => {
     const h = e => {

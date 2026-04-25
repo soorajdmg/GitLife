@@ -305,9 +305,9 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete }) {
       <button
         onClick={handleDeleteClick}
         title="Delete chat"
-        style={{ flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: 'oklch(58% 0.01 260)', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s, background 0.1s', pointerEvents: hovered ? 'auto' : 'none' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'oklch(92% 0.04 20)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+        style={{ flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: 'oklch(58% 0.01 260)', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s, background 0.1s' }}
+        onMouseEnter={e => { setHovered(true); e.currentTarget.style.background = 'oklch(92% 0.04 20)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="1,3 13,3" />
           <path d="M4 3V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />

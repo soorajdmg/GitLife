@@ -4,8 +4,17 @@ import Avatar from './Avatar';
 import BranchPill from './BranchPill';
 import Tag from './Tag';
 
-export default function CommitCard({ c, onReact, compact }) {
-  const user = USERS[c.userId] || USERS.alex;
+export default function CommitCard({ c, onReact, compact, currentUser }) {
+  const mockUser = USERS[c.userId] || USERS.alex;
+  const user = currentUser
+    ? {
+        name: currentUser.fullName || currentUser.username || mockUser.name,
+        handle: `@${currentUser.username || mockUser.handle}`,
+        ini: (currentUser.fullName || currentUser.username || 'U').slice(0, 2).toUpperCase(),
+        color: mockUser.color,
+        avatarUrl: currentUser.avatarUrl,
+      }
+    : mockUser;
   const [open, setOpen] = useState(false);
 
   const rxStyle = (type, active) => {

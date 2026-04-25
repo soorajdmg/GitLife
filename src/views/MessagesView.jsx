@@ -233,7 +233,7 @@ function MessageGroup({ group, isMe, readByOther }) {
 
 // ─── Conversation row with hover-delete ──────────────────────────────────────
 
-function ConvRow({ cv, isActive, isOnline, onSelect, onDelete }) {
+function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
   const [hovered, setHovered] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -282,7 +282,9 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', cursor: 'pointer', background: isActive ? 'oklch(95% 0.015 260)' : hovered ? 'oklch(97.5% 0.008 260)' : 'white', borderBottom: '1px solid oklch(96% 0.004 80)', transition: 'background 0.1s', position: 'relative' }}>
-      <Avatar user={cv.otherUser} size={40} showOnline isOnline={isOnline} />
+      <div onClick={(e) => { if (onProfile && cv.otherUser?.id) { e.stopPropagation(); onProfile(cv.otherUser.id); } }} style={{ cursor: onProfile && cv.otherUser?.id ? 'pointer' : 'default', flexShrink: 0 }}>
+        <Avatar user={cv.otherUser} size={40} showOnline isOnline={isOnline} />
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
           <span style={{ fontSize: 13, fontWeight: unread ? 700 : 500, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -322,7 +324,7 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function MessagesView({ initialUserId = null }) {
+export default function MessagesView({ initialUserId = null, onProfile }) {
   const { user } = useAuth();
   const socket = useSocket();
 
@@ -625,6 +627,7 @@ export default function MessagesView({ initialUserId = null }) {
               isOnline={!!socket?.onlineUsers?.[cv.otherUser?.id]}
               onSelect={() => setActiveConvId(cv.id)}
               onDelete={handleDeleteConv}
+              onProfile={onProfile}
             />
           ))}
         </div>
@@ -646,9 +649,16 @@ export default function MessagesView({ initialUserId = null }) {
           <>
             {/* Header */}
             <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Avatar user={otherUser} size={36} showOnline isOnline={isOtherOnline} />
+              <div onClick={() => onProfile && otherUser?.id && onProfile(otherUser.id)} style={{ cursor: onProfile && otherUser?.id ? 'pointer' : 'default' }}>
+                <Avatar user={otherUser} size={36} showOnline isOnline={isOtherOnline} />
+              </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{otherUser?.fullName || otherUser?.username}</div>
+                <div onClick={() => onProfile && otherUser?.id && onProfile(otherUser.id)}
+                  style={{ fontSize: 14, fontWeight: 600, cursor: onProfile && otherUser?.id ? 'pointer' : 'default', display: 'inline-block' }}
+                  onMouseEnter={e => { if (onProfile && otherUser?.id) e.currentTarget.style.textDecoration = 'underline'; }}
+                  onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+                  {otherUser?.fullName || otherUser?.username}
+                </div>
                 <div style={{ fontSize: 11.5, color: isOtherOnline ? '#22c55e' : 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>
                   {isOtherOnline ? 'Online' : `@${otherUser?.username || ''}`}
                 </div>

@@ -177,6 +177,14 @@ class ApiClient {
     return this.request(`/explore/follow/${userId}`, { method: 'DELETE' });
   }
 
+  async getUserProfile(userId) {
+    return this.request(`/explore/users/${userId}`);
+  }
+
+  async getUserDecisions(userId, limit = 100) {
+    return this.request(`/explore?userId=${encodeURIComponent(userId)}&limit=${limit}`);
+  }
+
   // Stats methods
   async getStats() {
     return this.request('/stats');

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CATEGORIES } from '../data/gitlife';
 import CommitCard from '../components/ui/CommitCard';
 
-export default function FeedView({ commits, onReact, onNew, compact, loading }) {
+export default function FeedView({ commits, onReact, onNew, compact, loading, currentUser }) {
   const [filter, setFilter] = useState('All');
   const shown = filter === 'All' ? commits : commits.filter(c => c.category === filter);
 
@@ -29,7 +29,7 @@ export default function FeedView({ commits, onReact, onNew, compact, loading }) 
             ))
           ) : (
             <>
-              {shown.map(c => <CommitCard key={c.id} c={c} onReact={onReact} compact={compact} />)}
+              {shown.map(c => <CommitCard key={c.id} c={c} onReact={onReact} compact={compact} currentUser={currentUser} />)}
               {shown.length === 0 && <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14 }}>Nothing here yet. Make your first commit!</div>}
             </>
           )}

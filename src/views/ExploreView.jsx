@@ -56,13 +56,14 @@ function inferCategory(decision) {
   return null;
 }
 
-function ExploreCard({ item, rank }) {
+function ExploreCard({ item, rank, onProfile }) {
   const user = item.userInfo;
   const ini = userInitials(user);
   const color = userColor(item.userId);
   const wi = isWhatIf(item.branch_name);
   const category = inferCategory(item.decision);
   const rankBg = ['oklch(72% 0.18 60)', 'oklch(78% 0.06 260)', 'oklch(68% 0.12 30)'][rank - 1];
+  const userId = item.userInfo?._id ? item.userInfo._id.toString() : item.userId;
 
   return (
     <div style={{
@@ -77,11 +78,17 @@ function ExploreCard({ item, rank }) {
       )}
       {wi && <div style={{ fontSize: 11.5, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 7 }}>⎇ what-if</div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+        <div onClick={() => onProfile && userId && onProfile(userId)}
+          style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile && userId ? 'pointer' : 'default' }}>
           {ini}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>{user?.fullName || user?.username || 'Unknown'}</span>
+          <span onClick={() => onProfile && userId && onProfile(userId)}
+            style={{ fontSize: 13, fontWeight: 600, cursor: onProfile && userId ? 'pointer' : 'default' }}
+            onMouseEnter={e => { if (onProfile && userId) e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+            {user?.fullName || user?.username || 'Unknown'}
+          </span>
           {user?.username && (
             <span style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 6 }}>
               @{user.username}
@@ -99,30 +106,39 @@ function ExploreCard({ item, rank }) {
           <Tag cat={category} />
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid oklch(96% 0.004 80)', alignItems: 'center' }}>
-        <span style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)' }}>
-          Impact: <strong style={{ color: item.impact >= 7 ? 'oklch(50% 0.18 155)' : item.impact >= 4 ? 'oklch(55% 0.18 60)' : 'oklch(55% 0.15 20)' }}>{item.impact}/10</strong>
-        </span>
-        {item.mood && (
-          <span style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', marginLeft: 8 }}>
-            Mood: <strong>{item.mood}/10</strong>
+      {item.type && (
+        <div style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid oklch(96% 0.004 80)', alignItems: 'center' }}>
+          <span style={{
+            fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
+            padding: '2px 8px', borderRadius: 6,
+            background: item.type === 'feat' ? 'oklch(95% 0.015 155)' : item.type === 'fix' ? 'oklch(96% 0.015 20)' : 'oklch(96% 0.006 260)',
+            color: item.type === 'feat' ? 'oklch(40% 0.18 155)' : item.type === 'fix' ? 'oklch(45% 0.15 20)' : 'oklch(45% 0.01 260)',
+            border: `1px solid ${item.type === 'feat' ? 'oklch(85% 0.04 155)' : item.type === 'fix' ? 'oklch(88% 0.04 20)' : 'oklch(88% 0.006 260)'}`
+          }}>
+            {item.type}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function UserCard({ user, onMessage }) {
+function UserCard({ user, onMessage, onProfile }) {
   const ini = userInitials(user);
   const color = userColor(user.id);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'white', borderRadius: 12, border: '1px solid oklch(91% 0.006 80)', marginBottom: 8 }}>
-      <div style={{ width: 44, height: 44, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+      <div onClick={() => onProfile && onProfile(user.id)}
+        style={{ width: 44, height: 44, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}>
         {ini}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>{user.fullName || user.username}</div>
+        <div onClick={() => onProfile && onProfile(user.id)}
+          style={{ fontSize: 14, fontWeight: 600, cursor: onProfile ? 'pointer' : 'default', display: 'inline-block' }}
+          onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
+          onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+          {user.fullName || user.username}
+        </div>
         <div style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
@@ -144,7 +160,7 @@ function UserCard({ user, onMessage }) {
   );
 }
 
-export default function ExploreView({ onMessage }) {
+export default function ExploreView({ onMessage, onProfile }) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('recent');
@@ -211,9 +227,9 @@ export default function ExploreView({ onMessage }) {
     return matchesCat && matchesSearch;
   });
 
-  // Sort for trending tab: by impact desc
+  // Sort for trending tab: by most recent
   const sortedItems = tab === 'trending'
-    ? [...shownItems].sort((a, b) => (b.impact || 0) - (a.impact || 0))
+    ? [...shownItems].sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
     : shownItems;
 
   const toggleFollow = async (id) => {
@@ -273,11 +289,15 @@ export default function ExploreView({ onMessage }) {
                 <div key={u.id} style={{ flexShrink: 0, width: 130, background: 'oklch(98.5% 0.005 80)', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
                   onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
-                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 10, position: 'relative' }}>
+                  <div onClick={() => onProfile && onProfile(u.id)}
+                    style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default' }}>
                     {ini}
                     <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: '2px solid white' }} />
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2 }}>
+                  <div onClick={() => onProfile && onProfile(u.id)}
+                    style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default' }}
+                    onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
+                    onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
                     {(() => { const parts = (u.fullName || u.username || '').split(' '); return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })()}
                   </div>
                   <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', textAlign: 'center', marginBottom: u.mutualCount > 0 ? 4 : 12 }}>{u.commitCount} commits</div>
@@ -336,7 +356,7 @@ export default function ExploreView({ onMessage }) {
           {search && users.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 11, padding: '0 2px' }}>People</div>
-              {users.map(u => <UserCard key={u.id} user={u} onMessage={u.id !== user?.id ? onMessage : null} />)}
+              {users.map(u => <UserCard key={u.id} user={u} onMessage={u.id !== user?.id ? onMessage : null} onProfile={u.id !== user?.id ? onProfile : null} />)}
               {sortedItems.length > 0 && (
                 <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 11, marginTop: 22, padding: '0 2px' }}>Decisions</div>
               )}
@@ -362,7 +382,7 @@ export default function ExploreView({ onMessage }) {
 
           {/* Feed cards */}
           {!loading && !error && sortedItems.map((item, i) => (
-            <ExploreCard key={item.id} item={item} rank={tab === 'trending' && !search ? i + 1 : null} />
+            <ExploreCard key={item.id} item={item} rank={tab === 'trending' && !search ? i + 1 : null} onProfile={onProfile} />
           ))}
 
           {/* Empty state */}

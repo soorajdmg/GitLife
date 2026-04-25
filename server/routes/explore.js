@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const db = getDB();
-    const { limit = 50, type, search } = req.query;
+    const { limit = 50, type, search, userId } = req.query;
 
     const matchStage = {};
 
@@ -18,6 +18,10 @@ router.get('/', authenticateToken, async (req, res) => {
 
     if (search && search.trim()) {
       matchStage.decision = { $regex: search.trim(), $options: 'i' };
+    }
+
+    if (userId && userId.trim()) {
+      matchStage.userId = userId.trim();
     }
 
     const decisions = await db.collection('decisions').aggregate([
@@ -190,6 +194,39 @@ router.delete('/follow/:userId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error unfollowing user:', error);
     res.status(500).json({ error: 'Failed to unfollow user' });
+  }
+});
+
+// GET /explore/users/:userId - get a single user's public profile
+router.get('/users/:userId', authenticateToken, async (req, res) => {
+  try {
+    const db = getDB();
+    const { userId } = req.params;
+    const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
+
+    const user = await db.collection('users').aggregate([
+      { $addFields: { id: { $toString: '$_id' } } },
+      { $match: { id: userId } },
+      { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1, followers: 1 } }
+    ]).next();
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const commitCount = await db.collection('decisions').countDocuments({ userId });
+    const isFollowing = (user.followers || []).includes(currentUserId);
+
+    res.json({
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+      commitCount,
+      followerCount: (user.followers || []).length,
+      isFollowing,
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
   }
 });
 

@@ -246,39 +246,101 @@ function HorizTimeline({ commits }) {
 }
 
 /* ─── PROFILE VIEW ─── */
-export default function ProfileView({ viz }) {
+export default function ProfileView({ viz, userId, onProfile }) {
   const { user } = useAuth();
+  const isOwnProfile = !userId || userId === user?.id;
   const [activeBranch, setActiveBranch] = useState('all');
   const [commits, setCommits] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [otherUser, setOtherUser] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      api.getDecisions({ sortOrder: 'desc' }),
-      api.getBranches(),
-    ])
-      .then(([decisions, apiBranches]) => {
-        setCommits(decisions.map(d => ({
-          id: d.id,
-          branch: d.branch_name,
-          message: d.decision,
-          date: formatDate(d.timestamp),
-          rawDate: d.timestamp,
-          category: d.type || 'Career',
-          wi: d.branch_name !== 'main',
-          merged: false,
-        })));
-        setBranches(apiBranches.map((b, i) => ({
-          id: b.id,
-          name: b.name,
-          color: BRANCH_COLORS[i % BRANCH_COLORS.length],
-          merged: b.status === 'merged',
-        })));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    setActiveBranch('all');
+    setCommits([]);
+    setBranches([]);
+    setOtherUser(null);
+    setLoading(true);
+
+    if (isOwnProfile) {
+      Promise.all([
+        api.getDecisions({ sortOrder: 'desc' }),
+        api.getBranches(),
+      ])
+        .then(([decisions, apiBranches]) => {
+          setCommits(decisions.map(d => ({
+            id: d.id,
+            branch: d.branch_name,
+            message: d.decision,
+            date: formatDate(d.timestamp),
+            rawDate: d.timestamp,
+            category: d.type || 'Career',
+            wi: d.branch_name !== 'main',
+            merged: false,
+          })));
+          setBranches(apiBranches.map((b, i) => ({
+            id: b.id,
+            name: b.name,
+            color: BRANCH_COLORS[i % BRANCH_COLORS.length],
+            merged: b.status === 'merged',
+          })));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      Promise.all([
+        api.getUserProfile(userId),
+        api.getUserDecisions(userId),
+      ])
+        .then(([profile, decisions]) => {
+          setOtherUser(profile);
+          setIsFollowing(profile.isFollowing);
+          const mapped = decisions.map(d => ({
+            id: d.id,
+            branch: d.branch_name,
+            message: d.decision,
+            date: formatDate(d.timestamp),
+            rawDate: d.timestamp,
+            category: d.type || 'Career',
+            wi: d.branch_name !== 'main',
+            merged: false,
+          }));
+          setCommits(mapped);
+          // Derive unique branches from decisions
+          const branchNames = [...new Set(mapped.map(d => d.branch).filter(Boolean))];
+          setBranches(branchNames.map((name, i) => ({
+            id: name,
+            name,
+            color: BRANCH_COLORS[i % BRANCH_COLORS.length],
+            merged: false,
+          })));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [userId, isOwnProfile]);
+
+  const toggleFollow = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await api.unfollowUser(userId);
+        setIsFollowing(false);
+        setOtherUser(prev => prev ? { ...prev, followerCount: Math.max(0, (prev.followerCount || 1) - 1) } : prev);
+      } else {
+        await api.followUser(userId);
+        setIsFollowing(true);
+        setOtherUser(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) + 1 } : prev);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const allBranches = [{ id: 'all', name: 'all', color: 'oklch(80% 0.01 260)', merged: false }, ...branches];
   const shown = activeBranch === 'all' ? commits : commits.filter(c => {
@@ -293,29 +355,42 @@ export default function ProfileView({ viz }) {
         .sort((a, b) => b[1] - a[1])[0]?.[0]
     : null;
 
-  // Derive display info from real auth user
-  const displayName = user?.fullName || user?.username || user?.email?.split('@')[0] || 'You';
-  const handle = user?.username ? `@${user.username}` : (user?.email ? `@${user.email.split('@')[0]}` : '@me');
+  // Derive display info
+  const profileData = isOwnProfile ? user : otherUser;
+  const displayName = profileData?.fullName || profileData?.username || (isOwnProfile ? profileData?.email?.split('@')[0] : null) || 'User';
+  const handle = profileData?.username ? `@${profileData.username}` : (isOwnProfile && profileData?.email ? `@${profileData.email.split('@')[0]}` : '@user');
   const initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
   const avatarColor = 'oklch(52% 0.2 260)';
+  const avatarUrl = profileData?.avatarUrl;
 
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
       <div style={{ maxWidth: 940, margin: '0 auto', padding: '28px 28px 60px' }}>
         {/* Header */}
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 32 }}>
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
           ) : (
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'white', flexShrink: 0 }}>{initials}</div>
           )}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 21, fontWeight: 700, marginBottom: 1 }}>{displayName}</div>
             <div style={{ fontSize: 12.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginBottom: 7 }}>{handle}</div>
-            <div style={{ display: 'flex', gap: 22 }}>
-              {[['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
-                <div key={lbl}><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(val)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>{lbl}</span></div>
-              ))}
+            <div style={{ display: 'flex', gap: 22, alignItems: 'center' }}>
+              {isOwnProfile ? (
+                [['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
+                  <div key={lbl}><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(val)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>{lbl}</span></div>
+                ))
+              ) : (
+                <>
+                  <div><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(otherUser?.commitCount ?? commits.length)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>commits</span></div>
+                  <div><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(otherUser?.followerCount ?? 0)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>followers</span></div>
+                  <button onClick={toggleFollow} disabled={followLoading}
+                    style={{ marginLeft: 8, padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? '1px solid oklch(88% 0.008 260)' : 'none', background: isFollowing ? 'white' : 'oklch(52% 0.2 260)', color: isFollowing ? 'oklch(42% 0.2 260)' : 'white', transition: 'all 0.12s' }}>
+                    {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

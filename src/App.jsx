@@ -187,6 +187,7 @@ export default function App() {
   const { user, logout } = useAuth();
   const [view, setView] = useState(() => localStorage.getItem('gl_view') || 'feed');
   const [messageUserId, setMessageUserId] = useState(null);
+  const [viewUserId, setViewUserId] = useState(null);
   const [commits, setCommits] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -199,6 +200,10 @@ export default function App() {
   const openMessage = (userId) => {
     setMessageUserId(userId);
     setView('messages');
+  };
+  const openProfile = (userId) => {
+    setViewUserId(userId || null);
+    setView('profile');
   };
   const unreadNotifCount = NOTIF_DATA.filter(n => n.unread).length;
 
@@ -265,7 +270,7 @@ export default function App() {
 
         {/* Nav */}
         {NAV.map(item => (
-          <button key={item.id} onClick={() => setView(item.id)}
+          <button key={item.id} onClick={() => { if (item.id === 'profile') setViewUserId(null); setView(item.id); }}
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 13.5, fontWeight: view === item.id ? 600 : 500, color: view === item.id ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', background: view === item.id ? 'oklch(94% 0.015 260)' : 'transparent', border: 'none', cursor: 'pointer', marginBottom: 1, transition: 'all 0.12s', textAlign: 'left' }}>
             <span style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{NAV_ICONS[item.id](view === item.id)}</span>
             {item.label}
@@ -277,7 +282,7 @@ export default function App() {
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'oklch(60% 0.01 260)', padding: '0 10px', marginBottom: 7 }}>Following</div>
             {sidebarFollowing.slice(0, 5).map(u => (
-              <button key={u.id} onClick={() => setView('profile')}
+              <button key={u.id} onClick={() => openProfile(u.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -352,10 +357,10 @@ export default function App() {
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView commits={commits} onReact={react} onNew={() => setModal(true)} compact={compact} loading={feedLoading} />}
-          {view === 'explore'       && <ExploreView onMessage={openMessage} />}
-          {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} />}
-          {view === 'messages' && <MessagesView initialUserId={messageUserId} />}
+          {view === 'feed'          && <FeedView commits={commits} onReact={react} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} />}
+          {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} />}
+          {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} />}
+          {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}
           {view === 'settings' && <SettingsView />}
           {view === 'branches'      && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'oklch(60% 0.01 260)' }}>

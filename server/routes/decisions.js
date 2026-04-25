@@ -1,6 +1,7 @@
 import express from 'express';
 import { Decision } from '../models/Decision.js';
 import { Stats } from '../models/Stats.js';
+import { Stash } from '../models/Stash.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -16,6 +17,17 @@ router.get('/count/total', async (req, res) => {
   } catch (error) {
     console.error('Error counting decisions:', error);
     res.status(500).json({ error: 'Failed to count decisions' });
+  }
+});
+
+// Get current user's stashed decision IDs (must be before /:id route)
+router.get('/stashes/ids', async (req, res) => {
+  try {
+    const ids = await Stash.getStashedIds(req.user.userId);
+    res.json(ids);
+  } catch (error) {
+    console.error('Error fetching stash ids:', error);
+    res.status(500).json({ error: 'Failed to fetch stashes' });
   }
 });
 
@@ -75,6 +87,33 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error creating decision:', error);
     res.status(500).json({ error: 'Failed to create decision' });
+  }
+});
+
+// Toggle reaction on a decision
+router.post('/:id/react', async (req, res) => {
+  try {
+    const { type } = req.body;
+    if (!['fork', 'merge', 'support'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid reaction type' });
+    }
+    const result = await Decision.toggleReaction(req.params.id, req.user.userId, type);
+    if (!result) return res.status(404).json({ error: 'Decision not found' });
+    res.json(result);
+  } catch (error) {
+    console.error('Error toggling reaction:', error);
+    res.status(500).json({ error: 'Failed to toggle reaction' });
+  }
+});
+
+// Toggle stash on a decision
+router.post('/:id/stash', async (req, res) => {
+  try {
+    const result = await Stash.toggle(req.user.userId, req.params.id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error toggling stash:', error);
+    res.status(500).json({ error: 'Failed to toggle stash' });
   }
 });
 

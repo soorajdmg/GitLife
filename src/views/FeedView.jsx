@@ -19,21 +19,27 @@ function mapToCard(d) {
   return {
     id: d.id,
     userId: d.userId,
+    userInfo: d.userInfo || null,
     username: d.userInfo?.username || d.username,
     fullName: d.userInfo?.fullName || d.fullName,
     avatarUrl: d.userInfo?.avatarUrl || d.avatarUrl,
     branch: d.branch_name || d.branch,
     message: d.decision || d.message,
     body: d.body || null,
+    image: d.image || d.img || null,
     category: d.type || d.category || 'Career',
     ts: d.ts || formatRelativeTime(d.createdAt || d.timestamp),
-    rx: d.rx || { fork: 0, merge: 0, support: 0 },
-    ur: d.ur || {},
+    impact: d.impact ?? null,
+    viewCount: d.viewCount ?? 0,
+    commentCount: d.commentCount ?? 0,
+    rx: d.rx || { fork: d.reactions?.fork?.count ?? 0, merge: d.reactions?.merge?.count ?? 0, support: d.reactions?.support?.count ?? 0 },
+    ur: d.ur || { fork: d.userReactions?.fork ?? false, merge: d.userReactions?.merge ?? false, support: d.userReactions?.support ?? false },
+    stashed: d.stashed ?? false,
     wi: (d.branch_name || d.branch) !== 'main',
   };
 }
 
-export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onNew, compact, loading, currentUser }) {
+export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onNew, compact, loading, currentUser, openMessage }) {
   const [filter, setFilter] = useState('All');
   const seenRef = useRef(new Set());
 
@@ -87,7 +93,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
             <>
               {/* Following posts */}
               {shownFollowing.map(c => (
-                <CommitCard key={c.id} c={c} onReact={onReact} compact={compact} currentUser={currentUser} />
+                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} compact={compact} currentUser={currentUser} openMessage={openMessage} />
               ))}
 
               {/* Divider: All caught up / Trending */}
@@ -107,7 +113,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
               {/* Trending posts */}
               {shownTrending.map(c => (
-                <CommitCard key={c.id} c={c} onReact={onReact} compact={compact} currentUser={currentUser} />
+                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} compact={compact} currentUser={currentUser} openMessage={openMessage} />
               ))}
 
               {/* No following + trending exists: label it */}

@@ -46,9 +46,19 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       },
       {
+        $addFields: {
+          userReactions: {
+            fork:    { $in: [req.user?.userId || '', { $ifNull: ['$reactions.fork.users', []] }] },
+            merge:   { $in: [req.user?.userId || '', { $ifNull: ['$reactions.merge.users', []] }] },
+            support: { $in: [req.user?.userId || '', { $ifNull: ['$reactions.support.users', []] }] },
+          }
+        }
+      },
+      {
         $project: {
           _id: 0, id: 1, decision: 1, branch_name: 1, mood: 1, impact: 1,
-          type: 1, timestamp: 1, createdAt: 1, userId: 1,
+          type: 1, body: 1, image: 1, timestamp: 1, createdAt: 1, userId: 1,
+          reactions: 1, commentCount: 1, userReactions: 1,
           'userInfo.username': 1, 'userInfo.fullName': 1,
           'userInfo.avatarUrl': 1, 'userInfo._id': 1
         }
@@ -94,13 +104,19 @@ router.get('/feed', authenticateToken, async (req, res) => {
       {
         $addFields: {
           id: { $toString: '$_id' },
-          userInfo: { $arrayElemAt: ['$userInfo', 0] }
+          userInfo: { $arrayElemAt: ['$userInfo', 0] },
+          userReactions: {
+            fork:    { $in: [currentUserId, { $ifNull: ['$reactions.fork.users', []] }] },
+            merge:   { $in: [currentUserId, { $ifNull: ['$reactions.merge.users', []] }] },
+            support: { $in: [currentUserId, { $ifNull: ['$reactions.support.users', []] }] },
+          }
         }
       },
       {
         $project: {
           _id: 0, id: 1, decision: 1, branch_name: 1, mood: 1, impact: 1,
           type: 1, timestamp: 1, createdAt: 1, userId: 1, body: 1, visibility: 1,
+          image: 1, reactions: 1, commentCount: 1, userReactions: 1,
           'userInfo.username': 1, 'userInfo.fullName': 1,
           'userInfo.avatarUrl': 1, 'userInfo._id': 1
         }

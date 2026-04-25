@@ -3,6 +3,8 @@ import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
+import EngagementBar from '../components/ui/EngagementBar';
+import CommentThread from '../components/ui/CommentThread';
 import { catColor, fmt } from '../data/gitlife';
 
 const CATEGORIES = ['Career', 'Health', 'Relationships', 'Finance', 'Education', 'Travel', 'Housing'];
@@ -56,14 +58,18 @@ function inferCategory(decision) {
   return null;
 }
 
-function ExploreCard({ item, rank, onProfile }) {
+function ExploreCard({ item, rank, onProfile, currentUserId, isStashed, onReact, onStash, onMessage }) {
   const user = item.userInfo;
   const ini = userInitials(user);
   const color = userColor(item.userId);
   const wi = isWhatIf(item.branch_name);
-  const category = inferCategory(item.decision);
+  const category = item.type || inferCategory(item.decision);
   const rankBg = ['oklch(72% 0.18 60)', 'oklch(78% 0.06 260)', 'oklch(68% 0.12 30)'][rank - 1];
   const userId = item.userInfo?._id ? item.userInfo._id.toString() : item.userId;
+  const isOwnPost = currentUserId && currentUserId === item.userId;
+
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [localCommentCount, setLocalCommentCount] = useState(item.commentCount ?? 0);
 
   return (
     <div style={{
@@ -101,23 +107,40 @@ function ExploreCard({ item, rank, onProfile }) {
       <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.4, marginBottom: 10, color: wi ? 'oklch(42% 0.18 55)' : 'oklch(15% 0.015 260)' }}>
         {item.decision}
       </div>
+      {item.body && (
+        <div style={{ fontSize: 13, color: 'oklch(44% 0.01 260)', lineHeight: 1.6, marginBottom: 10 }}>{item.body}</div>
+      )}
       {category && (
-        <div style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
           <Tag cat={category} />
+          {item.impact != null && (
+            <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
+              impact {item.impact}
+            </span>
+          )}
         </div>
       )}
-      {item.type && (
-        <div style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid oklch(96% 0.004 80)', alignItems: 'center' }}>
-          <span style={{
-            fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
-            padding: '2px 8px', borderRadius: 6,
-            background: item.type === 'feat' ? 'oklch(95% 0.015 155)' : item.type === 'fix' ? 'oklch(96% 0.015 20)' : 'oklch(96% 0.006 260)',
-            color: item.type === 'feat' ? 'oklch(40% 0.18 155)' : item.type === 'fix' ? 'oklch(45% 0.15 20)' : 'oklch(45% 0.01 260)',
-            border: `1px solid ${item.type === 'feat' ? 'oklch(85% 0.04 155)' : item.type === 'fix' ? 'oklch(88% 0.04 20)' : 'oklch(88% 0.006 260)'}`
-          }}>
-            {item.type}
-          </span>
-        </div>
+      <EngagementBar
+        commitId={item.id}
+        reactions={{ fork: item.reactions?.fork?.count ?? 0, merge: item.reactions?.merge?.count ?? 0, support: item.reactions?.support?.count ?? 0 }}
+        userReactions={item.userReactions || {}}
+        commentCount={localCommentCount}
+        isStashed={isStashed}
+        isAuthor={isOwnPost}
+        viewCount={item.viewCount ?? 0}
+        onReact={onReact}
+        onReplyClick={() => setReplyOpen(p => !p)}
+        onStash={onStash}
+        onShare={!isOwnPost && onMessage && userId ? () => onMessage(userId) : null}
+        compact
+      />
+      {replyOpen && (
+        <CommentThread
+          decisionId={item.id}
+          currentUserId={currentUserId}
+          initialCount={localCommentCount}
+          onCountChange={delta => setLocalCommentCount(p => Math.max(0, p + delta))}
+        />
       )}
     </div>
   );
@@ -160,7 +183,7 @@ function UserCard({ user, onMessage, onProfile }) {
   );
 }
 
-export default function ExploreView({ onMessage, onProfile }) {
+export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('recent');
@@ -171,6 +194,44 @@ export default function ExploreView({ onMessage, onProfile }) {
   const [followed, setFollowed] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Local reaction overrides: { [commitId]: { reactions, userReactions } }
+  const [reactionState, setReactionState] = useState({});
+  const [localStashed, setLocalStashed] = useState(new Set(stashedIds));
+
+  // Keep localStashed in sync if parent stashedIds changes
+  useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
+
+  const handleReact = (id, type) => {
+    setReactionState(prev => {
+      const item = feed.find(f => f.id === id);
+      const cur = prev[id] || {
+        reactions: { fork: item?.reactions?.fork?.count ?? 0, merge: item?.reactions?.merge?.count ?? 0, support: item?.reactions?.support?.count ?? 0 },
+        userReactions: item?.userReactions || {},
+      };
+      const wasActive = cur.userReactions[type];
+      return {
+        ...prev,
+        [id]: {
+          reactions: { ...cur.reactions, [type]: cur.reactions[type] + (wasActive ? -1 : 1) },
+          userReactions: { ...cur.userReactions, [type]: !wasActive },
+        },
+      };
+    });
+    api.reactToDecision(id, type).catch(() => {
+      // Revert: reload the item from feed original
+      setReactionState(prev => { const n = { ...prev }; delete n[id]; return n; });
+    });
+  };
+
+  const handleStash = (id) => {
+    const wasStashed = localStashed.has(id);
+    setLocalStashed(prev => { const n = new Set(prev); wasStashed ? n.delete(id) : n.add(id); return n; });
+    onStashChange?.(id, !wasStashed);
+    api.toggleStash(id).catch(() => {
+      setLocalStashed(prev => { const n = new Set(prev); wasStashed ? n.add(id) : n.delete(id); return n; });
+      onStashChange?.(id, wasStashed);
+    });
+  };
 
   const loadFeed = useCallback(async () => {
     setLoading(true);
@@ -382,7 +443,17 @@ export default function ExploreView({ onMessage, onProfile }) {
 
           {/* Feed cards */}
           {!loading && !error && sortedItems.map((item, i) => (
-            <ExploreCard key={item.id} item={item} rank={tab === 'trending' && !search ? i + 1 : null} onProfile={onProfile} />
+            <ExploreCard
+                    key={item.id}
+                    item={{ ...item, ...(reactionState[item.id] ? { reactions: { fork: { count: reactionState[item.id].reactions.fork }, merge: { count: reactionState[item.id].reactions.merge }, support: { count: reactionState[item.id].reactions.support } }, userReactions: reactionState[item.id].userReactions } : {}) }}
+                    rank={tab === 'trending' && !search ? i + 1 : null}
+                    onProfile={onProfile}
+                    currentUserId={currentUser?.id || currentUser?._id}
+                    isStashed={localStashed.has(item.id)}
+                    onReact={handleReact}
+                    onStash={handleStash}
+                    onMessage={onMessage}
+                  />
           ))}
 
           {/* Empty state */}

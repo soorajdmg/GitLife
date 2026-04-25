@@ -4,6 +4,8 @@ import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
+import EngagementBar from '../components/ui/EngagementBar';
+import CommentThread from '../components/ui/CommentThread';
 
 const BRANCH_COLORS = [
   'oklch(52% 0.2 260)',
@@ -180,27 +182,74 @@ function GitGraph({ commits }) {
 }
 
 /* ─── COMMIT LOG ─── */
-function CommitLog({ commits }) {
+function CommitLogItem({ c, index, total, currentUserId, isOwnProfile }) {
+  const color = c.wi ? 'oklch(60% 0.19 55)' : 'oklch(52% 0.2 260)';
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [localCommentCount, setLocalCommentCount] = useState(c.commentCount ?? 0);
+  const [reactions, setReactions] = useState({
+    fork:    c.reactions?.fork?.count    ?? 0,
+    merge:   c.reactions?.merge?.count   ?? 0,
+    support: c.reactions?.support?.count ?? 0,
+  });
+  const [userReactions, setUserReactions] = useState(c.userReactions || {});
+
+  const handleReact = (id, type) => {
+    const wasActive = userReactions[type];
+    setReactions(prev => ({ ...prev, [type]: prev[type] + (wasActive ? -1 : 1) }));
+    setUserReactions(prev => ({ ...prev, [type]: !wasActive }));
+    api.reactToDecision(id, type).catch(() => {
+      setReactions(prev => ({ ...prev, [type]: prev[type] + (wasActive ? 1 : -1) }));
+      setUserReactions(prev => ({ ...prev, [type]: wasActive }));
+    });
+  };
+
+  return (
+    <div key={c.id} style={{ padding: '14px 0', borderBottom: index < total - 1 ? '1px solid oklch(96% 0.004 80)' : 'none' }}>
+      <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ width: 3, borderRadius: 2, background: color, flexShrink: 0, alignSelf: 'stretch', opacity: c.wi ? 0.6 : 1 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
+            <BranchPill name={c.branch === 'main' ? 'main' : c.branch.replace('what-if/', '')} wi={c.wi} merged={false} />
+          </div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 5, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)', lineHeight: 1.35 }}>{c.message}</div>
+          <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
+            <Tag cat={c.category} />
+          </div>
+          <EngagementBar
+            commitId={c.id}
+            reactions={reactions}
+            userReactions={userReactions}
+            commentCount={localCommentCount}
+            isStashed={false}
+            isAuthor={isOwnProfile}
+            viewCount={c.viewCount}
+            onReact={handleReact}
+            onReplyClick={() => setReplyOpen(p => !p)}
+            onStash={null}
+            onShare={null}
+            compact
+          />
+          {replyOpen && (
+            <CommentThread
+              decisionId={c.id}
+              currentUserId={currentUserId}
+              initialCount={localCommentCount}
+              onCountChange={delta => setLocalCommentCount(p => Math.max(0, p + delta))}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommitLog({ commits, currentUserId, isOwnProfile }) {
   return (
     <div>
-      {commits.map((c, i) => {
-        const color = c.wi ? 'oklch(60% 0.19 55)' : 'oklch(52% 0.2 260)';
-        return (
-          <div key={c.id} style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: i < commits.length - 1 ? '1px solid oklch(96% 0.004 80)' : 'none' }}>
-            <div style={{ width: 3, borderRadius: 2, background: color, flexShrink: 0, alignSelf: 'stretch', opacity: c.wi ? 0.6 : 1 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
-                <BranchPill name={c.branch === 'main' ? 'main' : c.branch.replace('what-if/', '')} wi={c.wi} merged={false} />
-              </div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 5, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)', lineHeight: 1.35 }}>{c.message}</div>
-              <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
-                <Tag cat={c.category} />
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {commits.map((c, i) => (
+        <CommitLogItem key={c.id} c={c} index={i} total={commits.length} currentUserId={currentUserId} isOwnProfile={isOwnProfile} />
+      ))}
     </div>
   );
 }
@@ -279,6 +328,10 @@ export default function ProfileView({ viz, userId, onProfile }) {
             category: d.type || 'Career',
             wi: d.branch_name !== 'main',
             merged: false,
+            reactions: d.reactions || { fork: { count: 0 }, merge: { count: 0 }, support: { count: 0 } },
+            userReactions: d.userReactions || {},
+            commentCount: d.commentCount ?? 0,
+            viewCount: d.viewCount ?? 0,
           })));
           setBranches(apiBranches.map((b, i) => ({
             id: b.id,
@@ -306,6 +359,10 @@ export default function ProfileView({ viz, userId, onProfile }) {
             category: d.type || 'Career',
             wi: d.branch_name !== 'main',
             merged: false,
+            reactions: d.reactions || { fork: { count: 0 }, merge: { count: 0 }, support: { count: 0 } },
+            userReactions: d.userReactions || {},
+            commentCount: d.commentCount ?? 0,
+            viewCount: d.viewCount ?? 0,
           }));
           setCommits(mapped);
           // Derive unique branches from decisions
@@ -438,7 +495,7 @@ export default function ProfileView({ viz, userId, onProfile }) {
                 No commits yet. Start tracking your life decisions!
               </div>
             ) : (
-              <Viz commits={shown} />
+              <Viz commits={shown} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
             )}
           </div>
         </div>

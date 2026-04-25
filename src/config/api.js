@@ -235,6 +235,37 @@ class ApiClient {
   async deleteConversation(conversationId) {
     return this.request(`/messages/conversations/${conversationId}`, { method: 'DELETE' });
   }
+
+  // Engagement methods
+  async reactToDecision(id, type) {
+    return this.request(`/decisions/${id}/react`, {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    });
+  }
+
+  async getStashedIds() {
+    return this.request('/decisions/stashes/ids');
+  }
+
+  async toggleStash(id) {
+    return this.request(`/decisions/${id}/stash`, { method: 'POST' });
+  }
+
+  async getComments(decisionId, { limit = 50 } = {}) {
+    return this.request(`/decisions/${decisionId}/comments?limit=${limit}`);
+  }
+
+  async postComment(decisionId, text, parentCommentId = null) {
+    return this.request(`/decisions/${decisionId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ text, parentCommentId }),
+    });
+  }
+
+  async deleteComment(decisionId, commentId) {
+    return this.request(`/decisions/${decisionId}/comments/${commentId}`, { method: 'DELETE' });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

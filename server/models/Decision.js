@@ -13,9 +13,19 @@ export class Decision {
       mood: decisionData.mood,
       impact: Number(decisionData.impact),
       type: decisionData.type,
+      body: decisionData.body || null,
+      visibility: decisionData.visibility || 'public',
+      image: decisionData.image || null,
       timestamp: decisionData.timestamp || new Date().toISOString(),
-      userId: userId, // Link decision to user
-      createdAt: new Date().toISOString()
+      userId: userId,
+      createdAt: new Date().toISOString(),
+      reactions: {
+        fork:    { count: 0, users: [] },
+        merge:   { count: 0, users: [] },
+        support: { count: 0, users: [] },
+      },
+      commentCount: 0,
+      viewCount: 0,
     };
 
     const result = await this.getCollection().insertOne(decision);
@@ -77,6 +87,46 @@ export class Decision {
       userId
     });
     return result.deletedCount > 0;
+  }
+
+  static async toggleReaction(id, userId, type) {
+    const col = this.getCollection();
+    const decision = await col.findOne({ _id: new ObjectId(id) });
+    if (!decision) return null;
+
+    // Ensure reactions structure exists (for old documents)
+    const reactionField = `reactions.${type}`;
+    const users = decision.reactions?.[type]?.users || [];
+    const hasReacted = users.includes(userId);
+
+    if (hasReacted) {
+      await col.updateOne({ _id: new ObjectId(id) }, {
+        $pull:  { [`reactions.${type}.users`]: userId },
+        $inc:   { [`reactions.${type}.count`]: -1 },
+      });
+    } else {
+      await col.updateOne({ _id: new ObjectId(id) }, {
+        $addToSet: { [`reactions.${type}.users`]: userId },
+        $inc:      { [`reactions.${type}.count`]: 1 },
+      });
+    }
+
+    const updated = await col.findOne({ _id: new ObjectId(id) });
+    return {
+      type,
+      count: updated.reactions?.[type]?.count ?? 0,
+      reacted: !hasReacted,
+    };
+  }
+
+  static async incrementView(id, viewerId) {
+    const col = this.getCollection();
+    const decision = await col.findOne({ _id: new ObjectId(id) });
+    if (!decision) return null;
+    // Don't count own views
+    if (decision.userId === viewerId) return decision.viewCount || 0;
+    await col.updateOne({ _id: new ObjectId(id) }, { $inc: { viewCount: 1 } });
+    return (decision.viewCount || 0) + 1;
   }
 
   static async createIndexes() {

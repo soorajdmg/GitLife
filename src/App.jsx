@@ -169,7 +169,7 @@ function formatRelativeTime(timestamp) {
 }
 
 
-function mapDecisionToCommit(d) {
+function mapDecisionToCommit(d, stashedIds = []) {
   return {
     id: d.id,
     userId: d.userId || 'alex',
@@ -178,9 +178,23 @@ function mapDecisionToCommit(d) {
     body: d.body || null,
     category: d.type || 'Career',
     ts: formatRelativeTime(d.timestamp),
-    rx: { fork: 0, merge: 0, support: 0 },
-    ur: {},
+    image: d.image || null,
+    impact: d.impact ?? null,
+    viewCount: d.viewCount ?? 0,
+    commentCount: d.commentCount ?? 0,
+    rx: {
+      fork:    d.reactions?.fork?.count    ?? 0,
+      merge:   d.reactions?.merge?.count   ?? 0,
+      support: d.reactions?.support?.count ?? 0,
+    },
+    ur: {
+      fork:    d.userReactions?.fork    ?? false,
+      merge:   d.userReactions?.merge   ?? false,
+      support: d.userReactions?.support ?? false,
+    },
+    stashed: stashedIds.includes(d.id),
     wi: d.branch_name !== 'main',
+    userInfo: d.userInfo || null,
   };
 }
 
@@ -196,6 +210,7 @@ export default function App() {
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [notifOpen, setNotifOpen] = useState(false);
   const [sidebarFollowing, setSidebarFollowing] = useState([]);
+  const [stashedIds, setStashedIds] = useState([]);
   const bellRef = useRef();
 
   const openMessage = (userId) => {
@@ -209,9 +224,17 @@ export default function App() {
   const unreadNotifCount = NOTIF_DATA.filter(n => n.unread).length;
 
   useEffect(() => {
-    api.getFeed()
-      .then(data => setFeedData(data))
-      .catch(() => setFeedData({ following: [], trending: [], hasFollowing: false }))
+    Promise.all([
+      api.getFeed(),
+      api.getStashedIds().catch(() => []),
+    ]).then(([data, ids]) => {
+      setStashedIds(ids);
+      setFeedData({
+        following: (data.following || []).map(d => mapDecisionToCommit(d, ids)),
+        trending:  (data.trending  || []).map(d => mapDecisionToCommit(d, ids)),
+        hasFollowing: data.hasFollowing,
+      });
+    }).catch(() => setFeedData({ following: [], trending: [], hasFollowing: false }))
       .finally(() => setFeedLoading(false));
   }, []);
 
@@ -232,10 +255,45 @@ export default function App() {
 
   useEffect(() => { localStorage.setItem('gl_view', view); }, [view]);
 
-  const react = (id, type) => setFeedData(prev => {
-    const toggle = list => list.map(c => c.id !== id ? c : { ...c, ur: { ...c.ur, [type]: !c.ur[type] } });
-    return { ...prev, following: toggle(prev.following), trending: toggle(prev.trending) };
-  });
+  const react = (id, type) => {
+    // Optimistic update
+    const prevFeedData = feedData;
+    const toggle = list => list.map(c => {
+      if (c.id !== id) return c;
+      const wasActive = c.ur[type];
+      return {
+        ...c,
+        ur: { ...c.ur, [type]: !wasActive },
+        rx: { ...c.rx, [type]: c.rx[type] + (wasActive ? -1 : 1) },
+      };
+    });
+    setFeedData(prev => ({ ...prev, following: toggle(prev.following), trending: toggle(prev.trending) }));
+    // Persist to backend
+    api.reactToDecision(id, type).catch(() => {
+      // Revert on failure
+      setFeedData(prevFeedData);
+    });
+  };
+
+  const stash = (id) => {
+    const wasStashed = stashedIds.includes(id);
+    // Optimistic update
+    setStashedIds(prev => wasStashed ? prev.filter(x => x !== id) : [...prev, id]);
+    setFeedData(prev => ({
+      ...prev,
+      following: prev.following.map(c => c.id === id ? { ...c, stashed: !wasStashed } : c),
+      trending:  prev.trending.map(c => c.id === id ? { ...c, stashed: !wasStashed } : c),
+    }));
+    api.toggleStash(id).catch(() => {
+      // Revert on failure
+      setStashedIds(prev => wasStashed ? [...prev, id] : prev.filter(x => x !== id));
+      setFeedData(prev => ({
+        ...prev,
+        following: prev.following.map(c => c.id === id ? { ...c, stashed: wasStashed } : c),
+        trending:  prev.trending.map(c => c.id === id ? { ...c, stashed: wasStashed } : c),
+      }));
+    });
+  };
   const addCommit = async data => {
     try {
       const saved = await api.createDecision({
@@ -362,8 +420,8 @@ export default function App() {
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} />}
-          {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} />}
+          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} />}
+          {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
           {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} />}
           {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}
           {view === 'settings' && <SettingsView />}

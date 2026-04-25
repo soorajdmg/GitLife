@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ME } from '../data/gitlife';
+import { useAuth } from '../contexts/AuthContext';
 
 function Toggle({ checked, onChange }) {
   return (
@@ -41,6 +41,10 @@ function Section({ title, children }) {
 }
 
 export default function SettingsView() {
+  const { user } = useAuth();
+  const username = user?.username || user?.email?.split('@')[0] || 'You';
+  const handle = user?.email || '';
+  const ini = username.slice(0, 2).toUpperCase();
   const [notifs, setNotifs] = useState({ reactions: true, follows: true, whatifs: false, digest: true });
   const [privacy, setPrivacy] = useState({ mainPublic: true, branchesPublic: false, activityPublic: true });
   const [theme, setTheme] = useState('system');
@@ -53,10 +57,10 @@ export default function SettingsView() {
 
         <Section title="Account">
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-            <div style={{ width: 60, height: 60, borderRadius: '50%', background: ME.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: 'white' }}>{ME.ini}</div>
+            <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: 'white' }}>{ini}</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{ME.name}</div>
-              <div style={{ fontSize: 12, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>{ME.handle}</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{username}</div>
+              <div style={{ fontSize: 12, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>{handle}</div>
             </div>
             <button style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', fontSize: 13, fontWeight: 500, color: 'oklch(42% 0.01 260)', cursor: 'pointer' }}>Edit profile</button>
           </div>

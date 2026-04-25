@@ -144,6 +144,13 @@ class ApiClient {
     return result.count;
   }
 
+  // Feed: following posts + trending
+  async getFeed(seenIds = []) {
+    const params = new URLSearchParams();
+    if (seenIds.length > 0) params.append('seenIds', seenIds.join(','));
+    return this.request(`/explore/feed?${params.toString()}`);
+  }
+
   // Explore methods
   async getExploreFeed(options = {}) {
     const params = new URLSearchParams();

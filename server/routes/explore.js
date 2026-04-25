@@ -62,6 +62,89 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /explore/feed - following feed, then trending posts
+// Query params: seenIds (comma-separated), limit
+router.get('/feed', authenticateToken, async (req, res) => {
+  try {
+    const db = getDB();
+    const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
+    const limit = parseInt(req.query.limit) || 30;
+    const seenIds = req.query.seenIds ? req.query.seenIds.split(',').filter(Boolean) : [];
+
+    // Get who the current user follows
+    const me = await db.collection('users').findOne(
+      { $expr: { $eq: [{ $toString: '$_id' }, currentUserId] } },
+      { projection: { following: 1 } }
+    );
+    const followingIds = me?.following || [];
+
+    // Pipeline to join with user info
+    const userLookup = [
+      {
+        $lookup: {
+          from: 'users',
+          let: { uid: '$userId' },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: '$_id' }, '$$uid'] } } },
+            { $project: { password: 0 } }
+          ],
+          as: 'userInfo'
+        }
+      },
+      {
+        $addFields: {
+          id: { $toString: '$_id' },
+          userInfo: { $arrayElemAt: ['$userInfo', 0] }
+        }
+      },
+      {
+        $project: {
+          _id: 0, id: 1, decision: 1, branch_name: 1, mood: 1, impact: 1,
+          type: 1, timestamp: 1, createdAt: 1, userId: 1, body: 1, visibility: 1,
+          'userInfo.username': 1, 'userInfo.fullName': 1,
+          'userInfo.avatarUrl': 1, 'userInfo._id': 1
+        }
+      }
+    ];
+
+    // 1. Following feed: posts from people I follow (excluding seen)
+    // Convert seenIds to ObjectIds where valid, filter by string id via addFields
+    const followingPosts = followingIds.length > 0
+      ? await db.collection('decisions').aggregate([
+          { $addFields: { id: { $toString: '$_id' } } },
+          { $match: { userId: { $in: followingIds }, id: { $nin: seenIds } } },
+          { $sort: { createdAt: -1 } },
+          { $limit: limit },
+          ...userLookup
+        ]).toArray()
+      : [];
+
+    // 2. Trending posts: highest impact, from all users except current user, excluding seen + already returned following posts
+    const allSeenIds = [...seenIds, ...followingPosts.map(p => p.id)];
+    const trendingMatch = {
+      userId: { $ne: currentUserId },
+      visibility: { $ne: 'private' }
+    };
+    // Exclude already-seen posts (best effort, ids as strings — match on string _id via addFields)
+    const trendingPosts = await db.collection('decisions').aggregate([
+      { $addFields: { id: { $toString: '$_id' } } },
+      { $match: { ...trendingMatch, id: { $nin: allSeenIds } } },
+      { $sort: { impact: -1, createdAt: -1 } },
+      { $limit: limit },
+      ...userLookup
+    ]).toArray();
+
+    res.json({
+      following: followingPosts,
+      trending: trendingPosts,
+      hasFollowing: followingIds.length > 0,
+    });
+  } catch (error) {
+    console.error('Error fetching feed:', error);
+    res.status(500).json({ error: 'Failed to fetch feed' });
+  }
+});
+
 // GET /explore/suggested - suggested users: mutual-first, then popular, then available
 // Returns users with isFollowing flag so the UI knows current follow state
 router.get('/suggested', authenticateToken, async (req, res) => {

@@ -168,6 +168,7 @@ function formatRelativeTime(timestamp) {
   return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+
 function mapDecisionToCommit(d) {
   return {
     id: d.id,
@@ -188,7 +189,7 @@ export default function App() {
   const [view, setView] = useState(() => localStorage.getItem('gl_view') || 'feed');
   const [messageUserId, setMessageUserId] = useState(null);
   const [viewUserId, setViewUserId] = useState(null);
-  const [commits, setCommits] = useState([]);
+  const [feedData, setFeedData] = useState({ following: [], trending: [], hasFollowing: false });
   const [feedLoading, setFeedLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [tweaksVis, setTweaksVis] = useState(false);
@@ -208,9 +209,9 @@ export default function App() {
   const unreadNotifCount = NOTIF_DATA.filter(n => n.unread).length;
 
   useEffect(() => {
-    api.getDecisions({ sortOrder: 'desc' })
-      .then(decisions => setCommits(decisions.map(mapDecisionToCommit)))
-      .catch(() => setCommits([]))
+    api.getFeed()
+      .then(data => setFeedData(data))
+      .catch(() => setFeedData({ following: [], trending: [], hasFollowing: false }))
       .finally(() => setFeedLoading(false));
   }, []);
 
@@ -231,7 +232,10 @@ export default function App() {
 
   useEffect(() => { localStorage.setItem('gl_view', view); }, [view]);
 
-  const react = (id, type) => setCommits(prev => prev.map(c => c.id !== id ? c : { ...c, ur: { ...c.ur, [type]: !c.ur[type] } }));
+  const react = (id, type) => setFeedData(prev => {
+    const toggle = list => list.map(c => c.id !== id ? c : { ...c, ur: { ...c.ur, [type]: !c.ur[type] } });
+    return { ...prev, following: toggle(prev.following), trending: toggle(prev.trending) };
+  });
   const addCommit = async data => {
     try {
       const saved = await api.createDecision({
@@ -242,10 +246,11 @@ export default function App() {
         visibility: data.visibility || 'public',
         image: data.image || undefined,
       });
-      setCommits(prev => [mapDecisionToCommit(saved), ...prev]);
+      const newPost = mapDecisionToCommit(saved);
+      setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
     } catch {
-      // fallback: optimistic local add if not authenticated
-      setCommits(prev => [{ id: `c_${Date.now()}`, userId: 'alex', branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi }, ...prev]);
+      const newPost = { id: `c_${Date.now()}`, userId: user?.id, branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi };
+      setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
     }
     setView('feed');
   };
@@ -357,7 +362,7 @@ export default function App() {
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView commits={commits} onReact={react} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} />}
+          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} />}
           {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} />}
           {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} />}
           {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}

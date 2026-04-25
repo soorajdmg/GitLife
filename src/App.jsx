@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { USERS, NOTIF_DATA, ALL_USERS } from './data/gitlife';
+import { NOTIF_DATA, ALL_USERS } from './data/gitlife';
 import { api } from './config/api';
 import { useAuth } from './contexts/AuthContext';
 import FeedView from './views/FeedView';
@@ -193,6 +193,7 @@ export default function App() {
   const [tweaksVis, setTweaksVis] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [sidebarFollowing, setSidebarFollowing] = useState([]);
   const bellRef = useRef();
 
   const openMessage = (userId) => {
@@ -206,6 +207,10 @@ export default function App() {
       .then(decisions => setCommits(decisions.map(mapDecisionToCommit)))
       .catch(() => setCommits([]))
       .finally(() => setFeedLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.getFollowing().then(setSidebarFollowing).catch(() => setSidebarFollowing([]));
   }, []);
 
   useEffect(() => {
@@ -267,18 +272,28 @@ export default function App() {
         ))}
 
         {/* Following */}
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'oklch(60% 0.01 260)', padding: '0 10px', marginBottom: 7 }}>Following</div>
-          {Object.values(USERS).filter(u => u.id !== 'alex').slice(0, 4).map(u => (
-            <button key={u.id}
-              style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: u.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0 }}>{u.ini}</div>
-              <div style={{ fontSize: 12.5, fontWeight: 500, color: 'oklch(28% 0.01 260)', textAlign: 'left' }}>{u.name}</div>
-            </button>
-          ))}
-        </div>
+        {sidebarFollowing.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'oklch(60% 0.01 260)', padding: '0 10px', marginBottom: 7 }}>Following</div>
+            {sidebarFollowing.slice(0, 5).map(u => (
+              <button key={u.id} onClick={() => setView('profile')}
+                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                {u.avatarUrl ? (
+                  <img src={u.avatarUrl} alt={u.username} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
+                ) : (
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                    {(u.username || '?').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ fontSize: 12.5, fontWeight: 500, color: 'oklch(28% 0.01 260)', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {u.fullName || u.username}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* User profile at bottom */}
         <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid oklch(91% 0.006 80)' }}>

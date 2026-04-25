@@ -27,13 +27,29 @@ export class Conversation {
     return this._format(conv);
   }
 
-  // Get all conversations for a user, sorted by latest message
+  // Get all conversations for a user, sorted by latest message, excluding hidden ones
   static async findByUser(userId) {
     const convs = await this.getCollection()
-      .find({ participants: userId })
+      .find({ participants: userId, hiddenFor: { $ne: userId } })
       .sort({ lastMessageAt: -1 })
       .toArray();
     return convs.map(this._format);
+  }
+
+  // Hide conversation from a user's list (soft delete)
+  static async hideForUser(id, userId) {
+    await this.getCollection().updateOne(
+      { _id: new ObjectId(id) },
+      { $addToSet: { hiddenFor: userId } }
+    );
+  }
+
+  // Un-hide when a new message arrives (so it reappears for the hidden user)
+  static async unhideForAll(id) {
+    await this.getCollection().updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { hiddenFor: [] } }
+    );
   }
 
   static async findById(id) {
@@ -42,6 +58,7 @@ export class Conversation {
   }
 
   // Update last message preview + unread count for the OTHER participant
+  // Also un-hides the conversation for both users (a new message resurfaces it)
   static async updateLastMessage(id, senderId, text, participants) {
     const recipientId = participants.find(p => p !== senderId);
     await this.getCollection().updateOne(
@@ -50,6 +67,7 @@ export class Conversation {
         $set: {
           lastMessage: { senderId, text, sentAt: new Date().toISOString() },
           lastMessageAt: new Date().toISOString(),
+          hiddenFor: [], // resurface for everyone when a new message arrives
         },
         $inc: { [`unread.${recipientId}`]: 1 },
       }

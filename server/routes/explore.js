@@ -166,6 +166,33 @@ router.delete('/follow/:userId', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /explore/following - get list of users the current user follows
+router.get('/following', authenticateToken, async (req, res) => {
+  try {
+    const db = getDB();
+    const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
+
+    const me = await db.collection('users').findOne(
+      { $expr: { $eq: [{ $toString: '$_id' }, currentUserId] } },
+      { projection: { following: 1 } }
+    );
+    const followingIds = me?.following || [];
+
+    if (followingIds.length === 0) return res.json([]);
+
+    const users = await db.collection('users').aggregate([
+      { $addFields: { id: { $toString: '$_id' } } },
+      { $match: { id: { $in: followingIds } } },
+      { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1 } }
+    ]).toArray();
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching following list:', error);
+    res.status(500).json({ error: 'Failed to fetch following list' });
+  }
+});
+
 // GET /explore/users - search users by username or fullName
 router.get('/users', authenticateToken, async (req, res) => {
   try {

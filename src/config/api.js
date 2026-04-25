@@ -165,6 +165,10 @@ class ApiClient {
     return this.request(`/explore/suggested?limit=${limit}`);
   }
 
+  async getFollowing() {
+    return this.request('/explore/following');
+  }
+
   async followUser(userId) {
     return this.request(`/explore/follow/${userId}`, { method: 'POST' });
   }
@@ -211,6 +215,10 @@ class ApiClient {
 
   async markConversationRead(conversationId) {
     return this.request(`/messages/conversations/${conversationId}/read`, { method: 'POST' });
+  }
+
+  async deleteConversation(conversationId) {
+    return this.request(`/messages/conversations/${conversationId}`, { method: 'DELETE' });
   }
 }
 

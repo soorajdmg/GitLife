@@ -116,6 +116,22 @@ router.post('/conversations/:id/messages', async (req, res) => {
   }
 });
 
+// DELETE /api/messages/conversations/:id — hide conversation from current user's list
+router.delete('/conversations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conv = await Conversation.findById(id);
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    if (!conv.participants.includes(req.user.userId)) return res.status(403).json({ error: 'Forbidden' });
+
+    await Conversation.hideForUser(id, req.user.userId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /conversations error:', err);
+    res.status(500).json({ error: 'Failed to delete conversation' });
+  }
+});
+
 // POST /api/messages/conversations/:id/read — mark conversation as read
 router.post('/conversations/:id/read', async (req, res) => {
   try {

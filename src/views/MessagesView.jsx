@@ -231,6 +231,95 @@ function MessageGroup({ group, isMe, readByOther }) {
   );
 }
 
+// ─── Conversation row with hover-delete ──────────────────────────────────────
+
+function ConvRow({ cv, isActive, isOnline, onSelect, onDelete }) {
+  const [hovered, setHovered] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const unread = cv.unreadCount || 0;
+  const lastText = cv.lastMessage?.text || '';
+  const lastTime = cv.lastMessage?.sentAt || cv.createdAt;
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    setConfirming(true);
+  };
+
+  const handleConfirm = (e) => {
+    e.stopPropagation();
+    onDelete(cv.id);
+  };
+
+  const handleCancel = (e) => {
+    e.stopPropagation();
+    setConfirming(false);
+  };
+
+  if (confirming) {
+    return (
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid oklch(96% 0.004 80)', background: 'oklch(99% 0.008 20)' }}>
+        <div style={{ fontSize: 12, color: 'oklch(35% 0.01 260)', marginBottom: 8, fontWeight: 500 }}>
+          Delete chat with <strong>{cv.otherUser?.fullName || cv.otherUser?.username}</strong>?
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={handleConfirm}
+            style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: 'none', background: 'oklch(52% 0.18 20)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Delete
+          </button>
+          <button onClick={handleCancel}
+            style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(44% 0.01 260)', fontSize: 12, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', cursor: 'pointer', background: isActive ? 'oklch(95% 0.015 260)' : hovered ? 'oklch(97.5% 0.008 260)' : 'white', borderBottom: '1px solid oklch(96% 0.004 80)', transition: 'background 0.1s', position: 'relative' }}>
+      <Avatar user={cv.otherUser} size={40} showOnline isOnline={isOnline} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: unread ? 700 : 500, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {cv.otherUser?.fullName || cv.otherUser?.username || 'Unknown'}
+          </span>
+          <span style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', flexShrink: 0, marginLeft: 4 }}>{fmtTime(lastTime)}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 12, color: 'oklch(52% 0.01 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread ? 600 : 400, flex: 1 }}>
+            {lastText || <span style={{ color: 'oklch(68% 0.01 260)', fontStyle: 'italic' }}>No messages yet</span>}
+          </div>
+          {unread > 0 && !hovered && (
+            <div style={{ flexShrink: 0, marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', padding: '0 4px' }}>
+              {unread}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Trash button — fades in on hover */}
+      <button
+        onClick={handleDeleteClick}
+        title="Delete chat"
+        style={{ flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: 'oklch(58% 0.01 260)', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s, background 0.1s', pointerEvents: hovered ? 'auto' : 'none' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'oklch(92% 0.04 20)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="1,3 13,3" />
+          <path d="M4 3V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+          <rect x="2" y="3" width="10" height="9" rx="1.5" />
+          <line x1="5.5" y1="6" x2="5.5" y2="9.5" />
+          <line x1="8.5" y1="6" x2="8.5" y2="9.5" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function MessagesView({ initialUserId = null }) {
@@ -438,6 +527,17 @@ export default function MessagesView({ initialUserId = null }) {
     } catch {}
   }, [hasMore, activeConvId, messages]);
 
+  // ── Delete (hide) conversation ────────────────────────────────────────────
+  const handleDeleteConv = useCallback(async (convId) => {
+    try {
+      await api.deleteConversation(convId);
+      setConversations(prev => prev.filter(c => c.id !== convId));
+      if (activeConvId === convId) setActiveConvId(null);
+    } catch (err) {
+      console.error('Failed to delete conversation', err);
+    }
+  }, [activeConvId]);
+
   // ── Start new conversation from modal ─────────────────────────────────────
   const handleStartChat = useCallback(async (targetUser) => {
     setShowNewChat(false);
@@ -517,37 +617,16 @@ export default function MessagesView({ initialUserId = null }) {
               </button>
             </div>
           )}
-          {filteredConvs.map(cv => {
-            const isActive = cv.id === activeConvId;
-            const unread = cv.unreadCount || 0;
-            const lastText = cv.lastMessage?.text || '';
-            const lastTime = cv.lastMessage?.sentAt || cv.createdAt;
-            const online = !!socket?.onlineUsers?.[cv.otherUser?.id];
-            return (
-              <div key={cv.id} onClick={() => setActiveConvId(cv.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', cursor: 'pointer', background: isActive ? 'oklch(95% 0.015 260)' : 'white', borderBottom: '1px solid oklch(96% 0.004 80)', transition: 'background 0.12s' }}>
-                <Avatar user={cv.otherUser} size={40} showOnline isOnline={online} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: unread ? 700 : 500, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {cv.otherUser?.fullName || cv.otherUser?.username || 'Unknown'}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', flexShrink: 0, marginLeft: 4 }}>{fmtTime(lastTime)}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 12, color: 'oklch(52% 0.01 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread ? 600 : 400, flex: 1 }}>
-                      {lastText || <span style={{ color: 'oklch(68% 0.01 260)', fontStyle: 'italic' }}>No messages yet</span>}
-                    </div>
-                    {unread > 0 && (
-                      <div style={{ flexShrink: 0, marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', padding: '0 4px' }}>
-                        {unread}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {filteredConvs.map(cv => (
+            <ConvRow
+              key={cv.id}
+              cv={cv}
+              isActive={cv.id === activeConvId}
+              isOnline={!!socket?.onlineUsers?.[cv.otherUser?.id]}
+              onSelect={() => setActiveConvId(cv.id)}
+              onDelete={handleDeleteConv}
+            />
+          ))}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import { getDB } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { Notification } from '../models/Notification.js';
 
 const router = express.Router();
 
@@ -264,6 +265,9 @@ router.post('/follow/:userId', authenticateToken, async (req, res) => {
       { $expr: { $eq: [{ $toString: '$_id' }, targetUserId] } },
       { $addToSet: { followers: currentUserId } }
     );
+
+    // Notify the target user
+    Notification.create({ recipientId: targetUserId, senderId: currentUserId, type: 'follow' }).catch(() => {});
 
     res.json({ success: true, following: true });
   } catch (error) {

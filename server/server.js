@@ -14,6 +14,7 @@ import { Conversation } from './models/Conversation.js';
 import { Message } from './models/Message.js';
 import { Comment } from './models/Comment.js';
 import { Stash } from './models/Stash.js';
+import { Notification } from './models/Notification.js';
 import authRouter from './routes/auth.js';
 import branchesRouter from './routes/branches.js';
 import decisionsRouter from './routes/decisions.js';
@@ -21,6 +22,7 @@ import statsRouter from './routes/stats.js';
 import exploreRouter from './routes/explore.js';
 import messagesRouter from './routes/messages.js';
 import commentsRouter from './routes/comments.js';
+import notificationsRouter from './routes/notifications.js';
 
 dotenv.config();
 
@@ -47,6 +49,7 @@ app.use('/api/stats', statsRouter);
 app.use('/api/explore', exploreRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/decisions/:id/comments', commentsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -204,6 +207,7 @@ const initializeDatabase = async () => {
     await Message.createIndexes();
     await Comment.createIndexes();
     await Stash.createIndexes();
+    await Notification.createIndexes();
     console.log('Database indexes created successfully');
   } catch (error) {
     console.error('Error creating indexes:', error);

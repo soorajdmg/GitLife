@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { NOTIF_DATA, ALL_USERS } from './data/gitlife';
 import { api } from './config/api';
 import { useAuth } from './contexts/AuthContext';
 import FeedView from './views/FeedView';
@@ -61,9 +60,45 @@ const NAV = [
 const VIEW_TITLE = { feed: 'Feed', explore: 'Explore', profile: 'My Life', messages: 'Messages', branches: 'Branches', settings: 'Settings', notifications: 'Notifications' };
 
 /* ─── NOTIFICATIONS DROPDOWN ─── */
-function NotifDropdown({ onClose, triggerRef }) {
-  const [notifs, setNotifs] = useState(NOTIF_DATA);
+const NOTIF_TYPE_ICON = { fork: '⎇', merge: '↩', support: '♡', follow: '👤', comment: '💬', reply: '↪' };
+const NOTIF_TYPE_BG   = { fork: 'oklch(93% 0.06 60)', merge: 'oklch(93% 0.05 260)', support: 'oklch(93% 0.05 155)', follow: 'oklch(93% 0.05 330)', comment: 'oklch(93% 0.05 60)', reply: 'oklch(93% 0.05 260)' };
+const NOTIF_TYPE_FG   = { fork: 'oklch(45% 0.19 55)', merge: 'oklch(42% 0.2 260)', support: 'oklch(40% 0.18 155)', follow: 'oklch(42% 0.18 330)', comment: 'oklch(45% 0.19 55)', reply: 'oklch(42% 0.2 260)' };
+
+function notifAvatarColor(str = '') {
+  const colors = ['oklch(52% 0.18 260)', 'oklch(52% 0.18 155)', 'oklch(52% 0.18 55)', 'oklch(52% 0.18 330)', 'oklch(52% 0.18 30)'];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function notifInitials(name = '') {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+}
+
+function notifDropdownMessage(n) {
+  const name = n.sender?.fullName || n.sender?.username || 'Someone';
+  switch (n.type) {
+    case 'follow':  return `${name} started following you`;
+    case 'fork':    return `${name} forked your commit`;
+    case 'merge':   return `${name} merged your commit`;
+    case 'support': return `${name} supported your commit`;
+    case 'comment': return `${name} commented on your commit`;
+    case 'reply':   return `${name} replied to your comment`;
+    default:        return `${name} interacted with you`;
+  }
+}
+
+function NotifDropdown({ onClose, triggerRef, onNotifsLoaded }) {
+  const [notifs, setNotifs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const ref = useRef();
+
+  useEffect(() => {
+    api.getNotifications(20).then(data => {
+      setNotifs(data);
+      onNotifsLoaded?.(data.filter(n => !n.read).length);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     const handler = e => {
@@ -73,12 +108,22 @@ function NotifDropdown({ onClose, triggerRef }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose, triggerRef]);
 
-  const markAllRead = () => setNotifs(p => p.map(n => ({ ...n, unread: false })));
-  const unreadCount = notifs.filter(n => n.unread).length;
+  const unreadCount = notifs.filter(n => !n.read).length;
 
-  const typeIcon = type => ({ fork: '⎇', merge: '↩', support: '♡', follow: '👤' }[type] || '●');
-  const typeBg   = type => ({ fork: 'oklch(93% 0.06 60)', merge: 'oklch(93% 0.05 260)', support: 'oklch(93% 0.05 155)', follow: 'oklch(93% 0.05 330)' }[type] || 'oklch(93% 0.05 260)');
-  const typeFg   = type => ({ fork: 'oklch(45% 0.19 55)', merge: 'oklch(42% 0.2 260)',  support: 'oklch(40% 0.18 155)', follow: 'oklch(42% 0.18 330)' }[type] || 'oklch(42% 0.2 260)');
+  const markAllRead = async () => {
+    setNotifs(p => p.map(n => ({ ...n, read: true })));
+    onNotifsLoaded?.(0);
+    await api.markAllNotifsRead().catch(() => {});
+  };
+
+  const markOneRead = async (id) => {
+    setNotifs(p => {
+      const updated = p.map(n => n.id === id ? { ...n, read: true } : n);
+      onNotifsLoaded?.(updated.filter(n => !n.read).length);
+      return updated;
+    });
+    await api.markNotifRead(id).catch(() => {});
+  };
 
   return (
     <div ref={ref} style={{ position: 'absolute', top: 44, right: 0, width: 360, background: 'white', borderRadius: 14, boxShadow: '0 8px 40px oklch(25% 0.05 260 / 0.16)', border: '1px solid oklch(91% 0.006 80)', zIndex: 200, overflow: 'hidden' }}>
@@ -90,30 +135,36 @@ function NotifDropdown({ onClose, triggerRef }) {
         </div>
       </div>
       <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+        {loading && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>Loading…</div>}
+        {!loading && notifs.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>No notifications yet</div>}
         {notifs.map(n => {
-          const u = ALL_USERS[n.userId];
+          const senderName = n.sender?.fullName || n.sender?.username || '?';
+          const color = notifAvatarColor(n.senderId);
+          const ini = notifInitials(senderName);
           return (
-            <div key={n.id} onClick={() => setNotifs(p => p.map(x => x.id === n.id ? { ...x, unread: false } : x))}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 16px', background: n.unread ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: 'pointer', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = n.unread ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
-              onMouseLeave={e => e.currentTarget.style.background = n.unread ? 'oklch(96.5% 0.012 260)' : 'white'}>
+            <div key={n.id} onClick={() => markOneRead(n.id)}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: 'pointer', transition: 'background 0.12s' }}
+              onMouseEnter={e => e.currentTarget.style.background = !n.read ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
+              onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: u.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{u.ini}</div>
-                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: typeBg(n.type), border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: typeFg(n.type) }}>{typeIcon(n.type)}</div>
+                {n.sender?.avatarUrl
+                  ? <img src={n.sender.avatarUrl} alt={senderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
+                }
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[n.type] || 'oklch(93% 0.05 260)', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[n.type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[n.type] || '●'}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, lineHeight: 1.4, marginBottom: n.commit ? 4 : 0 }}>
-                  <span style={{ fontWeight: 700 }}>{u.name}</span>
-                  <span style={{ color: 'oklch(44% 0.01 260)' }}> {n.message}</span>
+                <div style={{ fontSize: 13, lineHeight: 1.4, marginBottom: (n.decisionText || n.commentText) ? 4 : 0, color: 'oklch(44% 0.01 260)' }}>
+                  {notifDropdownMessage(n)}
                 </div>
-                {n.commit && (
+                {(n.commentText || n.decisionText) && (
                   <div style={{ fontSize: 11.5, color: 'oklch(48% 0.01 260)', background: 'oklch(96% 0.006 80)', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginBottom: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    "{n.commit}"
+                    "{n.commentText || n.decisionText}"
                   </div>
                 )}
-                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 2 }}>{n.ts}</div>
+                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 2 }}>{formatRelativeTime(n.createdAt)}</div>
               </div>
-              {n.unread && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(52% 0.2 260)', flexShrink: 0, marginTop: 5 }} />}
+              {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(52% 0.2 260)', flexShrink: 0, marginTop: 5 }} />}
             </div>
           );
         })}
@@ -209,6 +260,7 @@ export default function App() {
   const [tweaksVis, setTweaksVis] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [sidebarFollowing, setSidebarFollowing] = useState([]);
   const [stashedIds, setStashedIds] = useState([]);
   const bellRef = useRef();
@@ -221,7 +273,9 @@ export default function App() {
     setViewUserId(userId || null);
     setView('profile');
   };
-  const unreadNotifCount = NOTIF_DATA.filter(n => n.unread).length;
+  useEffect(() => {
+    api.getUnreadNotifCount().then(({ count }) => setUnreadNotifCount(count)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -413,7 +467,7 @@ export default function App() {
               {unreadNotifCount > 0 && !notifOpen && (
                 <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
               )}
-              {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} />}
+              {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} onNotifsLoaded={setUnreadNotifCount} />}
             </div>
           </div>
         </div>

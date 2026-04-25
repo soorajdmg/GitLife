@@ -266,6 +266,23 @@ class ApiClient {
   async deleteComment(decisionId, commentId) {
     return this.request(`/decisions/${decisionId}/comments/${commentId}`, { method: 'DELETE' });
   }
+
+  // Notification methods
+  async getNotifications(limit = 50) {
+    return this.request(`/notifications?limit=${limit}`);
+  }
+
+  async getUnreadNotifCount() {
+    return this.request('/notifications/unread-count');
+  }
+
+  async markNotifRead(id) {
+    return this.request(`/notifications/${id}/read`, { method: 'POST' });
+  }
+
+  async markAllNotifsRead() {
+    return this.request('/notifications/read-all', { method: 'POST' });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

@@ -3,6 +3,9 @@ import { Decision } from '../models/Decision.js';
 import { Stats } from '../models/Stats.js';
 import { Stash } from '../models/Stash.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { Notification } from '../models/Notification.js';
+import { getDB } from '../config/database.js';
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
@@ -99,6 +102,24 @@ router.post('/:id/react', async (req, res) => {
     }
     const result = await Decision.toggleReaction(req.params.id, req.user.userId, type);
     if (!result) return res.status(404).json({ error: 'Decision not found' });
+
+    // Notify the decision owner when a reaction is added (not removed)
+    if (result.reacted) {
+      try {
+        const db = getDB();
+        const decision = await db.collection('decisions').findOne({ _id: new ObjectId(req.params.id) });
+        if (decision) {
+          Notification.create({
+            recipientId: decision.userId,
+            senderId: req.user.userId,
+            type,
+            decisionId: req.params.id,
+            decisionText: decision.decision,
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+
     res.json(result);
   } catch (error) {
     console.error('Error toggling reaction:', error);

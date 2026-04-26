@@ -586,22 +586,43 @@ export default function App() {
 
   const compact = tweaks.density === 'compact';
 
-  /* ── Shared top-bar icons (search + bell) ── */
+  /* ── Bell icon (shared) ── */
+  const bellIcon = (
+    <div style={{ position: 'relative' }}>
+      <div ref={bellRef} onClick={() => setNotifOpen(p => !p)}
+        style={{ width: 32, height: 32, borderRadius: 8, background: notifOpen ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: notifOpen ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z" /><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" /></svg>
+      </div>
+      {unreadNotifCount > 0 && !notifOpen && (
+        <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
+      )}
+      {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} isMobile={isMobile} />}
+    </div>
+  );
+
+  /* ── Desktop top-bar icons (search + bell) ── */
   const topBarIcons = (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'oklch(48% 0.01 260)' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="13.5" y2="13.5" /></svg>
       </div>
-      <div style={{ position: 'relative' }}>
-        <div ref={bellRef} onClick={() => setNotifOpen(p => !p)}
-          style={{ width: 32, height: 32, borderRadius: 8, background: notifOpen ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: notifOpen ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z" /><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" /></svg>
-        </div>
-        {unreadNotifCount > 0 && !notifOpen && (
-          <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
-        )}
-        {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} isMobile={isMobile} />}
+      {bellIcon}
+    </div>
+  );
+
+  /* ── Mobile top-bar icons (settings + bell) ── */
+  const mobileTopBarIcons = (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div onClick={() => navigate('/settings')}
+        style={{ width: 32, height: 32, borderRadius: 8, background: activeNav === 'settings' ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: activeNav === 'settings' ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="8" x2="14" y2="8" /><line x1="2" y1="12" x2="14" y2="12" />
+          <circle cx="5" cy="4" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="10" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
       </div>
+      {bellIcon}
     </div>
   );
 
@@ -719,7 +740,7 @@ export default function App() {
             </svg>
             GitLife
           </div>
-          {topBarIcons}
+          {mobileTopBarIcons}
         </div>
 
         {/* View content — extra bottom padding on mobile for the bottom nav */}

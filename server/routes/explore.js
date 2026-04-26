@@ -361,15 +361,24 @@ router.get('/users/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
 
-    const user = await db.collection('users').aggregate([
+    // Try matching by id first, fall back to username
+    let user = await db.collection('users').aggregate([
       { $addFields: { id: { $toString: '$_id' } } },
       { $match: { id: userId } },
       { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1, followers: 1 } }
     ]).next();
 
+    if (!user) {
+      user = await db.collection('users').aggregate([
+        { $addFields: { id: { $toString: '$_id' } } },
+        { $match: { username: userId } },
+        { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1, followers: 1 } }
+      ]).next();
+    }
+
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const commitCount = await db.collection('decisions').countDocuments({ userId });
+    const commitCount = await db.collection('decisions').countDocuments({ userId: user.id });
     const isFollowing = (user.followers || []).includes(currentUserId);
 
     res.json({

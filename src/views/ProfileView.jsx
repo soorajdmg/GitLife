@@ -723,7 +723,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
         .catch(() => {})
         .finally(() => setLoading(false));
     } else {
-      api.getUserProfileByUsername(username)
+      api.getUserProfile(username)
         .then(profile => {
           const resolvedId = profile.id || profile._id || username;
           setResolvedUserId(resolvedId);

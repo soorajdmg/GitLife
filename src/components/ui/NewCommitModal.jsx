@@ -15,10 +15,41 @@ export default function NewCommitModal({ onClose, onSubmit }) {
   const [branchName, setBranchName] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [image, setImage] = useState(null);   // { file, url }
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
 
-  const submit = () => {
-    if (!msg.trim()) return;
+  const uploadToCloudinary = async (file) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    const data = await res.json();
+    return data.secure_url;
+  };
+
+  const submit = async () => {
+    if (!msg.trim() || uploading) return;
+
+    let imageUrl = null;
+    if (image?.file) {
+      setUploading(true);
+      try {
+        imageUrl = await uploadToCloudinary(image.file);
+      } catch (err) {
+        console.error('Image upload failed:', err);
+        const proceed = window.confirm('Image upload failed. Post without the image?');
+        if (!proceed) { setUploading(false); return; }
+      } finally {
+        setUploading(false);
+      }
+    }
+
     onSubmit({
       message: msg.trim(),
       body: body.trim() || null,
@@ -26,7 +57,7 @@ export default function NewCommitModal({ onClose, onSubmit }) {
       branch: commitType === 'main' ? 'main' : `what-if/${branchName || 'untitled'}`,
       wi: commitType === 'whatif',
       visibility,
-      image: image?.file || null,
+      image: imageUrl,
     });
     onClose();
   };
@@ -155,7 +186,7 @@ export default function NewCommitModal({ onClose, onSubmit }) {
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid oklch(88% 0.008 260)', background: 'white', fontSize: 13.5, fontWeight: 500, color: 'oklch(44% 0.01 260)', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={submit} disabled={!msg.trim()} style={{ padding: '9px 22px', borderRadius: 9, border: 'none', background: msg.trim() ? 'oklch(52% 0.2 260)' : 'oklch(80% 0.05 260)', color: 'white', fontSize: 13.5, fontWeight: 600, cursor: msg.trim() ? 'pointer' : 'not-allowed', transition: 'background 0.15s' }}>Commit</button>
+          <button onClick={submit} disabled={!msg.trim() || uploading} style={{ padding: '9px 22px', borderRadius: 9, border: 'none', background: (msg.trim() && !uploading) ? 'oklch(52% 0.2 260)' : 'oklch(80% 0.05 260)', color: 'white', fontSize: 13.5, fontWeight: 600, cursor: (msg.trim() && !uploading) ? 'pointer' : 'not-allowed', transition: 'background 0.15s', minWidth: 90 }}>{uploading ? 'Uploading…' : 'Commit'}</button>
         </div>
       </div>
     </div>

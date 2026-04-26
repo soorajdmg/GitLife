@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { DAY_LABELS, CELL_COLORS } from '../data/gitlife';
 import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -369,16 +369,30 @@ function buildActivityData(commits) {
 function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
   const [hovered, setHovered] = useState(null);
   const containerRef = useRef(null);
-  // For compact (mobile) mode, use fewer weeks and smaller cells
-  const NUM_WEEKS_DISPLAY = compact ? 13 : 20;
-  const CELL = compact ? 9 : 10;
-  const GAP = compact ? 2 : 2;
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const measure = () => setContainerWidth(containerRef.current.offsetWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const NUM_WEEKS_DISPLAY = compact ? 20 : 20;
+  const GAP = 2;
+  // In compact mode, compute cell size to fill the full container width
+  // Layout: 18px day-label column + 4px margin + (NUM_WEEKS * (CELL + GAP) - GAP)
+  const DAY_COL = 18 + 4; // day labels width + margin
+  const CELL = compact && containerWidth > 0
+    ? Math.floor((containerWidth - DAY_COL - GAP * (NUM_WEEKS_DISPLAY - 1)) / NUM_WEEKS_DISPLAY)
+    : 10;
 
   const { weekData: allWeekData, weekMonths: allWeekMonths, graphStart } = buildActivityData(commits);
-  // In compact mode, only show last NUM_WEEKS_DISPLAY weeks
-  const weekData = compact ? allWeekData.slice(-NUM_WEEKS_DISPLAY) : allWeekData;
-  const weekMonths = compact ? allWeekMonths.slice(-NUM_WEEKS_DISPLAY) : allWeekMonths;
-  const weekOffset = compact ? (allWeekData.length - NUM_WEEKS_DISPLAY) : 0;
+  const weekData = allWeekData.slice(-NUM_WEEKS_DISPLAY);
+  const weekMonths = allWeekMonths.slice(-NUM_WEEKS_DISPLAY);
+  const weekOffset = allWeekData.length - NUM_WEEKS_DISPLAY;
 
   const getDate = (weekIndex, day) => {
     const actualWeek = weekIndex + weekOffset;
@@ -392,6 +406,46 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
     if (i === 0 || m !== weekMonths[i - 1]) monthLabels.push({ week: i, label: m });
   });
 
+  const gridContent = (
+    <>
+      <div style={{ marginLeft: DAY_COL, marginBottom: 3, position: 'relative', height: 14 }}>
+        {monthLabels.map(({ week, label }) => (
+          <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0, width: 14 }}>
+          {DAY_LABELS.map((d, i) => <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right' }}>{d}</div>)}
+        </div>
+        <div style={{ display: 'flex', gap: GAP, flex: compact ? 1 : undefined }}>
+          {weekData.map((week, wi) => (
+            <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flex: compact ? 1 : undefined }}>
+              {week.map((count, di) => {
+                const isHov = hovered?.week === wi && hovered?.day === di;
+                return (
+                  <div key={di}
+                    onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
+                    onMouseLeave={() => setHovered(null)}
+                    onTouchStart={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
+                    onTouchEnd={() => setTimeout(() => setHovered(null), 1200)}
+                    style={{
+                      width: compact ? undefined : CELL,
+                      height: compact ? CELL : CELL,
+                      aspectRatio: compact ? '1' : undefined,
+                      borderRadius: 2, background: CELL_COLORS[count],
+                      transition: 'transform 0.1s',
+                      transform: isHov ? 'scale(1.3)' : 'scale(1)',
+                      cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1,
+                    }} />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div ref={containerRef}>
       <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 10 }}>Commit activity</div>
@@ -403,44 +457,32 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
           </div>
         ))}
       </div>
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <div style={{ position: 'relative', display: 'inline-block', minWidth: 'min-content' }}>
-          <div style={{ marginLeft: 18, marginBottom: 3, position: 'relative', height: 14 }}>
-            {monthLabels.map(({ week, label }) => (
-              <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0 }}>
-              {DAY_LABELS.map((d, i) => <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right', width: 14 }}>{d}</div>)}
-            </div>
-            <div style={{ display: 'flex', gap: GAP }}>
-              {weekData.map((week, wi) => (
-                <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-                  {week.map((count, di) => {
-                    const isHov = hovered?.week === wi && hovered?.day === di;
-                    return (
-                      <div key={di}
-                        onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
-                        onMouseLeave={() => setHovered(null)}
-                        onTouchStart={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
-                        onTouchEnd={() => setTimeout(() => setHovered(null), 1200)}
-                        style={{ width: CELL, height: CELL, borderRadius: 2, background: CELL_COLORS[count], transition: 'transform 0.1s', transform: isHov ? 'scale(1.4)' : 'scale(1)', cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1 }} />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+      {compact ? (
+        // Full-width stretch layout for mobile
+        <div style={{ position: 'relative', width: '100%' }}>
+          {gridContent}
           {hovered && (
-            <div style={{ position: 'absolute', bottom: -42, left: 18, background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
+            <div style={{ position: 'absolute', top: -48, left: '50%', transform: 'translateX(-50%)', background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
               <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
               <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
             </div>
           )}
         </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: hovered ? 52 : 16, justifyContent: 'flex-end', transition: 'margin-top 0.15s' }}>
+      ) : (
+        // Scrollable layout for desktop
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ position: 'relative', display: 'inline-block', minWidth: 'min-content' }}>
+            {gridContent}
+            {hovered && (
+              <div style={{ position: 'absolute', bottom: -42, left: 18, background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
+                <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
+                <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 16, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>Less</span>
         {CELL_COLORS.map((bg, i) => <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: bg }} />)}
         <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>More</span>

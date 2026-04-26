@@ -355,11 +355,16 @@ function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user }) {
           width: 46, height: 46, borderRadius: '50%',
           background: 'oklch(52% 0.2 260)', border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontSize: 26, lineHeight: 1, fontWeight: 300,
+          color: 'white', padding: 0,
           boxShadow: '0 2px 14px oklch(52% 0.2 260 / 0.45)',
           cursor: 'pointer',
           transform: 'translateY(-6px)',
-        }}>+</button>
+        }}>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="11" y1="4" x2="11" y2="18" />
+            <line x1="4" y1="11" x2="18" y2="11" />
+          </svg>
+        </button>
       </div>
 
       {/* Messages */}

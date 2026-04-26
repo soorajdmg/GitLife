@@ -613,8 +613,11 @@ export default function MessagesView({ onProfile, isMobile }) {
             <span style={{ fontSize: 12, fontWeight: 700, color: 'oklch(32% 0.01 260)' }}>Messages</span>
             <button onClick={() => setShowNewChat(true)}
               title="New message"
-              style={{ border: 'none', background: 'oklch(95% 0.015 260)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'oklch(45% 0.15 260)' }}>
-              +
+              style={{ border: 'none', background: 'oklch(95% 0.015 260)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, color: 'oklch(45% 0.15 260)' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="7" y1="2" x2="7" y2="12" />
+                <line x1="2" y1="7" x2="12" y2="7" />
+              </svg>
             </button>
           </div>
           <div style={{ position: 'relative' }}>

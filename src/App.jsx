@@ -100,7 +100,7 @@ function notifDropdownMessage(n) {
   }
 }
 
-function NotifDropdown({ onClose, triggerRef, onNotifsLoaded }) {
+function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile }) {
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
   const ref = useRef();
@@ -158,7 +158,10 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded }) {
               style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: 'pointer', transition: 'background 0.12s' }}
               onMouseEnter={e => e.currentTarget.style.background = !n.read ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
               onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'}>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div
+                style={{ position: 'relative', flexShrink: 0, cursor: onProfile && n.senderId ? 'pointer' : 'default' }}
+                onClick={e => { if (onProfile && n.senderId) { e.stopPropagation(); markOneRead(n.id); onClose(); onProfile(n.senderId); } }}
+              >
                 {n.sender?.avatarUrl
                   ? <img src={n.sender.avatarUrl} alt={senderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
@@ -499,14 +502,14 @@ export default function App() {
               {unreadNotifCount > 0 && !notifOpen && (
                 <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
               )}
-              {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} onNotifsLoaded={setUnreadNotifCount} />}
+              {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} />}
             </div>
           </div>
         </div>
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} />}
+          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} />}
           {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
           {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} />}
           {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}

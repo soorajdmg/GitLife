@@ -424,7 +424,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                 })}
               </div>
               <div style={{ display: 'flex', gap: 0, marginBottom: 14, background: 'white', borderRadius: 10, border: '1px solid oklch(91% 0.006 80)', padding: 4 }}>
-                {[['recent', '🕐  Recent'], ['trending', '🔥  Trending'], ['whatifs', '⎇  What-ifs']].map(([id, lbl]) => (
+                {[['trending', '🔥  Trending'], ['whatifs', '⎇  What-ifs']].map(([id, lbl]) => (
                   <button key={id} onClick={() => setTab(id)}
                     style={{ flex: 1, padding: 7, borderRadius: 7, border: 'none', fontSize: 13, fontWeight: 600, background: tab === id ? 'oklch(52% 0.2 260)' : 'transparent', color: tab === id ? 'white' : 'oklch(50% 0.01 260)', cursor: 'pointer', transition: 'all 0.14s' }}>
                     {lbl}

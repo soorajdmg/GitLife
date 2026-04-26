@@ -17,7 +17,7 @@ function userColor(userId) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function CommitCard({ c, onReact, onStash, onDelete, compact, currentUser, openMessage }) {
+export default function CommitCard({ c, onReact, onStash, onDelete, compact, currentUser, openMessage, onProfile }) {
   const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
 
   // Resolve author info from userInfo (populated by backend) or fallback to currentUser
@@ -71,9 +71,16 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <Avatar u={user} size={compact ? 32 : 36} />
+        <div onClick={() => onProfile && c.userId && onProfile(c.userId)} style={{ cursor: onProfile && c.userId ? 'pointer' : 'default', flexShrink: 0 }}>
+          <Avatar u={user} size={compact ? 32 : 36} />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>{user.name}</div>
+          <div
+            onClick={() => onProfile && c.userId && onProfile(c.userId)}
+            style={{ fontSize: 14, fontWeight: 600, cursor: onProfile && c.userId ? 'pointer' : 'default', display: 'inline-block' }}
+            onMouseEnter={e => { if (onProfile && c.userId) e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
+          >{user.name}</div>
           <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>
             <span>{user.handle}</span><span>·</span><span>{c.ts}</span>
           </div>
@@ -173,6 +180,7 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
           currentUserId={currentUser?.id || currentUser?._id}
           initialCount={localCommentCount}
           onCountChange={handleCountChange}
+          onProfile={onProfile}
         />
       )}
     </div>

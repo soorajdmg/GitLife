@@ -64,7 +64,7 @@ function CommentInput({ onSubmit, placeholder = 'Write a reply...', autoFocus = 
   );
 }
 
-function CommentItem({ comment, currentUserId, onDelete, onReply, isReply = false }) {
+function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isReply = false }) {
   const [replyOpen, setReplyOpen] = useState(false);
 
   const authorName = comment.author?.fullName || comment.author?.username || 'User';
@@ -81,13 +81,18 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, isReply = fals
 
   return (
     <div style={{ display: 'flex', gap: 9, marginBottom: isReply ? 8 : 12 }}>
-      <div style={{ flexShrink: 0, marginTop: 2 }}>
+      <div style={{ flexShrink: 0, marginTop: 2, cursor: onProfile && comment.authorId ? 'pointer' : 'default' }} onClick={() => onProfile && comment.authorId && onProfile(comment.authorId)}>
         <Avatar u={user} size={28} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ background: 'oklch(97.5% 0.005 80)', borderRadius: 10, padding: '8px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'oklch(22% 0.015 260)' }}>{authorName}</span>
+            <span
+              onClick={() => onProfile && comment.authorId && onProfile(comment.authorId)}
+              style={{ fontSize: 12.5, fontWeight: 600, color: 'oklch(22% 0.015 260)', cursor: onProfile && comment.authorId ? 'pointer' : 'default' }}
+              onMouseEnter={e => { if (onProfile && comment.authorId) e.currentTarget.style.textDecoration = 'underline'; }}
+              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
+            >{authorName}</span>
             <span style={{ fontSize: 11, color: 'oklch(58% 0.01 260)' }}>{formatTime(comment.createdAt)}</span>
           </div>
           <div style={{ fontSize: 13, color: 'oklch(28% 0.012 260)', lineHeight: 1.55, wordBreak: 'break-word' }}>{comment.text}</div>
@@ -132,6 +137,7 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, isReply = fals
                 currentUserId={currentUserId}
                 onDelete={onDelete}
                 onReply={() => {}}
+                onProfile={onProfile}
                 isReply
               />
             ))}
@@ -142,7 +148,7 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, isReply = fals
   );
 }
 
-export default function CommentThread({ decisionId, currentUserId, initialCount = 0, onCountChange }) {
+export default function CommentThread({ decisionId, currentUserId, initialCount = 0, onCountChange, onProfile }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -216,6 +222,7 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
           currentUserId={currentUserId}
           onDelete={handleDelete}
           onReply={handleReply}
+          onProfile={onProfile}
         />
       ))}
       <CommentInput onSubmit={handlePost} placeholder="Add a reply… (Ctrl+Enter to submit)" />

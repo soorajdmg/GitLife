@@ -366,15 +366,24 @@ function buildActivityData(commits) {
   return { weekData, weekMonths, graphStart: start };
 }
 
-function ActivityGraph({ commitCount, topCategory, commits }) {
+function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
   const [hovered, setHovered] = useState(null);
-  const CELL = 10, GAP = 2;
+  const containerRef = useRef(null);
+  // For compact (mobile) mode, use fewer weeks and smaller cells
+  const NUM_WEEKS_DISPLAY = compact ? 13 : 20;
+  const CELL = compact ? 9 : 10;
+  const GAP = compact ? 2 : 2;
 
-  const { weekData, weekMonths, graphStart } = buildActivityData(commits);
+  const { weekData: allWeekData, weekMonths: allWeekMonths, graphStart } = buildActivityData(commits);
+  // In compact mode, only show last NUM_WEEKS_DISPLAY weeks
+  const weekData = compact ? allWeekData.slice(-NUM_WEEKS_DISPLAY) : allWeekData;
+  const weekMonths = compact ? allWeekMonths.slice(-NUM_WEEKS_DISPLAY) : allWeekMonths;
+  const weekOffset = compact ? (allWeekData.length - NUM_WEEKS_DISPLAY) : 0;
 
-  const getDate = (week, day) => {
+  const getDate = (weekIndex, day) => {
+    const actualWeek = weekIndex + weekOffset;
     const d = new Date(graphStart);
-    d.setDate(d.getDate() + week * 7 + day);
+    d.setDate(d.getDate() + actualWeek * 7 + day);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
@@ -384,50 +393,54 @@ function ActivityGraph({ commitCount, topCategory, commits }) {
   });
 
   return (
-    <div>
+    <div ref={containerRef}>
       <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 10 }}>Commit activity</div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: compact ? 6 : 8, marginBottom: 12 }}>
         {[[String(commitCount), 'commits'], ['—', 'streak'], [topCategory || '—', 'top area']].map(([val, lbl]) => (
-          <div key={lbl} style={{ flex: 1, padding: '7px 8px', background: 'oklch(97% 0.006 260)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'oklch(25% 0.015 260)' }}>{val}</div>
-            <div style={{ fontSize: 10, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>{lbl}</div>
+          <div key={lbl} style={{ flex: 1, padding: compact ? '6px 6px' : '7px 8px', background: 'oklch(97% 0.006 260)', borderRadius: 8, textAlign: 'center' }}>
+            <div style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: 'oklch(25% 0.015 260)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</div>
+            <div style={{ fontSize: compact ? 9 : 10, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>{lbl}</div>
           </div>
         ))}
       </div>
-      <div style={{ position: 'relative' }}>
-        <div style={{ marginLeft: 18, marginBottom: 3, position: 'relative', height: 14 }}>
-          {monthLabels.map(({ week, label }) => (
-            <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0 }}>
-            {DAY_LABELS.map((d, i) => <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right', width: 14 }}>{d}</div>)}
-          </div>
-          <div style={{ display: 'flex', gap: GAP }}>
-            {weekData.map((week, wi) => (
-              <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-                {week.map((count, di) => {
-                  const isHov = hovered?.week === wi && hovered?.day === di;
-                  return (
-                    <div key={di}
-                      onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
-                      onMouseLeave={() => setHovered(null)}
-                      style={{ width: CELL, height: CELL, borderRadius: 2, background: CELL_COLORS[count], transition: 'transform 0.1s', transform: isHov ? 'scale(1.4)' : 'scale(1)', cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1 }} />
-                  );
-                })}
-              </div>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ position: 'relative', display: 'inline-block', minWidth: 'min-content' }}>
+          <div style={{ marginLeft: 18, marginBottom: 3, position: 'relative', height: 14 }}>
+            {monthLabels.map(({ week, label }) => (
+              <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
             ))}
           </div>
-        </div>
-        {hovered && (
-          <div style={{ position: 'absolute', bottom: -42, left: 18, background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
-            <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
-            <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
+          <div style={{ display: 'flex', gap: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0 }}>
+              {DAY_LABELS.map((d, i) => <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right', width: 14 }}>{d}</div>)}
+            </div>
+            <div style={{ display: 'flex', gap: GAP }}>
+              {weekData.map((week, wi) => (
+                <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
+                  {week.map((count, di) => {
+                    const isHov = hovered?.week === wi && hovered?.day === di;
+                    return (
+                      <div key={di}
+                        onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
+                        onMouseLeave={() => setHovered(null)}
+                        onTouchStart={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
+                        onTouchEnd={() => setTimeout(() => setHovered(null), 1200)}
+                        style={{ width: CELL, height: CELL, borderRadius: 2, background: CELL_COLORS[count], transition: 'transform 0.1s', transform: isHov ? 'scale(1.4)' : 'scale(1)', cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1 }} />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-        )}
+          {hovered && (
+            <div style={{ position: 'absolute', bottom: -42, left: 18, background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
+              <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
+              <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
+            </div>
+          )}
+        </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 16, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: hovered ? 52 : 16, justifyContent: 'flex-end', transition: 'margin-top 0.15s' }}>
         <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>Less</span>
         {CELL_COLORS.map((bg, i) => <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: bg }} />)}
         <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>More</span>
@@ -681,6 +694,13 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
   const [feedStartId, setFeedStartId] = useState(null);
   const [reactionState, setReactionState] = useState({});
   const [localStashed, setLocalStashed] = useState(new Set(stashedIds));
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
 
@@ -748,7 +768,6 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
             viewCount: d.viewCount ?? 0,
           }));
           setCommits(mapped);
-          // Derive unique branches from decisions
           const branchNames = [...new Set(mapped.map(d => d.branch).filter(Boolean))];
           setBranches(branchNames.map((name, i) => ({
             id: name,
@@ -860,6 +879,9 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
     new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp)
   );
 
+  // Active branch display name
+  const activeBranchData = allBranches.find(b => b.id === activeBranch);
+
   // ── Feed view (full-screen) ──
   if (feedView) {
     return (
@@ -880,6 +902,180 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
     );
   }
 
+  // ── Mobile layout ──
+  if (isMobile) {
+    return (
+      <div style={{ height: '100%', overflowY: 'auto', background: 'oklch(98% 0.004 260)' }}>
+        {/* Mobile Header */}
+        <div style={{ background: 'white', borderBottom: '1px solid oklch(92% 0.006 80)', padding: '20px 16px 16px' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
+            ) : (
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: 'white', flexShrink: 0 }}>{initials}</div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+              <div style={{ fontSize: 11.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>{handle}</div>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                {isOwnProfile ? (
+                  [['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
+                    <div key={lbl} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{fmt(val)}</div>
+                      <div style={{ fontSize: 10.5, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>{lbl}</div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{fmt(otherUser?.commitCount ?? commits.length)}</div>
+                      <div style={{ fontSize: 10.5, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>commits</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{fmt(otherUser?.followerCount ?? 0)}</div>
+                      <div style={{ fontSize: 10.5, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>followers</div>
+                    </div>
+                    <button onClick={toggleFollow} disabled={followLoading}
+                      style={{ padding: '6px 18px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? '1.5px solid oklch(88% 0.008 260)' : 'none', background: isFollowing ? 'white' : 'oklch(52% 0.2 260)', color: isFollowing ? 'oklch(42% 0.2 260)' : 'white' }}>
+                      {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 12px 80px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* ── 1. Commit Activity ── */}
+          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px 14px 18px', overflow: 'hidden' }}>
+            <ActivityGraph commitCount={commits.length} topCategory={topCategory} commits={commits} compact />
+          </div>
+
+          {/* ── 2. Branch Dropdown ── */}
+          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 9 }}>Branch</div>
+            {loading ? (
+              <div style={{ height: 40, background: 'oklch(95% 0.006 80)', borderRadius: 10 }} />
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={activeBranch}
+                  onChange={e => setActiveBranch(e.target.value)}
+                  style={{
+                    width: '100%', appearance: 'none', WebkitAppearance: 'none',
+                    padding: '10px 36px 10px 12px', borderRadius: 10, fontSize: 13,
+                    fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+                    border: '1.5px solid oklch(88% 0.01 260)',
+                    background: 'oklch(97% 0.006 260)', color: 'oklch(18% 0.015 260)',
+                    cursor: 'pointer', outline: 'none',
+                  }}
+                >
+                  {allBranches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}{b.merged ? ' (merged)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {/* Chevron icon */}
+                <div style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'oklch(50% 0.01 260)' }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 5l4 4 4-4" />
+                  </svg>
+                </div>
+                {/* Active branch color dot */}
+                {activeBranchData && (
+                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                    {/* dot overlaid on the select — hidden since select manages its own rendering */}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Branch pills row - quick filter chips */}
+            {!loading && branches.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                {allBranches.slice(0, 5).map(b => (
+                  <button
+                    key={b.id}
+                    onClick={() => setActiveBranch(b.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '4px 10px', borderRadius: 20, fontSize: 11,
+                      fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+                      border: activeBranch === b.id ? `1.5px solid ${b.color}` : '1.5px solid oklch(90% 0.006 80)',
+                      background: activeBranch === b.id ? `${b.color}22` : 'oklch(97% 0.004 80)',
+                      color: activeBranch === b.id ? b.color : 'oklch(50% 0.01 260)',
+                      cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
+                    }}
+                  >
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
+                    {b.name === 'all' ? 'all' : b.name.replace('what-if/', '⎇ ')}
+                    {b.merged && <span style={{ fontSize: 9, opacity: 0.7 }}> ✓</span>}
+                  </button>
+                ))}
+                {allBranches.length > 5 && (
+                  <span style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', padding: '4px 6px', alignSelf: 'center' }}>+{allBranches.length - 5} more</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── 3. Git Graph ── */}
+          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px', overflow: 'hidden' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 14 }}>
+              {{ graph: 'Git Graph', log: 'Commit Log', horizontal: 'Timeline' }[viz] || 'Git Graph'}
+            </div>
+            {loading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 0', borderBottom: '1px solid oklch(96% 0.004 80)' }}>
+                  <div style={{ width: 36, height: 36, background: 'oklch(94% 0.006 80)', borderRadius: 8, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ height: 12, width: '60%', background: 'oklch(93% 0.006 80)', borderRadius: 5, marginBottom: 7 }} />
+                    <div style={{ height: 9, width: '38%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
+                  </div>
+                </div>
+              ))
+            ) : shown.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: 'oklch(58% 0.01 260)', fontSize: 13 }}>
+                No commits yet. Start tracking your life decisions!
+              </div>
+            ) : (
+              <div style={{ overflowX: viz === 'horizontal' ? 'auto' : 'visible' }}>
+                <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
+              </div>
+            )}
+          </div>
+
+          {/* ── 4. Posts Grid ── */}
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 10, paddingLeft: 2 }}>
+              Posts ({rawDecisions.length})
+            </div>
+            {loading ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} style={{ paddingBottom: '100%', borderRadius: 6, background: 'oklch(94% 0.005 260)' }} />
+                ))}
+              </div>
+            ) : rawDecisions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '28px 16px', color: 'oklch(58% 0.01 260)', fontSize: 13, background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)' }}>
+                No posts yet.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+                {sortedDecisions.map(d => (
+                  <GridTile key={d.id || d._id} item={d} onClick={openFeed} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Desktop layout ──
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
       <div style={{ maxWidth: 940, margin: '0 auto', padding: '28px 28px 60px' }}>

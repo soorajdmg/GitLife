@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DAY_LABELS, CELL_COLORS } from '../data/gitlife';
 import { api } from '../config/api';
+import { QUERY_KEYS } from '../config/queryClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import BranchPill from '../components/ui/BranchPill';
@@ -380,13 +382,12 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
     return () => ro.disconnect();
   }, []);
 
-  const NUM_WEEKS_DISPLAY = compact ? 20 : 20;
+  const NUM_WEEKS_DISPLAY = 20;
   const GAP = 2;
-  // In compact mode, compute cell size to fill the full container width
-  // Layout: 18px day-label column + 4px margin + (NUM_WEEKS * (CELL + GAP) - GAP)
-  const DAY_COL = 18 + 4; // day labels width + margin
-  const CELL = compact && containerWidth > 0
-    ? Math.floor((containerWidth - DAY_COL - GAP * (NUM_WEEKS_DISPLAY - 1)) / NUM_WEEKS_DISPLAY)
+  const DAY_COL = 18; // day labels width + margin
+  // Always compute cell size to fill container — no scrolling ever
+  const CELL = containerWidth > 0
+    ? Math.max(6, Math.floor((containerWidth - DAY_COL - 4 - GAP * (NUM_WEEKS_DISPLAY - 1)) / NUM_WEEKS_DISPLAY))
     : 10;
 
   const { weekData: allWeekData, weekMonths: allWeekMonths, graphStart } = buildActivityData(commits);
@@ -406,46 +407,6 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
     if (i === 0 || m !== weekMonths[i - 1]) monthLabels.push({ week: i, label: m });
   });
 
-  const gridContent = (
-    <>
-      <div style={{ marginLeft: DAY_COL, marginBottom: 3, position: 'relative', height: 14 }}>
-        {monthLabels.map(({ week, label }) => (
-          <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: 0 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0, width: 14 }}>
-          {DAY_LABELS.map((d, i) => <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right' }}>{d}</div>)}
-        </div>
-        <div style={{ display: 'flex', gap: GAP, flex: compact ? 1 : undefined }}>
-          {weekData.map((week, wi) => (
-            <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flex: compact ? 1 : undefined }}>
-              {week.map((count, di) => {
-                const isHov = hovered?.week === wi && hovered?.day === di;
-                return (
-                  <div key={di}
-                    onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
-                    onMouseLeave={() => setHovered(null)}
-                    onTouchStart={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
-                    onTouchEnd={() => setTimeout(() => setHovered(null), 1200)}
-                    style={{
-                      width: compact ? undefined : CELL,
-                      height: compact ? CELL : CELL,
-                      aspectRatio: compact ? '1' : undefined,
-                      borderRadius: 2, background: CELL_COLORS[count],
-                      transition: 'transform 0.1s',
-                      transform: isHov ? 'scale(1.3)' : 'scale(1)',
-                      cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1,
-                    }} />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-
   return (
     <div ref={containerRef}>
       <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 10 }}>Commit activity</div>
@@ -457,31 +418,53 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
           </div>
         ))}
       </div>
-      {compact ? (
-        // Full-width stretch layout for mobile
-        <div style={{ position: 'relative', width: '100%' }}>
-          {gridContent}
-          {hovered && (
-            <div style={{ position: 'absolute', top: -48, left: '50%', transform: 'translateX(-50%)', background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
-              <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
-              <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
-            </div>
-          )}
+      {/* Dot matrix — always fills container width, never scrolls */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        {/* Month labels */}
+        <div style={{ marginLeft: DAY_COL + 4, marginBottom: 3, position: 'relative', height: 14 }}>
+          {monthLabels.map(({ week, label }) => (
+            <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
+          ))}
         </div>
-      ) : (
-        // Scrollable layout for desktop
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <div style={{ position: 'relative', display: 'inline-block', minWidth: 'min-content' }}>
-            {gridContent}
-            {hovered && (
-              <div style={{ position: 'absolute', bottom: -42, left: 18, background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
-                <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
-                <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
+        {/* Grid */}
+        <div style={{ display: 'flex', gap: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0, width: DAY_COL - 4 }}>
+            {DAY_LABELS.map((d, i) => (
+              <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right' }}>{d}</div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: GAP, flex: 1 }}>
+            {weekData.map((week, wi) => (
+              <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flex: 1 }}>
+                {week.map((count, di) => {
+                  const isHov = hovered?.week === wi && hovered?.day === di;
+                  return (
+                    <div key={di}
+                      onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
+                      onMouseLeave={() => setHovered(null)}
+                      onTouchStart={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
+                      onTouchEnd={() => setTimeout(() => setHovered(null), 1200)}
+                      style={{
+                        aspectRatio: '1',
+                        borderRadius: 2, background: CELL_COLORS[count],
+                        transition: 'transform 0.1s',
+                        transform: isHov ? 'scale(1.3)' : 'scale(1)',
+                        cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1,
+                      }} />
+                  );
+                })}
               </div>
-            )}
+            ))}
           </div>
         </div>
-      )}
+        {/* Tooltip */}
+        {hovered && (
+          <div style={{ position: 'absolute', top: -48, left: '50%', transform: 'translateX(-50%)', background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
+            <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
+            <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
+          </div>
+        )}
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 16, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>Less</span>
         {CELL_COLORS.map((bg, i) => <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: bg }} />)}
@@ -724,14 +707,8 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
   const { addToast } = useToast();
   const isOwnProfile = !username || username === user?.username;
   const [activeBranch, setActiveBranch] = useState('all');
-  const [commits, setCommits] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [otherUser, setOtherUser] = useState(null);
-  const [resolvedUserId, setResolvedUserId] = useState(null);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [rawDecisions, setRawDecisions] = useState([]);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [feedView, setFeedView] = useState(false);
   const [feedStartId, setFeedStartId] = useState(null);
   const [reactionState, setReactionState] = useState({});
@@ -746,82 +723,112 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
 
   useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
 
-  useEffect(() => {
-    setActiveBranch('all');
-    setCommits([]);
-    setBranches([]);
-    setOtherUser(null);
-    setResolvedUserId(null);
-    setLoading(true);
+  // Own profile: fetch decisions + branches in parallel
+  const { data: ownDecisions = [], isLoading: ownDecisionsLoading } = useQuery({
+    queryKey: QUERY_KEYS.decisions,
+    queryFn: () => api.getDecisions({ sortOrder: 'desc' }),
+    enabled: isOwnProfile,
+    staleTime: 30_000,
+  });
+  const { data: ownBranches = [], isLoading: ownBranchesLoading } = useQuery({
+    queryKey: QUERY_KEYS.branches,
+    queryFn: () => api.getBranches(),
+    enabled: isOwnProfile,
+    staleTime: 60_000,
+  });
 
-    if (isOwnProfile) {
-      Promise.all([
-        api.getDecisions({ sortOrder: 'desc' }),
-        api.getBranches(),
-      ])
-        .then(([decisions, apiBranches]) => {
-          setRawDecisions(decisions);
-          setCommits(decisions.map(d => ({
-            id: d.id,
-            branch: d.branch_name,
-            message: d.decision,
-            date: formatDate(d.timestamp),
-            rawDate: d.timestamp,
-            category: d.type || 'Career',
-            wi: d.branch_name !== 'main',
-            merged: false,
-            reactions: d.reactions || { fork: { count: 0 }, merge: { count: 0 }, support: { count: 0 } },
-            userReactions: d.userReactions || {},
-            commentCount: d.commentCount ?? 0,
-            viewCount: d.viewCount ?? 0,
-          })));
-          setBranches(apiBranches.map((b, i) => ({
-            id: b.id,
-            name: b.name,
-            color: BRANCH_COLORS[i % BRANCH_COLORS.length],
-            merged: b.status === 'merged',
-          })));
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    } else {
-      api.getUserProfile(username)
-        .then(profile => {
-          const resolvedId = profile.id || profile._id || username;
-          setResolvedUserId(resolvedId);
-          return Promise.all([Promise.resolve(profile), api.getUserDecisions(resolvedId)]);
-        })
-        .then(([profile, decisions]) => {
-          setOtherUser(profile);
-          setIsFollowing(profile.isFollowing);
-          setRawDecisions(decisions);
-          const mapped = decisions.map(d => ({
-            id: d.id,
-            branch: d.branch_name,
-            message: d.decision,
-            date: formatDate(d.timestamp),
-            rawDate: d.timestamp,
-            category: d.type || 'Career',
-            wi: d.branch_name !== 'main',
-            merged: false,
-            reactions: d.reactions || { fork: { count: 0 }, merge: { count: 0 }, support: { count: 0 } },
-            userReactions: d.userReactions || {},
-            commentCount: d.commentCount ?? 0,
-            viewCount: d.viewCount ?? 0,
-          }));
-          setCommits(mapped);
-          const branchNames = [...new Set(mapped.map(d => d.branch).filter(Boolean))];
-          setBranches(branchNames.map((name, i) => ({
-            id: name,
-            name,
-            color: BRANCH_COLORS[i % BRANCH_COLORS.length],
-            merged: false,
-          })));
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+  // Other profile: fetch profile first, then decisions (dependent query)
+  const { data: otherProfile, isLoading: otherProfileLoading } = useQuery({
+    queryKey: QUERY_KEYS.profile(username),
+    queryFn: () => api.getUserProfile(username),
+    enabled: !isOwnProfile && !!username,
+    staleTime: 60_000,
+  });
+  const resolvedUserId = otherProfile ? (otherProfile.id || otherProfile._id || username) : null;
+  const { data: otherDecisions = [], isLoading: otherDecisionsLoading } = useQuery({
+    queryKey: QUERY_KEYS.userDecisions(resolvedUserId),
+    queryFn: () => api.getUserDecisions(resolvedUserId),
+    enabled: !isOwnProfile && !!resolvedUserId,
+    staleTime: 30_000,
+  });
+
+  // Sync isFollowing from profile data
+  const otherUser = otherProfile || null;
+  useEffect(() => {
+    if (otherProfile) setIsFollowing(otherProfile.isFollowing);
+  }, [otherProfile]);
+
+  // Derive loading, rawDecisions, commits, branches from query data
+  const loading = isOwnProfile
+    ? (ownDecisionsLoading || ownBranchesLoading)
+    : (otherProfileLoading || (!!resolvedUserId && otherDecisionsLoading));
+
+  const rawDecisions = isOwnProfile ? ownDecisions : otherDecisions;
+
+  const commits = isOwnProfile
+    ? ownDecisions.map(d => ({
+        id: d.id,
+        branch: d.branch_name,
+        message: d.decision,
+        date: formatDate(d.timestamp),
+        rawDate: d.timestamp,
+        category: d.type || 'Career',
+        wi: d.branch_name !== 'main',
+        merged: false,
+        reactions: d.reactions || { fork: { count: 0 }, merge: { count: 0 }, support: { count: 0 } },
+        userReactions: d.userReactions || {},
+        commentCount: d.commentCount ?? 0,
+        viewCount: d.viewCount ?? 0,
+      }))
+    : otherDecisions.map(d => ({
+        id: d.id,
+        branch: d.branch_name,
+        message: d.decision,
+        date: formatDate(d.timestamp),
+        rawDate: d.timestamp,
+        category: d.type || 'Career',
+        wi: d.branch_name !== 'main',
+        merged: false,
+        reactions: d.reactions || { fork: { count: 0 }, merge: { count: 0 }, support: { count: 0 } },
+        userReactions: d.userReactions || {},
+        commentCount: d.commentCount ?? 0,
+        viewCount: d.viewCount ?? 0,
+      }));
+
+  const branches = (() => {
+    if (isOwnProfile && ownBranches.length > 0) {
+      // Use API branches, but merge in any branch names from commits that aren't already listed
+      const apiNames = new Set(ownBranches.map(b => b.name));
+      const extraNames = [...new Set(commits.map(d => d.branch).filter(Boolean))]
+        .filter(name => !apiNames.has(name));
+      const all = [
+        ...ownBranches.map((b, i) => ({
+          id: b.id,
+          name: b.name,
+          color: BRANCH_COLORS[i % BRANCH_COLORS.length],
+          merged: b.status === 'merged',
+        })),
+        ...extraNames.map((name, i) => ({
+          id: name,
+          name,
+          color: BRANCH_COLORS[(ownBranches.length + i) % BRANCH_COLORS.length],
+          merged: false,
+        })),
+      ];
+      return all;
     }
-  }, [username, isOwnProfile]);
+    // Derive branches from commits (own profile fallback + other profiles)
+    const branchNames = [...new Set(commits.map(d => d.branch).filter(Boolean))];
+    return branchNames.map((name, i) => ({
+      id: name,
+      name,
+      color: BRANCH_COLORS[i % BRANCH_COLORS.length],
+      merged: false,
+    }));
+  })();
+
+  // Reset active branch when profile changes
+  useEffect(() => { setActiveBranch('all'); }, [username, isOwnProfile]);
 
   const handleReact = (id, type) => {
     setReactionState(prev => {
@@ -864,11 +871,15 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
     setFeedView(true);
   };
 
+  const queryClient = useQueryClient();
   const handleDeletePost = async (id) => {
     try {
       await api.deleteDecision(id);
-      setRawDecisions(prev => prev.filter(d => (d.id || d._id) !== id));
-      setCommits(prev => prev.filter(c => c.id !== id));
+      if (isOwnProfile) {
+        queryClient.setQueryData(QUERY_KEYS.decisions, (old = []) => old.filter(d => (d.id || d._id) !== id));
+      } else {
+        queryClient.setQueryData(QUERY_KEYS.userDecisions(resolvedUserId), (old = []) => old.filter(d => (d.id || d._id) !== id));
+      }
       addToast({ message: 'Post deleted', type: 'success' });
     } catch {
       addToast({ message: 'Failed to delete post', type: 'error' });

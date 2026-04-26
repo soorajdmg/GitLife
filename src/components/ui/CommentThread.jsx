@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../config/api';
+import { QUERY_KEYS } from '../../config/queryClient';
 import Avatar from './Avatar';
 
 function formatTime(ts) {
@@ -149,22 +151,19 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isR
 }
 
 export default function CommentThread({ decisionId, currentUserId, initialCount = 0, onCountChange, onProfile }) {
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    setLoading(true);
-    api.getComments(decisionId)
-      .then(data => { setComments(data); setLoading(false); })
-      .catch(() => { setError('Failed to load replies'); setLoading(false); });
-  }, [decisionId]);
+  const queryClient = useQueryClient();
+  const { data: comments = [], isLoading: loading, isError } = useQuery({
+    queryKey: QUERY_KEYS.comments(decisionId),
+    queryFn: () => api.getComments(decisionId),
+    staleTime: 30_000,
+  });
+  const error = isError ? 'Failed to load replies' : null;
 
   const handlePost = async (text) => {
     try {
       const comment = await api.postComment(decisionId, text);
       const withReplies = { ...comment, replies: [] };
-      setComments(prev => [...prev, withReplies]);
+      queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) => [...old, withReplies]);
       onCountChange?.(1);
     } catch {
       // silent fail — user can retry
@@ -174,9 +173,9 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
   const handleReply = async (parentCommentId, text) => {
     try {
       const reply = await api.postComment(decisionId, text, parentCommentId);
-      setComments(prev => prev.map(c =>
-        c.id === parentCommentId ? { ...c, replies: [...(c.replies || []), reply] } : c
-      ));
+      queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) =>
+        old.map(c => c.id === parentCommentId ? { ...c, replies: [...(c.replies || []), reply] } : c)
+      );
       onCountChange?.(1);
     } catch {}
   };
@@ -184,15 +183,14 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
   const handleDelete = async (commentId) => {
     try {
       await api.deleteComment(decisionId, commentId);
-      // Check if it's a top-level or reply
       let delta = -1;
-      setComments(prev => {
-        const topLevel = prev.find(c => c.id === commentId);
+      queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) => {
+        const topLevel = old.find(c => c.id === commentId);
         if (topLevel) {
           delta = -1 - (topLevel.replies?.length || 0);
-          return prev.filter(c => c.id !== commentId);
+          return old.filter(c => c.id !== commentId);
         }
-        return prev.map(c => ({
+        return old.map(c => ({
           ...c,
           replies: (c.replies || []).filter(r => {
             if (r.id === commentId) { delta = -1; return false; }

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { api } from '../config/api';
+import { QUERY_KEYS } from '../config/queryClient';
 import BranchPill from '../components/ui/BranchPill';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -335,7 +337,6 @@ export default function MessagesView({ onProfile, isMobile }) {
   const [activeConvId, setActiveConvId] = useState(null);
   const [messages, setMessages] = useState([]); // for active conversation
   const [input, setInput] = useState('');
-  const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
   const [showNewChat, setShowNewChat] = useState(false);
@@ -352,19 +353,20 @@ export default function MessagesView({ onProfile, isMobile }) {
   const activeConv = conversations.find(c => c.id === activeConvId);
   const otherUser = activeConv?.otherUser;
 
-  // ── Load conversations ─────────────────────────────────────────────────────
-  const loadConversations = useCallback(async () => {
-    try {
-      const data = await api.getConversations();
-      setConversations(data.conversations || []);
-    } catch (err) {
-      console.error('Failed to load conversations', err);
-    } finally {
-      setLoadingConvs(false);
-    }
-  }, []);
+  // ── Load conversations via React Query (cached) ────────────────────────────
+  const { data: convsData, isLoading: loadingConvs } = useQuery({
+    queryKey: QUERY_KEYS.conversations,
+    queryFn: () => api.getConversations(),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => { loadConversations(); }, [loadConversations]);
+  // Seed local conversations state from query cache once on load
+  // (socket events then keep local state up-to-date)
+  useEffect(() => {
+    if (convsData) {
+      setConversations(convsData.conversations || []);
+    }
+  }, [convsData]);
 
   // ── If opened with a userId (from profile/explore), start that conversation ─
   // NOTE: `conversations` intentionally excluded from deps — we only want this

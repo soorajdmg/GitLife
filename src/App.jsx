@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './config/api';
+import { QUERY_KEYS } from './config/queryClient';
 import { useAuth } from './contexts/AuthContext';
 import { useToast } from './contexts/ToastContext';
 import { useSocket } from './contexts/SocketContext';
@@ -140,16 +142,19 @@ function notifDropdownMessage(n) {
 }
 
 function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobile }) {
-  const [notifs, setNotifs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: notifs = [], isLoading: loading } = useQuery({
+    queryKey: QUERY_KEYS.notifications,
+    queryFn: () => api.getNotifications(20),
+    staleTime: 60_000,
+  });
   const ref = useRef();
 
   useEffect(() => {
-    api.getNotifications(20).then(data => {
-      setNotifs(data);
-      onNotifsLoaded?.(data.filter(n => !n.read).length);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    if (!loading) {
+      onNotifsLoaded?.(notifs.filter(n => !n.read).length);
+    }
+  }, [notifs, loading, onNotifsLoaded]);
 
   useEffect(() => {
     const handler = e => {
@@ -162,14 +167,14 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobil
   const unreadCount = notifs.filter(n => !n.read).length;
 
   const markAllRead = async () => {
-    setNotifs(p => p.map(n => ({ ...n, read: true })));
+    queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) => old.map(n => ({ ...n, read: true })));
     onNotifsLoaded?.(0);
     await api.markAllNotifsRead().catch(() => {});
   };
 
   const markOneRead = async (id) => {
-    setNotifs(p => {
-      const updated = p.map(n => n.id === id ? { ...n, read: true } : n);
+    queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) => {
+      const updated = old.map(n => n.id === id ? { ...n, read: true } : n);
       onNotifsLoaded?.(updated.filter(n => !n.read).length);
       return updated;
     });
@@ -419,6 +424,7 @@ export default function App() {
   const isMobile = useIsMobile();
   const [feedData, setFeedData] = useState({ following: [], trending: [], hasFollowing: false });
   const [feedLoading, setFeedLoading] = useState(true);
+  const [feedSeeded, setFeedSeeded] = useState(false);
   const [modal, setModal] = useState(false);
   const [tweaksVis, setTweaksVis] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
@@ -429,6 +435,7 @@ export default function App() {
   const [stashedIds, setStashedIds] = useState([]);
   const bellRef = useRef();
   const unreadConvIdsRef = useRef(new Set());
+  const queryClient = useQueryClient();
 
   // Derive active nav from URL
   const activeNav = pathname.startsWith('/explore') ? 'explore'
@@ -447,17 +454,29 @@ export default function App() {
     else navigate('/profile');
   };
 
+  // Unread notif count
+  const { data: unreadNotifData } = useQuery({
+    queryKey: QUERY_KEYS.unreadNotifCount,
+    queryFn: () => api.getUnreadNotifCount(),
+    staleTime: 60_000,
+  });
   useEffect(() => {
-    api.getUnreadNotifCount().then(({ count }) => setUnreadNotifCount(count)).catch(() => {});
-  }, []);
+    if (unreadNotifData?.count != null) setUnreadNotifCount(unreadNotifData.count);
+  }, [unreadNotifData]);
 
+  // Conversations (for unread msg badge only)
+  const { data: convData } = useQuery({
+    queryKey: QUERY_KEYS.conversations,
+    queryFn: () => api.getConversations(),
+    staleTime: 30_000,
+  });
   useEffect(() => {
-    api.getConversations().then(({ conversations }) => {
-      const ids = new Set((conversations || []).filter(c => (c.unreadCount || 0) > 0).map(c => c.id));
+    if (convData) {
+      const ids = new Set((convData.conversations || []).filter(c => (c.unreadCount || 0) > 0).map(c => c.id));
       unreadConvIdsRef.current = ids;
       setUnreadMsgCount(ids.size);
-    }).catch(() => {});
-  }, []);
+    }
+  }, [convData]);
 
   useEffect(() => {
     if (pathname.startsWith('/messages')) {
@@ -478,25 +497,41 @@ export default function App() {
     });
   }, [socket, user?.id, pathname]);
 
+  // Feed data
+  const { data: feedRaw, isLoading: feedQueryLoading } = useQuery({
+    queryKey: QUERY_KEYS.feed,
+    queryFn: () => api.getFeed(),
+    staleTime: 30_000,
+  });
+  const { data: stashedIdsRaw = [] } = useQuery({
+    queryKey: QUERY_KEYS.stashedIds,
+    queryFn: () => api.getStashedIds(),
+    staleTime: 30_000,
+  });
+
+  // Seed feedData + stashedIds from query results
   useEffect(() => {
-    Promise.all([
-      api.getFeed(),
-      api.getStashedIds().catch(() => []),
-    ]).then(([data, ids]) => {
+    if (!feedQueryLoading && feedRaw) {
+      const ids = stashedIdsRaw || [];
       setStashedIds(ids);
       setFeedData({
-        following: (data.following || []).map(d => mapDecisionToCommit(d, ids)),
-        trending:  (data.trending  || []).map(d => mapDecisionToCommit(d, ids)),
-        hasFollowing: data.hasFollowing,
+        following: (feedRaw.following || []).map(d => mapDecisionToCommit(d, ids)),
+        trending:  (feedRaw.trending  || []).map(d => mapDecisionToCommit(d, ids)),
+        hasFollowing: feedRaw.hasFollowing,
       });
-    }).catch(() => setFeedData({ following: [], trending: [], hasFollowing: false }))
-      .finally(() => setFeedLoading(false));
-  }, []);
+      setFeedLoading(false);
+      setFeedSeeded(true);
+    }
+  }, [feedRaw, stashedIdsRaw, feedQueryLoading]);
 
-  useEffect(() => {
-    if (!user) return;
-    api.getFollowing().then(setSidebarFollowing).catch(() => setSidebarFollowing([]));
-  }, [user, pathname]);
+  // Following (sidebar)
+  const { data: followingData = [] } = useQuery({
+    queryKey: QUERY_KEYS.following(user?.id),
+    queryFn: () => api.getFollowing(),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  useEffect(() => { setSidebarFollowing(followingData); }, [followingData]);
 
   useEffect(() => {
     const h = e => {
@@ -578,6 +613,9 @@ export default function App() {
       }
       const newPost = mapDecisionToCommit(saved);
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
+      // Invalidate so profile/decisions queries re-fetch
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.decisions });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.branches });
     } catch {
       const newPost = { id: `c_${Date.now()}`, userId: user?.id, branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi };
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));

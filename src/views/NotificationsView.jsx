@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../config/api';
+import { QUERY_KEYS } from '../config/queryClient';
 
 function formatRelativeTime(ts) {
   if (!ts) return 'just now';
@@ -43,24 +45,26 @@ function notifMessage(n) {
 }
 
 export default function NotificationsView() {
-  const [notifs, setNotifs] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.getNotifications().then(data => {
-      setNotifs(data);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  const queryClient = useQueryClient();
+  const { data: notifs = [], isLoading: loading } = useQuery({
+    queryKey: QUERY_KEYS.notifications,
+    queryFn: () => api.getNotifications(),
+    staleTime: 60_000,
+  });
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
   const markAllRead = async () => {
-    setNotifs(p => p.map(n => ({ ...n, read: true })));
+    queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) =>
+      old.map(n => ({ ...n, read: true }))
+    );
     await api.markAllNotifsRead().catch(() => {});
   };
 
   const markOneRead = async (id) => {
-    setNotifs(p => p.map(n => n.id === id ? { ...n, read: true } : n));
+    queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) =>
+      old.map(n => n.id === id ? { ...n, read: true } : n)
+    );
     await api.markNotifRead(id).catch(() => {});
   };
 

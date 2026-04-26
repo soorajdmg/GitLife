@@ -1,12 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.jsx'
 import Auth from './components/Auth.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { queryClient } from './config/queryClient'
 
 function Root() {
   const { isAuthenticated } = useAuth();
@@ -16,13 +18,15 @@ function Root() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <SocketProvider>
-            <Root />
-          </SocketProvider>
-        </ToastProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ToastProvider>
+            <SocketProvider>
+              <Root />
+            </SocketProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   </StrictMode>,
 )

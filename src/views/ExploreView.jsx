@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../config/api';
+import { QUERY_KEYS } from '../config/queryClient';
 import { useAuth } from '../contexts/AuthContext';
 import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
@@ -220,52 +222,6 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
       marginBottom: 12,
       overflow: 'hidden',
     }}>
-      {/* Media: image or coloured text banner */}
-      {(item.image || item.img) ? (
-        <div style={{ width: '100%', maxHeight: 300, overflow: 'hidden', background: '#000' }}>
-          <img
-            src={item.image || item.img}
-            alt=""
-            style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }}
-            onError={e => e.target.parentElement.style.display = 'none'}
-          />
-        </div>
-      ) : (
-        <div style={{
-          width: '100%', height: 160,
-          background: bg,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '20px 24px', boxSizing: 'border-box', position: 'relative',
-        }}>
-          {wi && (
-            <div style={{
-              position: 'absolute', top: 10, left: 14,
-              fontSize: 10.5, fontWeight: 700, color: 'oklch(80% 0.1 60)',
-              background: 'oklch(20% 0.1 55 / 0.5)', borderRadius: 5, padding: '2px 7px',
-            }}>
-              ⎇ what-if
-            </div>
-          )}
-          {category && (
-            <div style={{
-              position: 'absolute', top: 10, right: 14,
-              fontSize: 9.5, fontWeight: 700, letterSpacing: '0.07em',
-              textTransform: 'uppercase', color: 'white', opacity: 0.5,
-            }}>
-              {category}
-            </div>
-          )}
-          <p style={{
-            color: 'white', fontSize: 18, fontWeight: 800,
-            lineHeight: 1.3, textAlign: 'center', margin: 0,
-            display: '-webkit-box', WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
-            {item.decision}
-          </p>
-        </div>
-      )}
-
       {/* Post body */}
       <div style={{ padding: '14px 18px 0' }}>
         {/* Author row */}
@@ -314,10 +270,25 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
             {item.body}
           </div>
         )}
+      </div>
 
+      {/* Media: image only (no banner when there's an image) */}
+      {(item.image || item.img) && (
+        <div style={{ width: '100%', maxHeight: 300, overflow: 'hidden', background: '#000' }}>
+          <img
+            src={item.image || item.img}
+            alt=""
+            style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }}
+            onError={e => e.target.parentElement.style.display = 'none'}
+          />
+        </div>
+      )}
+
+      {/* Tags + Engagement */}
+      <div style={{ padding: '0 18px 12px' }}>
         {/* Tags */}
         {category && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: (item.image || item.img) ? 12 : 0 }}>
             <Tag cat={category} />
             {item.impact != null && (
               <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
@@ -460,18 +431,37 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('trending');
   const [catFilter, setCatFilter] = useState('All');
-  const [feed, setFeed] = useState([]);
   const [users, setUsers] = useState([]);
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [followed, setFollowed] = useState(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [reactionState, setReactionState] = useState({});
   const [localStashed, setLocalStashed] = useState(new Set(stashedIds));
   const [feedView, setFeedView] = useState(false);
   const [feedItems, setFeedItems] = useState([]);
 
   useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
+
+  const { data: feed = [], isLoading: loading, isError, refetch: refetchFeed } = useQuery({
+    queryKey: QUERY_KEYS.exploreFeed(tab),
+    queryFn: () => api.getExploreFeed({ limit: 60, type: tab === 'whatifs' ? 'whatifs' : undefined }),
+    staleTime: 60_000,
+  });
+  const error = isError ? 'Failed to load feed' : null;
+
+  const { data: suggestedUsers = [] } = useQuery({
+    queryKey: QUERY_KEYS.suggestedUsers,
+    queryFn: () => api.getSuggestedUsers(12),
+    staleTime: 120_000,
+    onSuccess: (data) => {
+      setFollowed(new Set(data.filter(u => u.isFollowing).map(u => u.id)));
+    },
+  });
+
+  // Seed followed set when suggestedUsers loads
+  useEffect(() => {
+    if (suggestedUsers.length > 0) {
+      setFollowed(new Set(suggestedUsers.filter(u => u.isFollowing).map(u => u.id)));
+    }
+  }, [suggestedUsers]);
 
   const handleReact = (id, type) => {
     setReactionState(prev => {
@@ -512,28 +502,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     });
   };
 
-  const loadFeed = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const type = tab === 'whatifs' ? 'whatifs' : undefined;
-      const data = await api.getExploreFeed({ limit: 60, type });
-      setFeed(data);
-    } catch {
-      setError('Failed to load feed');
-    } finally {
-      setLoading(false);
-    }
-  }, [tab]);
-
-  useEffect(() => { loadFeed(); }, [loadFeed]);
-
-  useEffect(() => {
-    api.getSuggestedUsers(12).then(data => {
-      setSuggestedUsers(data);
-      setFollowed(new Set(data.filter(u => u.isFollowing).map(u => u.id)));
-    }).catch(() => setSuggestedUsers([]));
-  }, []);
+  const loadFeed = useCallback(() => { refetchFeed(); }, [refetchFeed]);
 
   useEffect(() => {
     if (!search.trim()) { setUsers([]); return; }

@@ -27,7 +27,34 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const decisions = await db.collection('decisions').aggregate([
       { $match: matchStage },
-      { $sort: { createdAt: -1 } },
+      {
+        $addFields: {
+          totalReactions: {
+            $add: [
+              { $ifNull: ['$reactions.fork.count', 0] },
+              { $ifNull: ['$reactions.merge.count', 0] },
+              { $ifNull: ['$reactions.support.count', 0] },
+            ]
+          },
+          hoursAge: {
+            $divide: [
+              { $subtract: [new Date(), { $toDate: '$createdAt' }] },
+              3600000
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          trendScore: {
+            $divide: [
+              { $add: ['$totalReactions', 1] },
+              { $pow: [{ $add: ['$hoursAge', 2] }, 1.5] }
+            ]
+          }
+        }
+      },
+      { $sort: { trendScore: -1 } },
       { $limit: parseInt(limit) },
       {
         $lookup: {
@@ -136,17 +163,44 @@ router.get('/feed', authenticateToken, async (req, res) => {
         ]).toArray()
       : [];
 
-    // 2. Trending posts: highest impact, from all users except current user, excluding seen + already returned following posts
+    // 2. Trending posts: time-decayed engagement score, from all users except current user, excluding seen + already returned following posts
+    // trendScore = totalReactions / (hoursAge + 2)^1.5  (similar to HN ranking)
     const allSeenIds = [...seenIds, ...followingPosts.map(p => p.id)];
     const trendingMatch = {
       userId: { $ne: currentUserId },
       visibility: { $ne: 'private' }
     };
-    // Exclude already-seen posts (best effort, ids as strings — match on string _id via addFields)
     const trendingPosts = await db.collection('decisions').aggregate([
       { $addFields: { id: { $toString: '$_id' } } },
       { $match: { ...trendingMatch, id: { $nin: allSeenIds } } },
-      { $sort: { impact: -1, createdAt: -1 } },
+      {
+        $addFields: {
+          totalReactions: {
+            $add: [
+              { $ifNull: ['$reactions.fork.count', 0] },
+              { $ifNull: ['$reactions.merge.count', 0] },
+              { $ifNull: ['$reactions.support.count', 0] },
+            ]
+          },
+          hoursAge: {
+            $divide: [
+              { $subtract: [new Date(), { $toDate: '$createdAt' }] },
+              3600000 // ms per hour
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          trendScore: {
+            $divide: [
+              { $add: ['$totalReactions', 1] },
+              { $pow: [{ $add: ['$hoursAge', 2] }, 1.5] }
+            ]
+          }
+        }
+      },
+      { $sort: { trendScore: -1 } },
       { $limit: limit },
       ...userLookup
     ]).toArray();

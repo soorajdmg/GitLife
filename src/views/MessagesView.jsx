@@ -325,7 +325,7 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function MessagesView({ onProfile }) {
+export default function MessagesView({ onProfile, isMobile }) {
   const [searchParams] = useSearchParams();
   const initialUserId = searchParams.get('user') || null;
   const { user } = useAuth();
@@ -341,6 +341,8 @@ export default function MessagesView({ onProfile }) {
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasMore, setHasMore] = useState(false);
+  // Mobile: track which pane is visible ('list' or 'chat')
+  const [mobilePane, setMobilePane] = useState('list');
 
   const bottomRef = useRef(null);
   const typingTimerRef = useRef(null);
@@ -376,6 +378,7 @@ export default function MessagesView({ onProfile }) {
     const existing = conversations.find(c => c.otherUser?.id === initialUserId);
     if (existing) {
       setActiveConvId(existing.id);
+      setMobilePane('chat');
     } else {
       api.getOrCreateConversation(initialUserId).then(({ conversation }) => {
         setConversations(prev => {
@@ -383,6 +386,7 @@ export default function MessagesView({ onProfile }) {
           return [conversation, ...prev];
         });
         setActiveConvId(conversation.id);
+        setMobilePane('chat');
         socket?.joinConversation(conversation.id);
       }).catch(console.error);
     }
@@ -553,6 +557,7 @@ export default function MessagesView({ onProfile }) {
         return [conversation, ...prev];
       });
       setActiveConvId(conversation.id);
+      setMobilePane('chat');
       socket?.joinConversation(conversation.id);
     } catch (err) {
       console.error('Failed to start conversation', err);
@@ -586,12 +591,23 @@ export default function MessagesView({ onProfile }) {
     return n.includes(q) || u.includes(q);
   });
 
+  const showList = !isMobile || mobilePane === 'list';
+  const showChat = !isMobile || mobilePane === 'chat';
+
   return (
     <div style={{ height: '100%', display: 'flex', overflow: 'hidden' }}>
       {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} onStart={handleStartChat} currentUserId={user?.id} />}
 
       {/* ── Conversation list ─────────────────────────────────────────────── */}
-      <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(91% 0.006 80)', overflowY: 'auto', background: 'white', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        width: isMobile ? '100%' : 280,
+        flexShrink: 0,
+        borderRight: isMobile ? 'none' : '1px solid oklch(91% 0.006 80)',
+        overflowY: 'auto',
+        background: 'white',
+        display: showList ? 'flex' : 'none',
+        flexDirection: 'column',
+      }}>
         <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid oklch(94% 0.004 80)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'oklch(32% 0.01 260)' }}>Messages</span>
@@ -628,7 +644,7 @@ export default function MessagesView({ onProfile }) {
               cv={cv}
               isActive={cv.id === activeConvId}
               isOnline={!!socket?.onlineUsers?.[cv.otherUser?.id]}
-              onSelect={() => setActiveConvId(cv.id)}
+              onSelect={() => { setActiveConvId(cv.id); setMobilePane('chat'); }}
               onDelete={handleDeleteConv}
               onProfile={onProfile}
             />
@@ -637,7 +653,7 @@ export default function MessagesView({ onProfile }) {
       </div>
 
       {/* ── Chat area ─────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)' }}>
+      <div style={{ flex: 1, display: showChat ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)' }}>
         {!activeConvId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'oklch(60% 0.01 260)' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
@@ -652,6 +668,16 @@ export default function MessagesView({ onProfile }) {
           <>
             {/* Header */}
             <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Back button on mobile */}
+              {isMobile && (
+                <button
+                  onClick={() => setMobilePane('list')}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px 4px 0', display: 'flex', alignItems: 'center', color: 'oklch(42% 0.2 260)', flexShrink: 0 }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="12 4 6 10 12 16" />
+                  </svg>
+                </button>
+              )}
               <div onClick={() => onProfile && otherUser?.id && onProfile(otherUser.id)} style={{ cursor: onProfile && otherUser?.id ? 'pointer' : 'default' }}>
                 <Avatar user={otherUser} size={36} showOnline isOnline={isOtherOnline} />
               </div>

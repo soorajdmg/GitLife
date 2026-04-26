@@ -21,3 +21,16 @@ button { font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
 textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
 
 #root { width: 100%; height: 100%; }
+
+/* ─── Responsive utilities ─── */
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+}
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+}
+
+/* Thin scrollbar on mobile too */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+}

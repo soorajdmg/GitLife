@@ -39,7 +39,7 @@ function mapToCard(d) {
   };
 }
 
-export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onDelete, onNew, compact, loading, currentUser, openMessage, onProfile }) {
+export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onDelete, onNew, compact, loading, currentUser, openMessage, onProfile, hideFab }) {
   const [filter, setFilter] = useState('All');
   const seenRef = useRef(new Set());
 
@@ -127,12 +127,14 @@ export default function FeedView({ feedData = { following: [], trending: [], has
         </div>
       </div>
 
-      <button onClick={onNew}
-        style={{ position: 'fixed', bottom: 28, right: 28, background: 'oklch(52% 0.2 260)', color: 'white', border: 'none', borderRadius: 13, padding: '12px 22px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 20px oklch(52% 0.2 260 / 0.35)', transition: 'all 0.15s', cursor: 'pointer' }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 26px oklch(52% 0.2 260 / 0.42)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px oklch(52% 0.2 260 / 0.35)'; }}>
-        + New commit
-      </button>
+      {!hideFab && (
+        <button onClick={onNew}
+          style={{ position: 'fixed', bottom: 28, right: 28, background: 'oklch(52% 0.2 260)', color: 'white', border: 'none', borderRadius: 13, padding: '12px 22px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 20px oklch(52% 0.2 260 / 0.35)', transition: 'all 0.15s', cursor: 'pointer' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 26px oklch(52% 0.2 260 / 0.42)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px oklch(52% 0.2 260 / 0.35)'; }}>
+          + New commit
+        </button>
+      )}
     </div>
   );
 }

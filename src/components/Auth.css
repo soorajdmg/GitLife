@@ -478,3 +478,25 @@
   .auth-image-panel { flex: 0 0 200px; height: 200px; }
   .auth-form-panel { padding: 1.5rem 1rem; }
 }
+
+/* ─── Google OAuth setup screen ─── */
+.auth-google-setup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.auth-google-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.auth-field-hint {
+  font-size: 0.82rem;
+  color: oklch(50% 0.02 260);
+  margin: 0 0 12px;
+}

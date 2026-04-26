@@ -45,10 +45,10 @@ function GoogleIcon() {
 }
 
 /* ─── Step indicator ─── */
-function StepDots({ step }) {
+function StepDots({ step, total = 3 }) {
   return (
     <div className="auth-step-dots">
-      {[1, 2, 3].map(s => (
+      {Array.from({ length: total }, (_, i) => i + 1).map(s => (
         <div key={s} className={`auth-step-dot ${s === step ? 'active' : s < step ? 'done' : ''}`} />
       ))}
     </div>
@@ -69,7 +69,11 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideFading, setSlideFading] = useState(false);
-  const { login, register, loginWithGoogle } = useAuth();
+  // Google OAuth pending setup state (new users only)
+  const [googlePending, setGooglePending] = useState(null); // { email, fullName, avatarUrl, googleId }
+  const [googleSetupStep, setGoogleSetupStep] = useState(1); // 1=username, 2=password
+  const [googleSetupData, setGoogleSetupData] = useState({ username: '', password: '', confirmPassword: '' });
+  const { login, register, loginWithGoogle, completeGoogleSetup } = useAuth();
   const usernameCheckTimer = useRef(null);
 
   /* ─── Handle Google OAuth callback on mount ─── */
@@ -88,8 +92,14 @@ export default function Auth() {
       if (code) {
         setLoading(true);
         loginWithGoogle(code)
-          .then(() => {
+          .then((res) => {
             window.history.replaceState({}, '', '/');
+            if (res?.needsSetup) {
+              // New Google user — show username + password setup
+              setGooglePending(res.googleData);
+              setGoogleSetupStep(1);
+              setGoogleSetupData({ username: '', password: '', confirmPassword: '' });
+            }
           })
           .catch((err) => {
             setError(err.message || 'Google sign-in failed. Please try again.');
@@ -228,6 +238,9 @@ export default function Auth() {
     setSignupData({ email: '', fullName: '', username: '', password: '', confirmPassword: '' });
     setUsernameStatus(null);
     setUsernameMsg('');
+    setGooglePending(null);
+    setGoogleSetupData({ username: '', password: '', confirmPassword: '' });
+    setGoogleSetupStep(1);
   };
 
   const handleGoogleAuth = () => {
@@ -240,6 +253,50 @@ export default function Auth() {
     const scope = 'openid email profile';
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
     window.location.href = url;
+  };
+
+  const handleGoogleSetupChange = (e) => {
+    const { name, value } = e.target;
+    setGoogleSetupData(prev => ({ ...prev, [name]: value }));
+    setError('');
+    if (name === 'username') checkUsername(value);
+  };
+
+  const handleGoogleSetupStep1 = (e) => {
+    e.preventDefault();
+    if (usernameStatus === 'taken') { setError('Username is already taken'); return; }
+    if (usernameStatus === 'invalid' || !googleSetupData.username || googleSetupData.username.length < 3) {
+      setError('Please choose a valid username'); return;
+    }
+    setError('');
+    setGoogleSetupStep(2);
+  };
+
+  const handleGoogleSetupSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (googleSetupData.password !== googleSetupData.confirmPassword) {
+      setError('Passwords do not match'); return;
+    }
+    if (googleSetupData.password.length < 6) {
+      setError('Password must be at least 6 characters'); return;
+    }
+    setLoading(true);
+    try {
+      await completeGoogleSetup({
+        email: googlePending.email,
+        fullName: googlePending.fullName,
+        username: googleSetupData.username,
+        password: googleSetupData.password,
+        avatarUrl: googlePending.avatarUrl,
+        googleId: googlePending.googleId,
+      });
+      setGooglePending(null);
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const currentSlide = SLIDES[slideIndex];
@@ -283,7 +340,109 @@ export default function Auth() {
             <span>GitLife</span>
           </div>
 
-          {isLogin ? (
+          {googlePending ? (
+            /* ════ GOOGLE SETUP FORM ════ */
+            <>
+              <div className="auth-google-setup-header">
+                {googlePending.avatarUrl && (
+                  <img src={googlePending.avatarUrl} alt="" className="auth-google-avatar" />
+                )}
+                <div>
+                  <h1 className="auth-form-heading">Almost there!</h1>
+                  <p className="auth-form-subheading">
+                    Signed in as <strong>{googlePending.email}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <StepDots step={googleSetupStep} total={2} />
+
+              {error && <div className="auth-error">{error}</div>}
+
+              {googleSetupStep === 1 && (
+                <form onSubmit={handleGoogleSetupStep1} className="auth-form">
+                  <p className="auth-field-hint">Choose a username for your GitLife account</p>
+                  <div className="auth-field">
+                    <label htmlFor="gsetup-username">Username</label>
+                    <div className="auth-username-wrap">
+                      <input
+                        type="text"
+                        id="gsetup-username"
+                        name="username"
+                        value={googleSetupData.username}
+                        onChange={handleGoogleSetupChange}
+                        placeholder="e.g. john_doe"
+                        required
+                        minLength={3}
+                        maxLength={30}
+                        autoComplete="username"
+                        autoFocus
+                        className={usernameStatus === 'available' ? 'input-available' : usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'input-taken' : ''}
+                      />
+                      <span className="auth-username-status-icon"><UsernameStatusIcon /></span>
+                    </div>
+                    {usernameMsg && (
+                      <span className={`auth-username-msg ${usernameStatus}`}>{usernameMsg}</span>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    className="auth-submit"
+                    disabled={usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking'}
+                  >
+                    Next
+                  </button>
+                </form>
+              )}
+
+              {googleSetupStep === 2 && (
+                <form onSubmit={handleGoogleSetupSubmit} className="auth-form">
+                  <p className="auth-field-hint">Create a password to also sign in with email</p>
+                  <div className="auth-field">
+                    <label htmlFor="gsetup-password">Password</label>
+                    <div className="auth-password-wrap">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        id="gsetup-password"
+                        name="password"
+                        value={googleSetupData.password}
+                        onChange={handleGoogleSetupChange}
+                        placeholder="At least 6 characters"
+                        required
+                        minLength={6}
+                        autoComplete="new-password"
+                        autoFocus
+                      />
+                      <button type="button" className="auth-show-pw" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="gsetup-confirmPassword">Confirm Password</label>
+                    <input
+                      type="password"
+                      id="gsetup-confirmPassword"
+                      name="confirmPassword"
+                      value={googleSetupData.confirmPassword}
+                      onChange={handleGoogleSetupChange}
+                      placeholder="Repeat your password"
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div className="auth-step-actions">
+                    <button type="button" className="auth-back-btn" onClick={() => { setGoogleSetupStep(1); setError(''); }}>Back</button>
+                    <button type="submit" className="auth-submit auth-submit-flex" disabled={loading}>
+                      {loading && <span className="auth-spinner" />}
+                      {loading ? 'Creating account...' : 'Create Account'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </>
+          ) : isLogin ? (
             /* ════ LOGIN FORM ════ */
             <>
               <h1 className="auth-form-heading">Welcome back</h1>
@@ -444,12 +603,14 @@ export default function Auth() {
             </>
           )}
 
-          <p className="auth-switch">
-            {isLogin ? "New here?" : 'Have an account?'}
-            <button onClick={toggleMode} className="auth-switch-btn">
-              {isLogin ? 'Create an account' : 'Sign in'}
-            </button>
-          </p>
+          {!googlePending && (
+            <p className="auth-switch">
+              {isLogin ? "New here?" : 'Have an account?'}
+              <button onClick={toggleMode} className="auth-switch-btn">
+                {isLogin ? 'Create an account' : 'Sign in'}
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

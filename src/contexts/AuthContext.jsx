@@ -66,11 +66,28 @@ export function AuthProvider({ children }) {
     try {
       setError(null);
       const response = await api.googleCallback(code);
+      // New user — needs to pick username + password
+      if (response.needsSetup) {
+        return response;
+      }
       localStorage.setItem('token', response.token);
       setUser(response.user);
       return response;
     } catch (err) {
       setError(err.message || 'Google login failed');
+      throw err;
+    }
+  };
+
+  const completeGoogleSetup = async ({ email, fullName, username, password, avatarUrl, googleId }) => {
+    try {
+      setError(null);
+      const response = await api.googleRegister({ email, fullName, username, password, avatarUrl, googleId });
+      localStorage.setItem('token', response.token);
+      setUser(response.user);
+      return response;
+    } catch (err) {
+      setError(err.message || 'Registration failed');
       throw err;
     }
   };
@@ -91,6 +108,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     loginWithGoogle,
+    completeGoogleSetup,
     logout,
     updateUser,
     isAuthenticated: !!user

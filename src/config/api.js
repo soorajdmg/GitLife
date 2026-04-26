@@ -74,6 +74,13 @@ class ApiClient {
     });
   }
 
+  async googleRegister({ email, fullName, username, password, avatarUrl, googleId }) {
+    return this.request('/auth/google/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, fullName, username, password, avatarUrl, googleId }),
+    });
+  }
+
   async getCurrentUser() {
     return this.request('/auth/me');
   }

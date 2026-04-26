@@ -196,7 +196,7 @@ function UserCard({ user, onMessage, onProfile }) {
 export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('recent');
+  const [tab, setTab] = useState('trending');
   const [catFilter, setCatFilter] = useState('All');
   const [feed, setFeed] = useState([]);
   const [users, setUsers] = useState([]);
@@ -338,8 +338,8 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Search bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px 22px', flexShrink: 0 }}>
-        <div style={{ position: 'relative', maxWidth: 640 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px 28px', flexShrink: 0 }}>
+        <div style={{ position: 'relative', maxWidth: '100%' }}>
           <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'oklch(62% 0.01 260)', pointerEvents: 'none' }}>⌕</span>
           <input
             value={search}
@@ -356,7 +356,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 660, margin: '0 auto', padding: '18px 22px 60px' }}>
+        <div style={{ maxWidth: '100%', padding: '18px 28px 60px' }}>
 
           {/* Suggested people — inside scroll area */}
           {!search && suggestedUsers.length > 0 && (
@@ -368,7 +368,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                   const color = userColor(u.id);
                   const isFollowed = followed.has(u.id);
                   return (
-                    <div key={u.id} style={{ flexShrink: 0, width: 130, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
+                    <div key={u.id} style={{ flexShrink: 0, width: 160, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
                       <div onClick={() => onProfile && onProfile(u.id)}

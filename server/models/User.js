@@ -18,6 +18,7 @@ export class User {
       fullName: userData.fullName ? userData.fullName.trim() : '',
       password: hashedPassword,
       avatarUrl: userData.avatarUrl || null,
+      googleId: userData.googleId || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

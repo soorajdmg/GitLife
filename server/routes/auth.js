@@ -182,25 +182,73 @@ router.post('/google/callback', async (req, res) => {
     });
     const { email, name, picture, sub: googleId } = ticket.getPayload();
 
-    // Find or create user
+    // If user already exists, log them in
     let user = await User.findByEmail(email);
-    if (!user) {
-      // Generate unique username from email
-      let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_');
-      if (baseUsername.length < 3) baseUsername = `user_${baseUsername}`;
-      let username = baseUsername;
-      let counter = 1;
-      while (await User.findByUsername(username)) {
-        username = `${baseUsername}${counter++}`;
+    if (user) {
+      if (!user.googleId) {
+        await User.update(user.id, { googleId, avatarUrl: picture || user.avatarUrl });
       }
-      user = await User.createOAuth({ email, fullName: name, username, avatarUrl: picture, googleId });
-    } else if (!user.googleId) {
-      await User.update(user.id, { googleId, avatarUrl: picture || user.avatarUrl });
+      const token = generateToken(user.id, user.email, user.username);
+      return res.json({
+        message: 'Google login successful',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          fullName: user.fullName || '',
+          avatarUrl: user.avatarUrl || null
+        }
+      });
     }
 
-    const token = generateToken(user.id, user.email, user.username);
+    // New user — return Google data so frontend can collect username + password
     res.json({
-      message: 'Google login successful',
+      needsSetup: true,
+      googleData: { email, fullName: name, avatarUrl: picture, googleId }
+    });
+  } catch (error) {
+    console.error('Google callback error:', error);
+    res.status(401).json({ error: 'Google authentication failed' });
+  }
+});
+
+// Complete Google OAuth registration (new users only)
+router.post('/google/register', [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('fullName').trim().notEmpty().withMessage('Full name is required'),
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Username can only contain letters, numbers, hyphens, and underscores'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('googleId').notEmpty().withMessage('Google ID is required'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, fullName, username, password, avatarUrl, googleId } = req.body;
+
+    const existingByEmail = await User.findByEmail(email);
+    if (existingByEmail) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const existingByUsername = await User.findByUsername(username);
+    if (existingByUsername) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    const user = await User.create({ email, fullName, username, password, avatarUrl, googleId });
+    const token = generateToken(user.id, user.email, user.username);
+
+    res.status(201).json({
+      message: 'Account created successfully',
       token,
       user: {
         id: user.id,
@@ -211,8 +259,8 @@ router.post('/google/callback', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Google callback error:', error);
-    res.status(401).json({ error: 'Google authentication failed' });
+    console.error('Google register error:', error);
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 });
 

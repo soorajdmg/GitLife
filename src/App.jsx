@@ -51,8 +51,12 @@ const NAV_ICONS = {
   ),
   settings: (a) => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="2.2" />
-      <path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85" />
+      <line x1="2" y1="4" x2="14" y2="4" />
+      <line x1="2" y1="8" x2="14" y2="8" />
+      <line x1="2" y1="12" x2="14" y2="12" />
+      <circle cx="5" cy="4" r="1.5" fill={a ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)'} stroke="none" />
+      <circle cx="10" cy="8" r="1.5" fill={a ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)'} stroke="none" />
+      <circle cx="6" cy="12" r="1.5" fill={a ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)'} stroke="none" />
     </svg>
   ),
 };

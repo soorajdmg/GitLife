@@ -39,7 +39,7 @@ function mapToCard(d) {
   };
 }
 
-export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onNew, compact, loading, currentUser, openMessage }) {
+export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onDelete, onNew, compact, loading, currentUser, openMessage }) {
   const [filter, setFilter] = useState('All');
   const seenRef = useRef(new Set());
 
@@ -93,7 +93,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
             <>
               {/* Following posts */}
               {shownFollowing.map(c => (
-                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} compact={compact} currentUser={currentUser} openMessage={openMessage} />
+                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} />
               ))}
 
               {/* Divider: All caught up / Trending */}
@@ -113,7 +113,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
               {/* Trending posts */}
               {shownTrending.map(c => (
-                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} compact={compact} currentUser={currentUser} openMessage={openMessage} />
+                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} />
               ))}
 
               {/* No following + trending exists: label it */}

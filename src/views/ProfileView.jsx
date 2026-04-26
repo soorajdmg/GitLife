@@ -197,7 +197,10 @@ function CommitLogItem({ c, index, total, currentUserId, isOwnProfile }) {
     const wasActive = userReactions[type];
     setReactions(prev => ({ ...prev, [type]: prev[type] + (wasActive ? -1 : 1) }));
     setUserReactions(prev => ({ ...prev, [type]: !wasActive }));
-    api.reactToDecision(id, type).catch(() => {
+    api.reactToDecision(id, type).then(result => {
+      setReactions(prev => ({ ...prev, [type]: result.count }));
+      setUserReactions(prev => ({ ...prev, [type]: result.reacted }));
+    }).catch(() => {
       setReactions(prev => ({ ...prev, [type]: prev[type] + (wasActive ? 1 : -1) }));
       setUserReactions(prev => ({ ...prev, [type]: wasActive }));
     });

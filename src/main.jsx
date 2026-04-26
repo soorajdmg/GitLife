@@ -5,6 +5,7 @@ import App from './App.jsx'
 import Auth from './components/Auth.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
+import { ToastProvider } from './contexts/ToastContext'
 
 function Root() {
   const { isAuthenticated } = useAuth();
@@ -14,9 +15,11 @@ function Root() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <SocketProvider>
-        <Root />
-      </SocketProvider>
+      <ToastProvider>
+        <SocketProvider>
+          <Root />
+        </SocketProvider>
+      </ToastProvider>
     </AuthProvider>
   </StrictMode>,
 )

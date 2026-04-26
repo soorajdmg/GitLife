@@ -5,9 +5,47 @@ import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import SkeletonCard from '../components/shared/SkeletonCard';
+import CommitCard from '../components/ui/CommitCard';
 import './Profile.css';
 
 const MOOD_VALUES = { '🤩': 5, '🥳': 5, '😊': 4, '😐': 3, '🤔': 3, '😴': 2, '😢': 2, '😡': 1, '😰': 1, '🤮': 1 };
+
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return 'just now';
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function mapToCard(d) {
+  return {
+    id: d.id || d._id,
+    userId: d.userId,
+    userInfo: d.userInfo || null,
+    username: d.username,
+    fullName: d.fullName,
+    avatarUrl: d.avatarUrl,
+    branch: d.branch_name || d.branch,
+    message: d.decision || d.message,
+    body: d.body || null,
+    image: d.image || d.img || null,
+    category: d.type || d.category || 'Career',
+    ts: formatRelativeTime(d.createdAt || d.timestamp),
+    impact: d.impact ?? null,
+    viewCount: d.viewCount ?? 0,
+    commentCount: d.commentCount ?? 0,
+    rx: { fork: d.reactions?.fork?.count ?? 0, merge: d.reactions?.merge?.count ?? 0, support: d.reactions?.support?.count ?? 0 },
+    ur: { fork: false, merge: false, support: false },
+    stashed: false,
+    wi: (d.branch_name || d.branch) !== 'main',
+  };
+}
 
 function getInitials(name) {
   return (name || '?').slice(0, 2).toUpperCase();
@@ -86,6 +124,16 @@ export default function Profile() {
   const handleLogout = () => {
     logout();
     navigate('/auth');
+  };
+
+  const handleDeletePost = async (id) => {
+    try {
+      await api.deleteDecision(id);
+      setDecisions(prev => prev.filter(d => (d.id || d._id) !== id));
+      addToast({ message: 'Post deleted', type: 'success' });
+    } catch {
+      addToast({ message: 'Failed to delete post', type: 'error' });
+    }
   };
 
   if (loading) {
@@ -217,6 +265,26 @@ export default function Profile() {
           ))}
           <span className="cal-legend-label">More</span>
         </div>
+      </div>
+
+      {/* Commit Posts */}
+      <div className="profile-section-card">
+        <h2 className="profile-section-title">Commit Posts ({decisions.length})</h2>
+        {decisions.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No posts yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {decisions.map(d => (
+              <CommitCard
+                key={d.id || d._id}
+                c={mapToCard(d)}
+                currentUser={user}
+                onDelete={handleDeletePost}
+                compact={false}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Account */}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from './config/api';
 import { useAuth } from './contexts/AuthContext';
+import { useToast } from './contexts/ToastContext';
 import FeedView from './views/FeedView';
 import ExploreView from './views/ExploreView';
 import ProfileView from './views/ProfileView';
@@ -251,6 +252,7 @@ function mapDecisionToCommit(d, stashedIds = []) {
 
 export default function App() {
   const { user, logout } = useAuth();
+  const { addToast } = useToast();
   const [view, setView] = useState(() => localStorage.getItem('gl_view') || 'feed');
   const [messageUserId, setMessageUserId] = useState(null);
   const [viewUserId, setViewUserId] = useState(null);
@@ -322,8 +324,14 @@ export default function App() {
       };
     });
     setFeedData(prev => ({ ...prev, following: toggle(prev.following), trending: toggle(prev.trending) }));
-    // Persist to backend
-    api.reactToDecision(id, type).catch(() => {
+    // Persist to backend and sync server-confirmed count
+    api.reactToDecision(id, type).then(result => {
+      setFeedData(prev => ({
+        ...prev,
+        following: prev.following.map(c => c.id !== id ? c : { ...c, rx: { ...c.rx, [type]: result.count }, ur: { ...c.ur, [type]: result.reacted } }),
+        trending:  prev.trending.map(c =>  c.id !== id ? c : { ...c, rx: { ...c.rx, [type]: result.count }, ur: { ...c.ur, [type]: result.reacted } }),
+      }));
+    }).catch(() => {
       // Revert on failure
       setFeedData(prevFeedData);
     });
@@ -348,6 +356,20 @@ export default function App() {
       }));
     });
   };
+  const deletePost = async (id) => {
+    try {
+      await api.deleteDecision(id);
+      setFeedData(prev => ({
+        ...prev,
+        following: prev.following.filter(c => c.id !== id),
+        trending: prev.trending.filter(c => c.id !== id),
+      }));
+      addToast({ message: 'Post deleted', type: 'success' });
+    } catch {
+      addToast({ message: 'Failed to delete post', type: 'error' });
+    }
+  };
+
   const addCommit = async data => {
     try {
       const saved = await api.createDecision({
@@ -473,7 +495,7 @@ export default function App() {
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} />}
+          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} />}
           {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
           {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} />}
           {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}

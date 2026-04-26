@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
 import BranchPill from './BranchPill';
 import Tag from './Tag';
@@ -17,7 +17,7 @@ function userColor(userId) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function CommitCard({ c, onReact, onStash, compact, currentUser, openMessage }) {
+export default function CommitCard({ c, onReact, onStash, onDelete, compact, currentUser, openMessage }) {
   const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
 
   // Resolve author info from userInfo (populated by backend) or fallback to currentUser
@@ -37,6 +37,9 @@ export default function CommitCard({ c, onReact, onStash, compact, currentUser, 
   const [bodyOpen, setBodyOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(c.commentCount ?? 0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const menuRef = useRef();
 
   const handleCountChange = (delta) => setLocalCommentCount(p => Math.max(0, p + delta));
 
@@ -44,16 +47,25 @@ export default function CommitCard({ c, onReact, onStash, compact, currentUser, 
     if (!isOwnPost && openMessage && c.userId) openMessage(c.userId);
   };
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
   return (
     <div
       style={{
         background: c.wi ? 'oklch(99.5% 0.012 65)' : 'white',
         border: `1px solid ${c.wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`,
         borderRadius: 14, padding: compact ? '14px 16px' : '18px 20px',
-        marginBottom: 10, transition: 'box-shadow 0.15s',
+        marginBottom: 10, transition: 'box-shadow 0.15s', position: 'relative',
       }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; setHovered(false); }}
     >
       {c.wi && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>⎇ what-if branch</div>}
 
@@ -67,6 +79,43 @@ export default function CommitCard({ c, onReact, onStash, compact, currentUser, 
           </div>
         </div>
         <BranchPill name={c.branch} wi={c.wi} merged={false} />
+        {/* Three-dot menu — author only, shown on hover */}
+        {isOwnPost && onDelete && (
+          <div style={{ position: 'relative' }} ref={menuRef}>
+            <button
+              onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }}
+              title="More options"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 28, borderRadius: 6, border: 'none',
+                background: menuOpen ? 'oklch(93% 0.006 260)' : 'transparent',
+                color: 'oklch(55% 0.01 260)', cursor: 'pointer', padding: 0,
+                opacity: hovered || menuOpen ? 1 : 0,
+                transition: 'opacity 0.15s, background 0.12s',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor">
+                <circle cx="7" cy="2.5" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="7" cy="11.5" r="1.2" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
+                <button
+                  onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(c.id); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 25)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" />
+                  </svg>
+                  Delete post
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Message */}

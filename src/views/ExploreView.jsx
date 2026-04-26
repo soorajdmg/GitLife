@@ -84,10 +84,15 @@ function ExploreCard({ item, rank, onProfile, currentUserId, isStashed, onReact,
       )}
       {wi && <div style={{ fontSize: 11.5, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 7 }}>⎇ what-if</div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-        <div onClick={() => onProfile && userId && onProfile(userId)}
-          style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile && userId ? 'pointer' : 'default' }}>
-          {ini}
-        </div>
+        {user?.avatarUrl
+          ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile && userId && onProfile(userId)}
+              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: onProfile && userId ? 'pointer' : 'default' }}
+              referrerPolicy="no-referrer" />
+          : <div onClick={() => onProfile && userId && onProfile(userId)}
+              style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile && userId ? 'pointer' : 'default' }}>
+              {ini}
+            </div>
+        }
         <div style={{ flex: 1, minWidth: 0 }}>
           <span onClick={() => onProfile && userId && onProfile(userId)}
             style={{ fontSize: 13, fontWeight: 600, cursor: onProfile && userId ? 'pointer' : 'default' }}
@@ -151,10 +156,15 @@ function UserCard({ user, onMessage, onProfile }) {
   const color = userColor(user.id);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'white', borderRadius: 12, border: '1px solid oklch(91% 0.006 80)', marginBottom: 8 }}>
-      <div onClick={() => onProfile && onProfile(user.id)}
-        style={{ width: 44, height: 44, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}>
-        {ini}
-      </div>
+      {user.avatarUrl
+        ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile && onProfile(user.id)}
+            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}
+            referrerPolicy="no-referrer" />
+        : <div onClick={() => onProfile && onProfile(user.id)}
+            style={{ width: 44, height: 44, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}>
+            {ini}
+          </div>
+      }
       <div style={{ flex: 1, minWidth: 0 }}>
         <div onClick={() => onProfile && onProfile(user.id)}
           style={{ fontSize: 14, fontWeight: 600, cursor: onProfile ? 'pointer' : 'default', display: 'inline-block' }}
@@ -217,7 +227,15 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
         },
       };
     });
-    api.reactToDecision(id, type).catch(() => {
+    api.reactToDecision(id, type).then(result => {
+      setReactionState(prev => ({
+        ...prev,
+        [id]: {
+          reactions: { ...(prev[id]?.reactions || {}), [type]: result.count },
+          userReactions: { ...(prev[id]?.userReactions || {}), [type]: result.reacted },
+        },
+      }));
+    }).catch(() => {
       // Revert: reload the item from feed original
       setReactionState(prev => { const n = { ...prev }; delete n[id]; return n; });
     });
@@ -351,8 +369,11 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                   onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
                   onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
                   <div onClick={() => onProfile && onProfile(u.id)}
-                    style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default' }}>
-                    {ini}
+                    style={{ width: 54, height: 54, borderRadius: '50%', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default', flexShrink: 0 }}>
+                    {u.avatarUrl
+                      ? <img src={u.avatarUrl} alt={ini} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                      : <div style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white' }}>{ini}</div>
+                    }
                     <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: '2px solid white' }} />
                   </div>
                   <div onClick={() => onProfile && onProfile(u.id)}

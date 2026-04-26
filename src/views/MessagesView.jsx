@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { api } from '../config/api';
@@ -324,7 +325,9 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function MessagesView({ initialUserId = null, onProfile }) {
+export default function MessagesView({ onProfile }) {
+  const [searchParams] = useSearchParams();
+  const initialUserId = searchParams.get('user') || null;
   const { user } = useAuth();
   const socket = useSocket();
 

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import Auth from './components/Auth.jsx'
@@ -14,12 +15,14 @@ function Root() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
-      <ToastProvider>
-        <SocketProvider>
-          <Root />
-        </SocketProvider>
-      </ToastProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+          <SocketProvider>
+            <Root />
+          </SocketProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>,
 )

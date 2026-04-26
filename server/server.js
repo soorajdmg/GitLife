@@ -4,6 +4,11 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import jwt from 'jsonwebtoken';
 import { connectDB, closeDB } from './config/database.js';
 import { User } from './models/User.js';
@@ -54,6 +59,12 @@ app.use('/api/notifications', notificationsRouter);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// Serve frontend in production — catch-all so React Router handles client-side paths
+app.use(express.static(join(__dirname, '../build')));
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, '../build/index.html'));
 });
 
 // Error handling middleware

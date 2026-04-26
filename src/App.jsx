@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { api } from './config/api';
 import { useAuth } from './contexts/AuthContext';
 import { useToast } from './contexts/ToastContext';
+import { useSocket } from './contexts/SocketContext';
 import FeedView from './views/FeedView';
 import ExploreView from './views/ExploreView';
 import ProfileView from './views/ProfileView';
@@ -70,6 +72,12 @@ const NAV = [
 ];
 
 const VIEW_TITLE = { feed: 'Feed', explore: 'Explore', profile: 'My Life', messages: 'Messages', branches: 'Branches', settings: 'Settings', notifications: 'Notifications' };
+
+/* ─── PROFILE ROUTE WRAPPER ─── */
+function ProfileViewRoute(props) {
+  const { userId } = useParams();
+  return <ProfileView {...props} userId={userId || null} />;
+}
 
 /* ─── NOTIFICATIONS DROPDOWN ─── */
 const NOTIF_TYPE_ICON = { fork: '⎇', merge: '↩', support: '♡', follow: '👤', comment: '💬', reply: '↪' };
@@ -267,9 +275,9 @@ function mapDecisionToCommit(d, stashedIds = []) {
 export default function App() {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
-  const [view, setView] = useState(() => localStorage.getItem('gl_view') || 'feed');
-  const [messageUserId, setMessageUserId] = useState(null);
-  const [viewUserId, setViewUserId] = useState(null);
+  const socket = useSocket();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [feedData, setFeedData] = useState({ following: [], trending: [], hasFollowing: false });
   const [feedLoading, setFeedLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -277,21 +285,63 @@ export default function App() {
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const [sidebarFollowing, setSidebarFollowing] = useState([]);
   const [stashedIds, setStashedIds] = useState([]);
   const bellRef = useRef();
+  // Track which conversation IDs have unread messages (badge = number of people, not messages)
+  const unreadConvIdsRef = useRef(new Set());
+
+  // Derive active nav from URL
+  const activeNav = pathname.startsWith('/explore') ? 'explore'
+    : pathname.startsWith('/profile') ? 'profile'
+    : pathname.startsWith('/messages') ? 'messages'
+    : pathname.startsWith('/settings') ? 'settings'
+    : 'feed';
 
   const openMessage = (userId) => {
-    setMessageUserId(userId);
-    setView('messages');
+    unreadConvIdsRef.current.clear();
+    setUnreadMsgCount(0);
+    navigate(`/messages?user=${userId}`);
   };
   const openProfile = (userId) => {
-    setViewUserId(userId || null);
-    setView('profile');
+    if (userId) navigate(`/profile/${userId}`);
+    else navigate('/profile');
   };
+
   useEffect(() => {
     api.getUnreadNotifCount().then(({ count }) => setUnreadNotifCount(count)).catch(() => {});
   }, []);
+
+  // Load initial unread conversations on mount
+  useEffect(() => {
+    api.getConversations().then(({ conversations }) => {
+      const ids = new Set((conversations || []).filter(c => (c.unreadCount || 0) > 0).map(c => c.id));
+      unreadConvIdsRef.current = ids;
+      setUnreadMsgCount(ids.size);
+    }).catch(() => {});
+  }, []);
+
+  // Clear message badge when navigating to messages
+  useEffect(() => {
+    if (pathname.startsWith('/messages')) {
+      unreadConvIdsRef.current.clear();
+      setUnreadMsgCount(0);
+    }
+  }, [pathname]);
+
+  // Listen for new messages via socket to update badge
+  useEffect(() => {
+    if (!socket) return;
+    return socket.on('new_message', ({ conversationId, message }) => {
+      if (message?.senderId === user?.id) return;
+      if (pathname.startsWith('/messages')) return;
+      if (!unreadConvIdsRef.current.has(conversationId)) {
+        unreadConvIdsRef.current.add(conversationId);
+        setUnreadMsgCount(unreadConvIdsRef.current.size);
+      }
+    });
+  }, [socket, user?.id, pathname]);
 
   useEffect(() => {
     Promise.all([
@@ -311,7 +361,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     api.getFollowing().then(setSidebarFollowing).catch(() => setSidebarFollowing([]));
-  }, [user, view]);
+  }, [user, pathname]);
 
   useEffect(() => {
     const h = e => {
@@ -322,8 +372,6 @@ export default function App() {
     window.parent?.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', h);
   }, []);
-
-  useEffect(() => { localStorage.setItem('gl_view', view); }, [view]);
 
   const react = (id, type) => {
     // Optimistic update
@@ -421,13 +469,21 @@ export default function App() {
         </div>
 
         {/* Nav */}
-        {NAV.map(item => (
-          <button key={item.id} onClick={() => { if (item.id === 'profile') setViewUserId(null); setView(item.id); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 13.5, fontWeight: view === item.id ? 600 : 500, color: view === item.id ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', background: view === item.id ? 'oklch(94% 0.015 260)' : 'transparent', border: 'none', cursor: 'pointer', marginBottom: 1, transition: 'all 0.12s', textAlign: 'left' }}>
-            <span style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{NAV_ICONS[item.id](view === item.id)}</span>
-            {item.label}
-          </button>
-        ))}
+        {NAV.map(item => {
+          const isActive = activeNav === item.id;
+          return (
+            <button key={item.id} onClick={() => navigate(`/${item.id === 'feed' ? 'feed' : item.id}`)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 13.5, fontWeight: isActive ? 600 : 500, color: isActive ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', background: isActive ? 'oklch(94% 0.015 260)' : 'transparent', border: 'none', cursor: 'pointer', marginBottom: 1, transition: 'all 0.12s', textAlign: 'left' }}>
+              <span style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{NAV_ICONS[item.id](isActive)}</span>
+              {item.label}
+              {item.id === 'messages' && unreadMsgCount > 0 && (
+                <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: 'oklch(52% 0.2 260)', color: 'white', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+                  {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
 
         {/* Following */}
         {sidebarFollowing.length > 0 && (
@@ -455,7 +511,7 @@ export default function App() {
 
         {/* User profile at bottom */}
         <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid oklch(91% 0.006 80)' }}>
-          <button onClick={() => setView('profile')}
+          <button onClick={() => navigate('/profile')}
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 9, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
             onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -489,7 +545,7 @@ export default function App() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Top bar */}
         <div style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 22px' }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>{VIEW_TITLE[view] || 'Feed'}</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>{VIEW_TITLE[activeNav] || 'Feed'}</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'oklch(48% 0.01 260)' }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="13.5" y2="13.5" /></svg>
@@ -509,18 +565,16 @@ export default function App() {
 
         {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} />}
-          {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
-          {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
-          {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}
-          {view === 'settings' && <SettingsView />}
-          {view === 'branches'      && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'oklch(60% 0.01 260)' }}>
-              <div style={{ fontSize: 36 }}>⎇</div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Coming soon</div>
-              <div style={{ fontSize: 12.5 }}>This section is in development</div>
-            </div>
-          )}
+          <Routes>
+            <Route path="/" element={<Navigate to="/feed" replace />} />
+            <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} />} />
+            <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} userId={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/profile/:userId" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/messages" element={<MessagesView onProfile={openProfile} />} />
+            <Route path="/settings" element={<SettingsView />} />
+            <Route path="*" element={<Navigate to="/feed" replace />} />
+          </Routes>
         </div>
       </main>
 

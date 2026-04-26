@@ -355,58 +355,58 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
         </div>
       </div>
 
-      {/* Suggested people — full-width strip above the constrained content */}
-      {!search && suggestedUsers.length > 0 && (
-        <div style={{ flexShrink: 0, borderBottom: '1px solid oklch(91% 0.006 80)', padding: '16px 22px 18px', background: 'white' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 12 }}>Suggested people</div>
-          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-            {suggestedUsers.map(u => {
-              const ini = userInitials(u);
-              const color = userColor(u.id);
-              const isFollowed = followed.has(u.id);
-              return (
-                <div key={u.id} style={{ flexShrink: 0, width: 130, background: 'oklch(98.5% 0.005 80)', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
-                  <div onClick={() => onProfile && onProfile(u.id)}
-                    style={{ width: 54, height: 54, borderRadius: '50%', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default', flexShrink: 0 }}>
-                    {u.avatarUrl
-                      ? <img src={u.avatarUrl} alt={ini} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
-                      : <div style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white' }}>{ini}</div>
-                    }
-                    <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: '2px solid white' }} />
-                  </div>
-                  <div onClick={() => onProfile && onProfile(u.id)}
-                    style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default' }}
-                    onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
-                    onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
-                    {(() => { const parts = (u.fullName || u.username || '').split(' '); return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })()}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', textAlign: 'center', marginBottom: u.mutualCount > 0 ? 4 : 12 }}>{u.commitCount} commits</div>
-                  {u.mutualCount > 0 && (
-                    <div style={{ fontSize: 10.5, color: 'oklch(45% 0.18 155)', textAlign: 'center', marginBottom: 12, fontWeight: 500 }}>
-                      {u.mutualCount} mutual
-                    </div>
-                  )}
-                  <button onClick={() => toggleFollow(u.id)}
-                    style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: `1px solid ${isFollowed ? 'oklch(88% 0.008 260)' : 'oklch(52% 0.2 260)'}`, background: isFollowed ? 'white' : 'oklch(52% 0.2 260)', color: isFollowed ? 'oklch(44% 0.01 260)' : 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.14s', marginBottom: 6 }}>
-                    {isFollowed ? 'Following' : 'Follow'}
-                  </button>
-                  {onMessage && (
-                    <button onClick={() => onMessage(u.id)}
-                      style={{ width: '100%', padding: '5px 0', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(42% 0.2 260)', fontSize: 11.5, fontWeight: 500, cursor: 'pointer' }}>
-                      Message
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: 660, margin: '0 auto', padding: '18px 22px 60px' }}>
+
+          {/* Suggested people — inside scroll area */}
+          {!search && suggestedUsers.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 12, padding: '0 2px' }}>Suggested people</div>
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
+                {suggestedUsers.map(u => {
+                  const ini = userInitials(u);
+                  const color = userColor(u.id);
+                  const isFollowed = followed.has(u.id);
+                  return (
+                    <div key={u.id} style={{ flexShrink: 0, width: 130, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
+                      <div onClick={() => onProfile && onProfile(u.id)}
+                        style={{ width: 54, height: 54, borderRadius: '50%', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default', flexShrink: 0 }}>
+                        {u.avatarUrl
+                          ? <img src={u.avatarUrl} alt={ini} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                          : <div style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white' }}>{ini}</div>
+                        }
+                        <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: '2px solid white' }} />
+                      </div>
+                      <div onClick={() => onProfile && onProfile(u.id)}
+                        style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default' }}
+                        onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+                        {(() => { const parts = (u.fullName || u.username || '').split(' '); return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })()}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', textAlign: 'center', marginBottom: u.mutualCount > 0 ? 4 : 12 }}>{u.commitCount} commits</div>
+                      {u.mutualCount > 0 && (
+                        <div style={{ fontSize: 10.5, color: 'oklch(45% 0.18 155)', textAlign: 'center', marginBottom: 12, fontWeight: 500 }}>
+                          {u.mutualCount} mutual
+                        </div>
+                      )}
+                      <button onClick={() => toggleFollow(u.id)}
+                        style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: `1px solid ${isFollowed ? 'oklch(88% 0.008 260)' : 'oklch(52% 0.2 260)'}`, background: isFollowed ? 'white' : 'oklch(52% 0.2 260)', color: isFollowed ? 'oklch(44% 0.01 260)' : 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.14s', marginBottom: 6 }}>
+                        {isFollowed ? 'Following' : 'Follow'}
+                      </button>
+                      {onMessage && (
+                        <button onClick={() => onMessage(u.id)}
+                          style={{ width: '100%', padding: '5px 0', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(42% 0.2 260)', fontSize: 11.5, fontWeight: 500, cursor: 'pointer' }}>
+                          Message
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Tabs + category filters (only when not searching) */}
           {!search && (

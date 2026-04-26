@@ -80,6 +80,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (updatedFields) => {
+    setUser(prev => prev ? { ...prev, ...updatedFields } : prev);
+  };
+
   const value = {
     user,
     loading,
@@ -88,6 +92,7 @@ export function AuthProvider({ children }) {
     register,
     loginWithGoogle,
     logout,
+    updateUser,
     isAuthenticated: !!user
   };
 

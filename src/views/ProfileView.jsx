@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { DAY_LABELS, CELL_COLORS } from '../data/gitlife';
 import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
 import EngagementBar from '../components/ui/EngagementBar';
 import CommentThread from '../components/ui/CommentThread';
+import CommitCard from '../components/ui/CommitCard';
 
 const BRANCH_COLORS = [
   'oklch(52% 0.2 260)',
@@ -297,9 +299,47 @@ function HorizTimeline({ commits }) {
   );
 }
 
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return 'just now';
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function mapToCard(d) {
+  return {
+    id: d.id || d._id,
+    userId: d.userId,
+    userInfo: d.userInfo || null,
+    username: d.username,
+    fullName: d.fullName,
+    avatarUrl: d.avatarUrl,
+    branch: d.branch_name || d.branch,
+    message: d.decision || d.message,
+    body: d.body || null,
+    image: d.image || d.img || null,
+    category: d.type || d.category || 'Career',
+    ts: formatRelativeTime(d.createdAt || d.timestamp),
+    impact: d.impact ?? null,
+    viewCount: d.viewCount ?? 0,
+    commentCount: d.commentCount ?? 0,
+    rx: { fork: d.reactions?.fork?.count ?? 0, merge: d.reactions?.merge?.count ?? 0, support: d.reactions?.support?.count ?? 0 },
+    ur: { fork: d.userReactions?.fork ?? false, merge: d.userReactions?.merge ?? false, support: d.userReactions?.support ?? false },
+    stashed: false,
+    wi: (d.branch_name || d.branch) !== 'main',
+  };
+}
+
 /* ─── PROFILE VIEW ─── */
 export default function ProfileView({ viz, userId, onProfile }) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const isOwnProfile = !userId || userId === user?.id;
   const [activeBranch, setActiveBranch] = useState('all');
   const [commits, setCommits] = useState([]);
@@ -308,6 +348,7 @@ export default function ProfileView({ viz, userId, onProfile }) {
   const [otherUser, setOtherUser] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [rawDecisions, setRawDecisions] = useState([]);
 
   useEffect(() => {
     setActiveBranch('all');
@@ -322,6 +363,7 @@ export default function ProfileView({ viz, userId, onProfile }) {
         api.getBranches(),
       ])
         .then(([decisions, apiBranches]) => {
+          setRawDecisions(decisions);
           setCommits(decisions.map(d => ({
             id: d.id,
             branch: d.branch_name,
@@ -353,6 +395,7 @@ export default function ProfileView({ viz, userId, onProfile }) {
         .then(([profile, decisions]) => {
           setOtherUser(profile);
           setIsFollowing(profile.isFollowing);
+          setRawDecisions(decisions);
           const mapped = decisions.map(d => ({
             id: d.id,
             branch: d.branch_name,
@@ -381,6 +424,17 @@ export default function ProfileView({ viz, userId, onProfile }) {
         .finally(() => setLoading(false));
     }
   }, [userId, isOwnProfile]);
+
+  const handleDeletePost = async (id) => {
+    try {
+      await api.deleteDecision(id);
+      setRawDecisions(prev => prev.filter(d => (d.id || d._id) !== id));
+      setCommits(prev => prev.filter(c => c.id !== id));
+      addToast({ message: 'Post deleted', type: 'success' });
+    } catch {
+      addToast({ message: 'Failed to delete post', type: 'error' });
+    }
+  };
 
   const toggleFollow = async () => {
     if (followLoading) return;
@@ -501,6 +555,34 @@ export default function ProfileView({ viz, userId, onProfile }) {
               <Viz commits={shown} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
             )}
           </div>
+        </div>
+
+        {/* Commit Posts feed */}
+        <div style={{ marginTop: 28 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 14 }}>
+            Commit Posts ({rawDecisions.length})
+          </div>
+          {loading ? (
+            [1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '18px 20px', marginBottom: 12 }}>
+                <div style={{ height: 14, width: '60%', background: 'oklch(93% 0.006 80)', borderRadius: 6, marginBottom: 10 }} />
+                <div style={{ height: 11, width: '40%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
+              </div>
+            ))
+          ) : rawDecisions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14, background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)' }}>
+              No posts yet.
+            </div>
+          ) : (
+            rawDecisions.map(d => (
+              <CommitCard
+                key={d.id || d._id}
+                c={mapToCard(d)}
+                currentUser={user}
+                onDelete={isOwnProfile ? handleDeletePost : undefined}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

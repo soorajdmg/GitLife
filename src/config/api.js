@@ -78,6 +78,20 @@ class ApiClient {
     return this.request('/auth/me');
   }
 
+  async updateProfile(data) {
+    return this.request('/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(currentPassword, newPassword) {
+    return this.request('/auth/me/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
   // Branch methods
   async getBranches() {
     return this.request('/branches');

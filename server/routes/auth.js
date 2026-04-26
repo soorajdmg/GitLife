@@ -216,6 +216,106 @@ router.post('/google/callback', async (req, res) => {
   }
 });
 
+// Update current user profile (protected route)
+router.put('/me', authenticateToken, [
+  body('username')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Username can only contain letters, numbers, hyphens, and underscores'),
+  body('fullName').optional().trim().notEmpty().withMessage('Full name cannot be empty'),
+  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('avatarUrl').optional({ nullable: true }),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username, fullName, email, avatarUrl } = req.body;
+    const updateData = {};
+
+    if (username !== undefined) {
+      // Check username availability (exclude current user)
+      const existing = await User.findByUsername(username.trim());
+      if (existing && existing.id !== req.user.userId) {
+        return res.status(400).json({ error: 'Username already taken' });
+      }
+      updateData.username = username.trim();
+    }
+
+    if (email !== undefined) {
+      const existing = await User.findByEmail(email);
+      if (existing && existing.id !== req.user.userId) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+      updateData.email = email.toLowerCase().trim();
+    }
+
+    if (fullName !== undefined) updateData.fullName = fullName.trim();
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    await User.update(req.user.userId, updateData);
+    const updated = await User.findById(req.user.userId);
+
+    res.json({
+      message: 'Profile updated',
+      user: {
+        id: updated.id,
+        email: updated.email,
+        username: updated.username,
+        fullName: updated.fullName || '',
+        avatarUrl: updated.avatarUrl || null,
+        createdAt: updated.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Change password (protected route)
+router.put('/me/password', authenticateToken, [
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const userDoc = await User.findByEmail(req.user.email);
+    if (!userDoc) return res.status(404).json({ error: 'User not found' });
+
+    if (!userDoc.password) {
+      return res.status(400).json({ error: 'Password change not available for OAuth accounts' });
+    }
+
+    const valid = await User.validatePassword(currentPassword, userDoc.password);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    const bcrypt = await import('bcryptjs');
+    const salt = await bcrypt.default.genSalt(10);
+    const hashed = await bcrypt.default.hash(newPassword, salt);
+    await User.update(req.user.userId, { password: hashed });
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Password change error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
 // Logout (client-side handles token removal, this is just for completeness)
 router.post('/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logout successful' });

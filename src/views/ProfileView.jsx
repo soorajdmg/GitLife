@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DAY_LABELS, CELL_COLORS } from '../data/gitlife';
 import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,6 @@ import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
 import EngagementBar from '../components/ui/EngagementBar';
 import CommentThread from '../components/ui/CommentThread';
-import CommitCard from '../components/ui/CommitCard';
 
 const BRANCH_COLORS = [
   'oklch(52% 0.2 260)',
@@ -19,6 +18,299 @@ const BRANCH_COLORS = [
 
 function fmt(n) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
+// ── Shared helpers (mirrors ExploreView) ──────────────────────────────────────
+function userInitials(user) {
+  if (!user) return '?';
+  const name = user.fullName || user.username || '';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function userColor(userId) {
+  const colors = [
+    'oklch(52% 0.2 260)', 'oklch(56% 0.2 330)', 'oklch(50% 0.18 155)',
+    'oklch(60% 0.19 55)', 'oklch(52% 0.18 200)', 'oklch(58% 0.2 40)',
+    'oklch(50% 0.18 230)', 'oklch(52% 0.18 160)'
+  ];
+  if (!userId) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function isWhatIf(branch) {
+  return /^what-if\//i.test(branch || '');
+}
+
+function inferCategory(decision) {
+  const text = (decision || '').toLowerCase();
+  if (/job|career|work|freelan|startup|compan|promot|resign|quit|hire/.test(text)) return 'Career';
+  if (/health|gym|workout|run|marathon|therapy|meditat|sleep|diet|fitness/.test(text)) return 'Health';
+  if (/relationship|partner|dating|married|divorce|friend|family/.test(text)) return 'Relationships';
+  if (/money|finance|invest|loan|debt|salary|budget|crypto|stock/.test(text)) return 'Finance';
+  if (/school|degree|course|learn|study|phd|university|college|education/.test(text)) return 'Education';
+  if (/travel|trip|abroad|move|relocat|city|country/.test(text)) return 'Travel';
+  if (/house|home|rent|buy|apartment|move|neighbor/.test(text)) return 'Housing';
+  return null;
+}
+
+function tileBg(category, wi) {
+  if (wi) return { bg: 'linear-gradient(135deg, oklch(30% 0.14 55) 0%, oklch(22% 0.1 55) 100%)', text: 'oklch(88% 0.08 60)' };
+  const map = {
+    Career:        { bg: 'linear-gradient(135deg, oklch(28% 0.15 260) 0%, oklch(20% 0.1 260) 100%)', text: 'oklch(88% 0.08 260)' },
+    Health:        { bg: 'linear-gradient(135deg, oklch(28% 0.14 155) 0%, oklch(20% 0.1 155) 100%)', text: 'oklch(88% 0.08 155)' },
+    Relationships: { bg: 'linear-gradient(135deg, oklch(28% 0.14 330) 0%, oklch(20% 0.1 330) 100%)', text: 'oklch(88% 0.08 330)' },
+    Finance:       { bg: 'linear-gradient(135deg, oklch(28% 0.14 60) 0%, oklch(20% 0.1 60) 100%)',   text: 'oklch(88% 0.08 60)' },
+    Education:     { bg: 'linear-gradient(135deg, oklch(28% 0.14 200) 0%, oklch(20% 0.1 200) 100%)', text: 'oklch(88% 0.08 200)' },
+    Travel:        { bg: 'linear-gradient(135deg, oklch(28% 0.14 25) 0%, oklch(20% 0.1 25) 100%)',   text: 'oklch(88% 0.08 25)' },
+    Housing:       { bg: 'linear-gradient(135deg, oklch(28% 0.14 80) 0%, oklch(20% 0.1 80) 100%)',   text: 'oklch(88% 0.08 80)' },
+  };
+  return map[category] || { bg: 'linear-gradient(135deg, oklch(22% 0.03 260) 0%, oklch(15% 0.02 260) 100%)', text: 'oklch(82% 0.04 260)' };
+}
+
+// ── Grid Tile (same as ExploreView) ──────────────────────────────────────────
+function GridTile({ item, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const wi = isWhatIf(item.branch_name);
+  const category = item.type || inferCategory(item.decision);
+  const hasImage = !!(item.image || item.img);
+  const { bg, text } = tileBg(category, wi);
+
+  const totalReactions = (item.reactions?.fork?.count ?? 0) +
+    (item.reactions?.merge?.count ?? 0) +
+    (item.reactions?.support?.count ?? 0);
+
+  return (
+    <div
+      onClick={() => onClick(item)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: 'relative', width: '100%', paddingBottom: '100%',
+        cursor: 'pointer', borderRadius: 4, overflow: 'hidden',
+        background: hasImage ? '#000' : bg, flexShrink: 0,
+      }}
+    >
+      <div style={{ position: 'absolute', inset: 0 }}>
+        {hasImage ? (
+          <img src={item.image || item.img} alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            onError={e => e.target.style.display = 'none'} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', boxSizing: 'border-box' }}>
+            {category && (
+              <div style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: text, opacity: 0.7 }}>
+                {category}
+              </div>
+            )}
+            {wi && (
+              <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'oklch(80% 0.1 60)', background: 'oklch(25% 0.1 55 / 0.6)', borderRadius: 4, padding: '2px 5px' }}>
+                ⎇ what-if
+              </div>
+            )}
+            <p style={{ color: 'white', fontSize: 'clamp(11px, 2.5vw, 15px)', fontWeight: 700, lineHeight: 1.35, textAlign: 'center', margin: 0, display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {item.decision}
+            </p>
+          </div>
+        )}
+      </div>
+      {/* Hover overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'oklch(10% 0.02 260 / 0.55)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: hovered ? 1 : 0, transition: 'opacity 0.18s' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+          <span style={{ color: 'white', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="white"><path d="M7 11.5 C7 11.5 1.5 8 1.5 4.5a2.8 2.8 0 0 1 5.5-0.8 2.8 2.8 0 0 1 5.5 0.8C12.5 8 7 11.5 7 11.5z" /></svg>
+            {fmt(totalReactions)}
+          </span>
+          <span style={{ color: 'white', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H8L5 11V10H3.5C2.7 10 2 9.3 2 8.5v-5z" />
+            </svg>
+            {fmt(item.commentCount ?? 0)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Post Card (for the feed view) ─────────────────────────────────────────────
+function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, onDelete, isOwnProfile }) {
+  const user = item.userInfo;
+  const ini = userInitials(user);
+  const color = userColor(item.userId);
+  const wi = isWhatIf(item.branch_name);
+  const category = item.type || inferCategory(item.decision);
+  const userId = user?._id ? user._id.toString() : item.userId;
+  const isOwnPost = currentUserId && currentUserId === item.userId;
+  const [localCommentCount, setLocalCommentCount] = useState(item.commentCount ?? 0);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef();
+  const { bg } = tileBg(category, wi);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const reactions = reactionOverride?.reactions || {
+    fork: item.reactions?.fork?.count ?? 0,
+    merge: item.reactions?.merge?.count ?? 0,
+    support: item.reactions?.support?.count ?? 0,
+  };
+  const userReactions = reactionOverride?.userReactions || item.userReactions || {};
+
+  return (
+    <div style={{ background: wi ? 'oklch(99.5% 0.012 65)' : 'white', border: `1px solid ${wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`, borderRadius: 14, marginBottom: 12, overflow: 'hidden' }}>
+      {/* Media */}
+      {(item.image || item.img) ? (
+        <div style={{ width: '100%', maxHeight: 300, overflow: 'hidden', background: '#000' }}>
+          <img src={item.image || item.img} alt="" style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }} onError={e => e.target.parentElement.style.display = 'none'} />
+        </div>
+      ) : (
+        <div style={{ width: '100%', height: 160, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 24px', boxSizing: 'border-box', position: 'relative' }}>
+          {wi && <div style={{ position: 'absolute', top: 10, left: 14, fontSize: 10.5, fontWeight: 700, color: 'oklch(80% 0.1 60)', background: 'oklch(20% 0.1 55 / 0.5)', borderRadius: 5, padding: '2px 7px' }}>⎇ what-if</div>}
+          {category && <div style={{ position: 'absolute', top: 10, right: 14, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'white', opacity: 0.5 }}>{category}</div>}
+          <p style={{ color: 'white', fontSize: 18, fontWeight: 800, lineHeight: 1.3, textAlign: 'center', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.decision}</p>
+        </div>
+      )}
+      {/* Post body */}
+      <div style={{ padding: '14px 18px 0' }}>
+        {/* Author row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+          {user?.avatarUrl
+            ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(userId)} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} referrerPolicy="no-referrer" />
+            : <div onClick={() => onProfile?.(userId)} style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: 'pointer' }}>{ini}</div>
+          }
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span onClick={() => onProfile?.(userId)} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
+              {user?.fullName || user?.username || 'Unknown'}
+            </span>
+            {user?.username && <span style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 6 }}>@{user.username}</span>}
+            <span style={{ fontSize: 11.5, color: 'oklch(62% 0.01 260)', marginLeft: 6 }}>· {timeAgo(item.createdAt || item.timestamp)}</span>
+          </div>
+          <BranchPill name={item.branch_name || 'main'} wi={wi} merged={false} />
+          {isOwnPost && onDelete && (
+            <div style={{ position: 'relative' }} ref={menuRef}>
+              <button onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }} title="More options"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: 'none', background: menuOpen ? 'oklch(93% 0.006 260)' : 'transparent', color: 'oklch(55% 0.01 260)', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="2.5" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="7" cy="11.5" r="1.2" /></svg>
+              </button>
+              {menuOpen && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
+                  <button onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(item.id); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 25)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" /></svg>
+                    Delete post
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Decision title */}
+        <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.4, marginBottom: 8, color: wi ? 'oklch(40% 0.18 55)' : 'oklch(15% 0.015 260)' }}>{item.decision}</div>
+        {item.body && <div style={{ fontSize: 13, color: 'oklch(44% 0.01 260)', lineHeight: 1.6, marginBottom: 10 }}>{item.body}</div>}
+        {category && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <Tag cat={category} />
+            {item.impact != null && <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>impact {item.impact}</span>}
+          </div>
+        )}
+        <EngagementBar
+          commitId={item.id}
+          reactions={reactions}
+          userReactions={userReactions}
+          commentCount={localCommentCount}
+          isStashed={isStashed}
+          isAuthor={isOwnPost}
+          viewCount={item.viewCount ?? 0}
+          onReact={onReact}
+          onReplyClick={() => setCommentOpen(p => !p)}
+          onStash={onStash}
+          onShare={!isOwnPost && onMessage && userId ? () => onMessage(userId) : null}
+          compact
+        />
+      </div>
+      {commentOpen && (
+        <div style={{ padding: '0 18px 16px' }}>
+          <CommentThread decisionId={item.id} currentUserId={currentUserId} initialCount={localCommentCount} onCountChange={delta => setLocalCommentCount(p => Math.max(0, p + delta))} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Profile Feed View ─────────────────────────────────────────────────────────
+function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, onDelete, isOwnProfile }) {
+  const scrollRef = useRef();
+  const itemRefs = useRef({});
+
+  useEffect(() => {
+    if (!startId || !scrollRef.current) return;
+    // Give the DOM a tick to paint then scroll
+    setTimeout(() => {
+      const el = itemRefs.current[startId];
+      if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 50);
+  }, [startId]);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '10px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button onClick={onBack}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'oklch(30% 0.015 260)', padding: '4px 0' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'oklch(52% 0.2 260)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'oklch(30% 0.015 260)'}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4L6 9l5 5" /></svg>
+          Profile
+        </button>
+      </div>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ maxWidth: 620, margin: '0 auto', padding: '20px 16px 80px' }}>
+          {items.map(item => {
+            const id = item.id || item._id;
+            return (
+            <div key={id} ref={el => { itemRefs.current[id] = el; }}>
+              <PostCard
+                item={item}
+                currentUserId={currentUserId}
+                isStashed={localStashed.has(item.id)}
+                onReact={onReact}
+                onStash={onStash}
+                onMessage={onMessage}
+                onProfile={onProfile}
+                reactionOverride={reactionState[id]}
+                onDelete={isOwnProfile ? onDelete : undefined}
+                isOwnProfile={isOwnProfile}
+              />
+            </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function formatDate(ts) {
@@ -299,45 +591,8 @@ function HorizTimeline({ commits }) {
   );
 }
 
-function formatRelativeTime(timestamp) {
-  if (!timestamp) return 'just now';
-  const diff = Date.now() - new Date(timestamp).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function mapToCard(d) {
-  return {
-    id: d.id || d._id,
-    userId: d.userId,
-    userInfo: d.userInfo || null,
-    username: d.username,
-    fullName: d.fullName,
-    avatarUrl: d.avatarUrl,
-    branch: d.branch_name || d.branch,
-    message: d.decision || d.message,
-    body: d.body || null,
-    image: d.image || d.img || null,
-    category: d.type || d.category || 'Career',
-    ts: formatRelativeTime(d.createdAt || d.timestamp),
-    impact: d.impact ?? null,
-    viewCount: d.viewCount ?? 0,
-    commentCount: d.commentCount ?? 0,
-    rx: { fork: d.reactions?.fork?.count ?? 0, merge: d.reactions?.merge?.count ?? 0, support: d.reactions?.support?.count ?? 0 },
-    ur: { fork: d.userReactions?.fork ?? false, merge: d.userReactions?.merge ?? false, support: d.userReactions?.support ?? false },
-    stashed: false,
-    wi: (d.branch_name || d.branch) !== 'main',
-  };
-}
-
 /* ─── PROFILE VIEW ─── */
-export default function ProfileView({ viz, userId, onProfile }) {
+export default function ProfileView({ viz, userId, onProfile, onMessage, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
   const { addToast } = useToast();
   const isOwnProfile = !userId || userId === user?.id;
@@ -349,6 +604,12 @@ export default function ProfileView({ viz, userId, onProfile }) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [rawDecisions, setRawDecisions] = useState([]);
+  const [feedView, setFeedView] = useState(false);
+  const [feedStartId, setFeedStartId] = useState(null);
+  const [reactionState, setReactionState] = useState({});
+  const [localStashed, setLocalStashed] = useState(new Set(stashedIds));
+
+  useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
 
   useEffect(() => {
     setActiveBranch('all');
@@ -425,6 +686,47 @@ export default function ProfileView({ viz, userId, onProfile }) {
     }
   }, [userId, isOwnProfile]);
 
+  const handleReact = (id, type) => {
+    setReactionState(prev => {
+      const item = rawDecisions.find(d => (d.id || d._id) === id);
+      const cur = prev[id] || {
+        reactions: { fork: item?.reactions?.fork?.count ?? 0, merge: item?.reactions?.merge?.count ?? 0, support: item?.reactions?.support?.count ?? 0 },
+        userReactions: item?.userReactions || {},
+      };
+      const wasActive = cur.userReactions[type];
+      return {
+        ...prev,
+        [id]: {
+          reactions: { ...cur.reactions, [type]: cur.reactions[type] + (wasActive ? -1 : 1) },
+          userReactions: { ...cur.userReactions, [type]: !wasActive },
+        },
+      };
+    });
+    api.reactToDecision(id, type).then(result => {
+      setReactionState(prev => ({
+        ...prev,
+        [id]: { reactions: { ...(prev[id]?.reactions || {}), [type]: result.count }, userReactions: { ...(prev[id]?.userReactions || {}), [type]: result.reacted } },
+      }));
+    }).catch(() => {
+      setReactionState(prev => { const n = { ...prev }; delete n[id]; return n; });
+    });
+  };
+
+  const handleStash = (id) => {
+    const wasStashed = localStashed.has(id);
+    setLocalStashed(prev => { const n = new Set(prev); wasStashed ? n.delete(id) : n.add(id); return n; });
+    onStashChange?.(id, !wasStashed);
+    api.toggleStash(id).catch(() => {
+      setLocalStashed(prev => { const n = new Set(prev); wasStashed ? n.add(id) : n.delete(id); return n; });
+      onStashChange?.(id, wasStashed);
+    });
+  };
+
+  const openFeed = (item) => {
+    setFeedStartId(item.id || item._id);
+    setFeedView(true);
+  };
+
   const handleDeletePost = async (id) => {
     try {
       await api.deleteDecision(id);
@@ -476,6 +778,31 @@ export default function ProfileView({ viz, userId, onProfile }) {
   const initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
   const avatarColor = 'oklch(52% 0.2 260)';
   const avatarUrl = profileData?.avatarUrl;
+
+  // Sort decisions by date (newest first) for the feed
+  const sortedDecisions = [...rawDecisions].sort((a, b) =>
+    new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp)
+  );
+
+  // ── Feed view (full-screen) ──
+  if (feedView) {
+    return (
+      <ProfileFeedView
+        items={sortedDecisions}
+        startId={feedStartId}
+        onBack={() => setFeedView(false)}
+        currentUserId={currentUser?.id || currentUser?._id || user?.id}
+        localStashed={localStashed}
+        onReact={handleReact}
+        onStash={handleStash}
+        onMessage={onMessage}
+        onProfile={onProfile}
+        reactionState={reactionState}
+        onDelete={handleDeletePost}
+        isOwnProfile={isOwnProfile}
+      />
+    );
+  }
 
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
@@ -557,31 +884,27 @@ export default function ProfileView({ viz, userId, onProfile }) {
           </div>
         </div>
 
-        {/* Commit Posts feed */}
+        {/* Posts grid */}
         <div style={{ marginTop: 28 }}>
           <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 14 }}>
-            Commit Posts ({rawDecisions.length})
+            Posts ({rawDecisions.length})
           </div>
           {loading ? (
-            [1, 2, 3].map(i => (
-              <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '18px 20px', marginBottom: 12 }}>
-                <div style={{ height: 14, width: '60%', background: 'oklch(93% 0.006 80)', borderRadius: 6, marginBottom: 10 }} />
-                <div style={{ height: 11, width: '40%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
-              </div>
-            ))
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)' }} />
+              ))}
+            </div>
           ) : rawDecisions.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14, background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)' }}>
               No posts yet.
             </div>
           ) : (
-            rawDecisions.map(d => (
-              <CommitCard
-                key={d.id || d._id}
-                c={mapToCard(d)}
-                currentUser={user}
-                onDelete={isOwnProfile ? handleDeletePost : undefined}
-              />
-            ))
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+              {sortedDecisions.map(d => (
+                <GridTile key={d.id || d._id} item={d} onClick={openFeed} />
+              ))}
+            </div>
           )}
         </div>
       </div>

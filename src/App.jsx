@@ -511,7 +511,7 @@ export default function App() {
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {view === 'feed'          && <FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} />}
           {view === 'explore'       && <ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
-          {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} />}
+          {view === 'profile'       && <ProfileView viz={tweaks.timelineViz} userId={viewUserId} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />}
           {view === 'messages' && <MessagesView initialUserId={messageUserId} onProfile={openProfile} />}
           {view === 'settings' && <SettingsView />}
           {view === 'branches'      && (

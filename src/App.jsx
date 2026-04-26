@@ -106,8 +106,8 @@ const VIEW_TITLE = { feed: 'Feed', explore: 'Explore', profile: 'My Life', messa
 
 /* ─── PROFILE ROUTE WRAPPER ─── */
 function ProfileViewRoute(props) {
-  const { userId } = useParams();
-  return <ProfileView {...props} userId={userId || null} />;
+  const { username } = useParams();
+  return <ProfileView {...props} username={username || null} />;
 }
 
 /* ─── NOTIFICATIONS DROPDOWN ─── */
@@ -211,7 +211,7 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobil
               onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'}>
               <div
                 style={{ position: 'relative', flexShrink: 0, cursor: onProfile && n.senderId ? 'pointer' : 'default' }}
-                onClick={e => { if (onProfile && n.senderId) { e.stopPropagation(); markOneRead(n.id); onClose(); onProfile(n.senderId); } }}
+                onClick={e => { if (onProfile && n.sender?.username) { e.stopPropagation(); markOneRead(n.id); onClose(); onProfile(n.sender.username); } }}
               >
                 {n.sender?.avatarUrl
                   ? <img src={n.sender.avatarUrl} alt={senderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
@@ -437,8 +437,8 @@ export default function App() {
     setUnreadMsgCount(0);
     navigate(`/messages?user=${userId}`);
   };
-  const openProfile = (userId) => {
-    if (userId) navigate(`/profile/${userId}`);
+  const openProfile = (username) => {
+    if (username) navigate(`/${username}`);
     else navigate('/profile');
   };
 
@@ -568,6 +568,9 @@ export default function App() {
         visibility: data.visibility || 'public',
         image: data.image || undefined,
       });
+      if (data.isNewBranch) {
+        api.createBranch({ name: data.branch, type: 'what-if' }).catch(() => {});
+      }
       const newPost = mapDecisionToCommit(saved);
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
     } catch {
@@ -637,7 +640,7 @@ export default function App() {
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'oklch(60% 0.01 260)', padding: '0 10px', marginBottom: 7 }}>Following</div>
             {sidebarFollowing.slice(0, 5).map(u => (
-              <button key={u.id} onClick={() => openProfile(u.id)}
+              <button key={u.id} onClick={() => openProfile(u.username)}
                 style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -720,11 +723,10 @@ export default function App() {
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
             <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
-            <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} userId={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
-            <Route path="/profile/:userId" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} />} />
             <Route path="/settings" element={<SettingsView />} />
-            <Route path="*" element={<Navigate to="/feed" replace />} />
+            <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
           </Routes>
         </div>
       </main>

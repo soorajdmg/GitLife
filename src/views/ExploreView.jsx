@@ -271,17 +271,17 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         {/* Author row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
           {user?.avatarUrl
-            ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(userId)}
+            ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(user?.username || userId)}
                 style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }}
                 referrerPolicy="no-referrer" />
-            : <div onClick={() => onProfile?.(userId)}
+            : <div onClick={() => onProfile?.(user?.username || userId)}
                 style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: 'pointer' }}>
                 {ini}
               </div>
           }
           <div style={{ flex: 1, minWidth: 0 }}>
             <span
-              onClick={() => onProfile?.(userId)}
+              onClick={() => onProfile?.(user?.username || userId)}
               style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
               onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
@@ -419,16 +419,16 @@ function UserCard({ user, onMessage, onProfile }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'white', borderRadius: 12, border: '1px solid oklch(91% 0.006 80)', marginBottom: 8 }}>
       {user.avatarUrl
-        ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(user.id)}
+        ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(user.username || user.id)}
             style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}
             referrerPolicy="no-referrer" />
-        : <div onClick={() => onProfile?.(user.id)}
+        : <div onClick={() => onProfile?.(user.username || user.id)}
             style={{ width: 44, height: 44, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}>
             {ini}
           </div>
       }
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div onClick={() => onProfile?.(user.id)}
+        <div onClick={() => onProfile?.(user.username || user.id)}
           style={{ fontSize: 14, fontWeight: 600, cursor: onProfile ? 'pointer' : 'default', display: 'inline-block' }}
           onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
           onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
@@ -632,7 +632,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                     <div key={u.id} style={{ flexShrink: 0, width: 160, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
-                      <div onClick={() => onProfile?.(u.id)}
+                      <div onClick={() => onProfile?.(u.username || u.id)}
                         style={{ width: 54, height: 54, borderRadius: '50%', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default', flexShrink: 0 }}>
                         {u.avatarUrl
                           ? <img src={u.avatarUrl} alt={ini} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
@@ -640,7 +640,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                         }
                         <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: '2px solid white' }} />
                       </div>
-                      <div onClick={() => onProfile?.(u.id)}
+                      <div onClick={() => onProfile?.(u.username || u.id)}
                         style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default' }}
                         onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
                         onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>

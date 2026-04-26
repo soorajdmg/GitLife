@@ -71,14 +71,14 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div onClick={() => onProfile && c.userId && onProfile(c.userId)} style={{ cursor: onProfile && c.userId ? 'pointer' : 'default', flexShrink: 0 }}>
+        <div onClick={() => onProfile && (c.userInfo?.username || c.userId) && onProfile(c.userInfo?.username || c.userId)} style={{ cursor: onProfile && (c.userInfo?.username || c.userId) ? 'pointer' : 'default', flexShrink: 0 }}>
           <Avatar u={user} size={compact ? 32 : 36} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
-            onClick={() => onProfile && c.userId && onProfile(c.userId)}
-            style={{ fontSize: 14, fontWeight: 600, cursor: onProfile && c.userId ? 'pointer' : 'default', display: 'inline-block' }}
-            onMouseEnter={e => { if (onProfile && c.userId) e.currentTarget.style.textDecoration = 'underline'; }}
+            onClick={() => onProfile && (c.userInfo?.username || c.userId) && onProfile(c.userInfo?.username || c.userId)}
+            style={{ fontSize: 14, fontWeight: 600, cursor: onProfile && (c.userInfo?.username || c.userId) ? 'pointer' : 'default', display: 'inline-block' }}
+            onMouseEnter={e => { if (onProfile && (c.userInfo?.username || c.userId)) e.currentTarget.style.textDecoration = 'underline'; }}
             onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
           >{user.name}</div>
           <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>

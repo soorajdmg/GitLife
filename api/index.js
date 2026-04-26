@@ -6,10 +6,19 @@ import { User } from '../server/models/User.js';
 import { Branch } from '../server/models/Branch.js';
 import { Decision } from '../server/models/Decision.js';
 import { Stats } from '../server/models/Stats.js';
+import { Message } from '../server/models/Message.js';
+import { Conversation } from '../server/models/Conversation.js';
+import { Notification } from '../server/models/Notification.js';
+import { Comment } from '../server/models/Comment.js';
+import { Stash } from '../server/models/Stash.js';
 import authRouter from '../server/routes/auth.js';
 import branchesRouter from '../server/routes/branches.js';
 import decisionsRouter from '../server/routes/decisions.js';
 import statsRouter from '../server/routes/stats.js';
+import exploreRouter from '../server/routes/explore.js';
+import messagesRouter from '../server/routes/messages.js';
+import notificationsRouter from '../server/routes/notifications.js';
+import commentsRouter from '../server/routes/comments.js';
 
 dotenv.config();
 
@@ -28,6 +37,10 @@ app.use('/api/auth', authRouter);
 app.use('/api/branches', branchesRouter);
 app.use('/api/decisions', decisionsRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/explore', exploreRouter);
+app.use('/api/messages', messagesRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/comments', commentsRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

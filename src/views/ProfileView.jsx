@@ -157,6 +157,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
   const wi = isWhatIf(item.branch_name);
   const category = item.type || inferCategory(item.decision);
   const userId = user?._id ? user._id.toString() : item.userId;
+  const userHandle = user?.username || null;
   const isOwnPost = currentUserId && currentUserId === item.userId;
   const [localCommentCount, setLocalCommentCount] = useState(item.commentCount ?? 0);
   const [commentOpen, setCommentOpen] = useState(false);
@@ -197,11 +198,11 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         {/* Author row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
           {user?.avatarUrl
-            ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(userId)} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} referrerPolicy="no-referrer" />
-            : <div onClick={() => onProfile?.(userId)} style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: 'pointer' }}>{ini}</div>
+            ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(userHandle || userId)} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} referrerPolicy="no-referrer" />
+            : <div onClick={() => onProfile?.(userHandle || userId)} style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: 'pointer' }}>{ini}</div>
           }
           <div style={{ flex: 1, minWidth: 0 }}>
-            <span onClick={() => onProfile?.(userId)} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
+            <span onClick={() => onProfile?.(userHandle || userId)} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
               {user?.fullName || user?.username || 'Unknown'}
             </span>
             {user?.username && <span style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 6 }}>@{user.username}</span>}
@@ -436,25 +437,96 @@ function ActivityGraph({ commitCount, topCategory, commits }) {
 }
 
 /* ─── GIT GRAPH ─── */
-function GitGraph({ commits }) {
+function GitGraph({ commits, branches = [] }) {
   const branchNames = [...new Set(commits.map(c => c.branch))];
   const COL = Object.fromEntries(branchNames.map((b, i) => [b, b === 'main' ? 0 : i]));
+  const mergedSet = new Set(branches.filter(b => b.merged).map(b => b.name));
   const COLORS = BRANCH_COLORS;
   const CW = 22, RH = 70;
   const svgW = CW * Math.max(branchNames.length, 1) + 4;
+
+  // For each what-if branch, compute which row indices it spans (first to last occurrence)
+  // so rows in between (main commits) can draw the pass-through dashed line.
+  const branchSpan = {}; // branch -> { first: i, last: i }
+  commits.forEach((c, i) => {
+    if (!c.wi) return;
+    if (!branchSpan[c.branch]) branchSpan[c.branch] = { first: i, last: i };
+    else branchSpan[c.branch].last = i;
+  });
 
   return (
     <div>
       {commits.map((c, i) => {
         const col = COL[c.branch] ?? 1;
         const color = c.wi ? COLORS[col % COLORS.length] : COLORS[0];
+        const branchColor = COLORS[col % COLORS.length];
         const mainX = CW / 2, cx = col * CW + CW / 2, midY = RH / 2;
+
+        // For the commit's own branch
+        const prevSame = commits.slice(0, i).findLast(x => x.branch === c.branch);
+        const nextSame = commits.slice(i + 1).find(x => x.branch === c.branch);
+        const isFirstInBranch = c.wi && !prevSame;
+        const isLastInBranch  = c.wi && !nextSame;
+        const hasAboveSame    = c.wi && !!prevSame;
+        const hasBelowSame    = c.wi && !!nextSame;
+
         return (
           <div key={c.id} style={{ display: 'flex', alignItems: 'stretch' }}>
             <svg width={svgW} height={RH} style={{ flexShrink: 0, display: 'block' }}>
+              {/* Main branch vertical line */}
               <line x1={mainX} y1={0} x2={mainX} y2={RH} stroke="oklch(52% 0.2 260)" strokeWidth={2} />
-              {col > 0 && <line x1={cx} y1={0} x2={cx} y2={RH} stroke={COLORS[col % COLORS.length]} strokeWidth={1.5} strokeDasharray="5 3" />}
-              {col > 0 && i > 0 && (COL[commits[i - 1]?.branch] === 0) && <path d={`M ${mainX} 0 C ${mainX} ${midY * 0.6} ${cx} ${midY * 0.4} ${cx} ${midY}`} fill="none" stroke={COLORS[col % COLORS.length]} strokeWidth={1.5} strokeDasharray="5 3" />}
+
+              {/* Pass-through dashed lines for what-if branches that span across this row */}
+              {Object.entries(branchSpan).map(([branch, span]) => {
+                if (branch === c.branch) return null; // handled below
+                if (i <= span.first || i >= span.last) return null; // not in between
+                const bCol = COL[branch] ?? 1;
+                const bColor = COLORS[bCol % COLORS.length];
+                const bx = bCol * CW + CW / 2;
+                return (
+                  <line key={`pass-${branch}`} x1={bx} y1={0} x2={bx} y2={RH} stroke={bColor} strokeWidth={1.5} strokeDasharray="5 3" />
+                );
+              })}
+
+              {/* This commit's own what-if branch connectors.
+                  Commits are newest-first (top=newest, bottom=oldest).
+                  isFirstInBranch = newest = top tip (open or merged back in).
+                  isLastInBranch  = oldest = fork point from main below. */}
+              {c.wi && (() => {
+                const segments = [];
+
+                // Above the dot → toward newer commits / top of screen
+                if (hasAboveSame) {
+                  segments.push(
+                    <line key="top" x1={cx} y1={0} x2={cx} y2={midY} stroke={branchColor} strokeWidth={1.5} strokeDasharray="5 3" />
+                  );
+                } else if (isFirstInBranch && mergedSet.has(c.branch)) {
+                  // Merged: curve the tip back into main line above
+                  segments.push(
+                    <path key="merge-in" d={`M ${cx} ${midY} C ${cx} ${midY * 0.4} ${mainX} ${midY * 0.6} ${mainX} 0`} fill="none" stroke={branchColor} strokeWidth={1.5} strokeDasharray="5 3" />
+                  );
+                } else if (isFirstInBranch) {
+                  // Unmerged open tip: extend dashed line upward to show branch is ongoing
+                  segments.push(
+                    <line key="top-open" x1={cx} y1={0} x2={cx} y2={midY} stroke={branchColor} strokeWidth={1.5} strokeDasharray="5 3" />
+                  );
+                }
+
+                // Below the dot → toward older commits / bottom of screen
+                if (hasBelowSame) {
+                  segments.push(
+                    <line key="bot" x1={cx} y1={midY} x2={cx} y2={RH} stroke={branchColor} strokeWidth={1.5} strokeDasharray="5 3" />
+                  );
+                } else if (isLastInBranch) {
+                  // Oldest commit: fork curve down to main line below (the branch origin)
+                  segments.push(
+                    <path key="fork-off" d={`M ${cx} ${midY} C ${cx} ${midY + (RH - midY) * 0.6} ${mainX} ${midY + (RH - midY) * 0.4} ${mainX} ${RH}`} fill="none" stroke={branchColor} strokeWidth={1.5} strokeDasharray="5 3" />
+                  );
+                }
+
+                return segments;
+              })()}
+
               {c.wi ? (
                 <><circle cx={cx} cy={midY} r={6} fill="white" stroke={color} strokeWidth={2} /><circle cx={cx} cy={midY} r={2.5} fill={color} /></>
               ) : (
@@ -592,15 +664,16 @@ function HorizTimeline({ commits }) {
 }
 
 /* ─── PROFILE VIEW ─── */
-export default function ProfileView({ viz, userId, onProfile, onMessage, currentUser, stashedIds = [], onStashChange }) {
+export default function ProfileView({ viz, username, onProfile, onMessage, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
   const { addToast } = useToast();
-  const isOwnProfile = !userId || userId === user?.id;
+  const isOwnProfile = !username || username === user?.username;
   const [activeBranch, setActiveBranch] = useState('all');
   const [commits, setCommits] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [otherUser, setOtherUser] = useState(null);
+  const [resolvedUserId, setResolvedUserId] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [rawDecisions, setRawDecisions] = useState([]);
@@ -616,6 +689,7 @@ export default function ProfileView({ viz, userId, onProfile, onMessage, current
     setCommits([]);
     setBranches([]);
     setOtherUser(null);
+    setResolvedUserId(null);
     setLoading(true);
 
     if (isOwnProfile) {
@@ -649,10 +723,12 @@ export default function ProfileView({ viz, userId, onProfile, onMessage, current
         .catch(() => {})
         .finally(() => setLoading(false));
     } else {
-      Promise.all([
-        api.getUserProfile(userId),
-        api.getUserDecisions(userId),
-      ])
+      api.getUserProfileByUsername(username)
+        .then(profile => {
+          const resolvedId = profile.id || profile._id || username;
+          setResolvedUserId(resolvedId);
+          return Promise.all([Promise.resolve(profile), api.getUserDecisions(resolvedId)]);
+        })
         .then(([profile, decisions]) => {
           setOtherUser(profile);
           setIsFollowing(profile.isFollowing);
@@ -684,7 +760,7 @@ export default function ProfileView({ viz, userId, onProfile, onMessage, current
         .catch(() => {})
         .finally(() => setLoading(false));
     }
-  }, [userId, isOwnProfile]);
+  }, [username, isOwnProfile]);
 
   const handleReact = (id, type) => {
     setReactionState(prev => {
@@ -743,11 +819,11 @@ export default function ProfileView({ viz, userId, onProfile, onMessage, current
     setFollowLoading(true);
     try {
       if (isFollowing) {
-        await api.unfollowUser(userId);
+        await api.unfollowUser(resolvedUserId || username);
         setIsFollowing(false);
         setOtherUser(prev => prev ? { ...prev, followerCount: Math.max(0, (prev.followerCount || 1) - 1) } : prev);
       } else {
-        await api.followUser(userId);
+        await api.followUser(resolvedUserId || username);
         setIsFollowing(true);
         setOtherUser(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) + 1 } : prev);
       }
@@ -879,7 +955,7 @@ export default function ProfileView({ viz, userId, onProfile, onMessage, current
                 No commits yet. Start tracking your life decisions!
               </div>
             ) : (
-              <Viz commits={shown} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
+              <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
             )}
           </div>
         </div>

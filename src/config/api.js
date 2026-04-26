@@ -210,6 +210,14 @@ class ApiClient {
     return this.request(`/explore/users/${userId}`);
   }
 
+  async getUserProfileByUsername(username) {
+    const users = await this.request(`/explore/users?search=${encodeURIComponent(username)}&limit=20`);
+    const list = Array.isArray(users) ? users : (users.users || []);
+    const exact = list.find(u => u.username === username);
+    if (!exact) throw new Error('User not found');
+    return this.request(`/explore/users/${exact.id || exact._id}`);
+  }
+
   async getUserDecisions(userId, limit = 100) {
     return this.request(`/explore?userId=${encodeURIComponent(userId)}&limit=${limit}`);
   }

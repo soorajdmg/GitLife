@@ -24,7 +24,7 @@ const registerValidation = [
 ];
 
 const loginValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('identifier').trim().notEmpty().withMessage('Email or username is required'),
   body('password').notEmpty().withMessage('Password is required')
 ];
 
@@ -100,18 +100,21 @@ router.post('/login', loginValidation, async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    // Find user by email
-    const user = await User.findByEmail(email);
+    // Find user by email or username
+    const isEmail = identifier.includes('@');
+    const user = isEmail
+      ? await User.findByEmail(identifier)
+      : await User.findByUsername(identifier);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid email/username or password' });
     }
 
     // Validate password
     const isValidPassword = await User.validatePassword(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid email/username or password' });
     }
 
     // Update last login
@@ -165,14 +168,14 @@ router.get('/me', authenticateToken, async (req, res) => {
 // Google OAuth callback
 router.post('/google/callback', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, redirectUri } = req.body;
     if (!code) return res.status(400).json({ error: 'Authorization code is required' });
 
-    const redirectUri = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/google/callback`;
+    const resolvedRedirectUri = redirectUri || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/google/callback`;
     const oauth2Client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri
+      resolvedRedirectUri
     );
 
     const { tokens } = await oauth2Client.getToken(code);

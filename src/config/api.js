@@ -50,10 +50,10 @@ class ApiClient {
     return this.request(`/auth/check-username?username=${encodeURIComponent(username)}`, { silent: true });
   }
 
-  async login(email, password) {
+  async login(identifier, password) {
     return this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
   }
 
@@ -68,9 +68,10 @@ class ApiClient {
   }
 
   async googleCallback(code) {
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
     return this.request('/auth/google/callback', {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, redirectUri }),
     });
   }
 

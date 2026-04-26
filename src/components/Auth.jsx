@@ -58,7 +58,7 @@ function StepDots({ step, total = 3 }) {
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   // Login state
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({ identifier: '', password: '' });
   // Signup multi-step state
   const [step, setStep] = useState(1); // 1=email+name, 2=username, 3=password
   const [signupData, setSignupData] = useState({ email: '', fullName: '', username: '', password: '', confirmPassword: '' });
@@ -179,7 +179,7 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
-      await login(loginData.email, loginData.password);
+      await login(loginData.identifier, loginData.password);
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
@@ -234,7 +234,7 @@ export default function Auth() {
     setIsLogin(p => !p);
     setError('');
     setStep(1);
-    setLoginData({ email: '', password: '' });
+    setLoginData({ identifier: '', password: '' });
     setSignupData({ email: '', fullName: '', username: '', password: '', confirmPassword: '' });
     setUsernameStatus(null);
     setUsernameMsg('');
@@ -459,8 +459,8 @@ export default function Auth() {
                 {error && <div className="auth-error">{error}</div>}
 
                 <div className="auth-field">
-                  <label htmlFor="login-email">Email</label>
-                  <input type="email" id="login-email" name="email" value={loginData.email} onChange={handleLoginChange} placeholder="you@example.com" required autoComplete="email" />
+                  <label htmlFor="login-identifier">Email or Username</label>
+                  <input type="text" id="login-identifier" name="identifier" value={loginData.identifier} onChange={handleLoginChange} placeholder="you@example.com or username" required autoComplete="username" />
                 </div>
 
                 <div className="auth-field">

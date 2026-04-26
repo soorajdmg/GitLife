@@ -36,10 +36,10 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     try {
       setError(null);
-      const response = await api.login(email, password);
+      const response = await api.login(identifier, password);
       localStorage.setItem('token', response.token);
       setUser(response.user);
       return response;

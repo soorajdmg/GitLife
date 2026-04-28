@@ -677,7 +677,6 @@ export default function MessagesView({ onProfile, isMobile }) {
       <div style={{ flex: 1, display: showChat ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)' }}>
         {!activeConvId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'oklch(60% 0.01 260)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Your Messages</div>
             <div style={{ fontSize: 13, marginBottom: 20 }}>Send a message to start a conversation</div>
             <button onClick={() => setShowNewChat(true)}

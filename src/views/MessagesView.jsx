@@ -364,6 +364,8 @@ export default function MessagesView({ onProfile, isMobile }) {
   const typingTimerRef = useRef(null);
   const isTypingRef = useRef(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const inputValueRef = useRef('');
 
   const activeConv = conversations.find(c => c.id === activeConvId);
   const otherUser = activeConv?.otherUser;
@@ -487,15 +489,22 @@ export default function MessagesView({ onProfile, isMobile }) {
   }, [socket, conversations]);
 
   // ── Send message ───────────────────────────────────────────────────────────
+  const sendingRef = useRef(false);
+  const activeConvIdRef = useRef(activeConvId);
+  useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
+
   const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || !activeConvId || sending) return;
+    const text = inputValueRef.current.trim();
+    const convId = activeConvIdRef.current;
+    if (!text || !convId || sendingRef.current) return;
+    inputValueRef.current = '';
     setInput('');
+    sendingRef.current = true;
     setSending(true);
 
     // Stop typing
     if (isTypingRef.current) {
-      socket?.emitTypingStop(activeConvId);
+      socket?.emitTypingStop(convId);
       isTypingRef.current = false;
     }
     clearTimeout(typingTimerRef.current);
@@ -503,7 +512,7 @@ export default function MessagesView({ onProfile, isMobile }) {
     // Optimistic message
     const optimistic = {
       id: `opt_${Date.now()}`,
-      conversationId: activeConvId,
+      conversationId: convId,
       senderId: user.id,
       text,
       readBy: [user.id],
@@ -513,34 +522,36 @@ export default function MessagesView({ onProfile, isMobile }) {
     setMessages(prev => [...prev, optimistic]);
 
     try {
-      const res = await socket?.sendMessage({ conversationId: activeConvId, text });
-      // Replace optimistic with server message
+      const res = await socket?.sendMessage({ conversationId: convId, text });
       if (res?.message) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
       }
     } catch {
-      // Remove optimistic on failure, restore input
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+      inputValueRef.current = text;
       setInput(text);
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
-  }, [input, activeConvId, sending, socket, user]);
+  }, [socket, user]);
 
   // ── Typing indicators ──────────────────────────────────────────────────────
   const handleInputChange = useCallback((e) => {
+    inputValueRef.current = e.target.value;
     setInput(e.target.value);
-    if (!activeConvId) return;
+    const convId = activeConvIdRef.current;
+    if (!convId) return;
     if (!isTypingRef.current) {
       isTypingRef.current = true;
-      socket?.emitTypingStart(activeConvId);
+      socket?.emitTypingStart(convId);
     }
     clearTimeout(typingTimerRef.current);
     typingTimerRef.current = setTimeout(() => {
       isTypingRef.current = false;
-      socket?.emitTypingStop(activeConvId);
+      socket?.emitTypingStop(convId);
     }, 2000);
-  }, [activeConvId, socket]);
+  }, [socket]);
 
   // ── Load more (pagination) ─────────────────────────────────────────────────
   const loadMore = useCallback(async () => {
@@ -765,17 +776,18 @@ export default function MessagesView({ onProfile, isMobile }) {
             <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', paddingBottom: isMobile ? 'max(10px, env(safe-area-inset-bottom, 10px))' : '14px', borderTop: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', gap: 8, alignItems: 'center' }}>
               <div style={{ flex: 1, border: '1px solid oklch(88% 0.008 260)', borderRadius: 22, padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'oklch(98.5% 0.005 80)' }}>
                 <input
+                  ref={inputRef}
                   type="text"
                   inputMode="text"
                   value={input}
                   onChange={handleInputChange}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
                   placeholder="Send a message…"
-                  style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)', minWidth: 0 }} />
+                  style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 16, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)', minWidth: 0 }} />
               </div>
               <button
                 type="button"
-                onPointerDown={e => { if (isMobile) e.preventDefault(); if (input.trim() && !sending) send(); }}
+                onClick={send}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',

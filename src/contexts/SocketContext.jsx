@@ -34,11 +34,14 @@ export function SocketProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    console.log('[socket] effect — isAuthenticated:', isAuthenticated, 'userId:', user?.id, 'SOCKET_URL:', SOCKET_URL);
     if (!isAuthenticated || !user) return;
 
     const token = localStorage.getItem('token');
+    console.log('[socket] token:', token ? token.slice(0, 20) + '...' : 'MISSING');
     if (!token) return;
 
+    console.log('[socket] connecting to', SOCKET_URL);
     const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -153,6 +156,7 @@ export function SocketProvider({ children }) {
     <SocketContext.Provider value={{
       connected,
       connectError,
+      socketUrl: SOCKET_URL,
       onlineUsers,
       typingMap,
       on,

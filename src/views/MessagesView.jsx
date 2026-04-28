@@ -826,7 +826,10 @@ export default function MessagesView({ onProfile, isMobile }) {
         fontFamily: 'monospace', fontSize: 11, color: '#0f0', lineHeight: 1.6,
         pointerEvents: 'all',
       }}>
-        <div style={{ color: '#ff0' }}>conn={String(socket?.connected)} err={socket?.connectError ?? 'none'} url={import.meta.env.VITE_API_URL ?? 'undef'}</div>
+        <div style={{ color: '#ff0' }}>conn={String(socket?.connected)} err={socket?.connectError ?? 'none'}</div>
+        <div style={{ color: '#ff0' }}>sockUrl={socket?.socketUrl ?? 'undef'}</div>
+        <div style={{ color: '#ff0' }}>origin={window.location.origin}</div>
+        <div style={{ color: '#ff0' }}>sockObj={socket ? 'yes' : 'no'} sockId={socket?.id ?? 'none'}</div>
         {debugLines.map((l, i) => <div key={i}>{l}</div>)}
         <div style={{ color: '#888', marginTop: 4 }}>tap to clear</div>
       </div>

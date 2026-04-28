@@ -381,6 +381,7 @@ function buildActivityData(commits) {
   });
 
   // Build week/day matrix
+  const todayKey = today.toISOString().slice(0, 10);
   const weekData = [];
   const weekMonths = [];
   for (let w = 0; w < NUM_WEEKS; w++) {
@@ -389,9 +390,12 @@ function buildActivityData(commits) {
       const date = new Date(start);
       date.setDate(date.getDate() + w * 7 + d);
       const key = date.toISOString().slice(0, 10);
-      const count = dayCounts[key] || 0;
-      // Cap visual at 4
-      week.push(Math.min(count, 4));
+      if (key > todayKey) {
+        week.push(-1); // future date — render as blank
+      } else {
+        const count = dayCounts[key] || 0;
+        week.push(Math.min(count, 4));
+      }
     }
     weekData.push(week);
     // Month label for first day of the week
@@ -472,6 +476,7 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
             {weekData.map((week, wi) => (
               <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flex: 1 }}>
                 {week.map((count, di) => {
+                  if (count === -1) return <div key={di} style={{ aspectRatio: '1' }} />;
                   const isHov = hovered?.week === wi && hovered?.day === di;
                   return (
                     <div key={di}
@@ -485,20 +490,26 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
                         transition: 'transform 0.1s',
                         transform: isHov ? 'scale(1.3)' : 'scale(1)',
                         cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1,
-                      }} />
+                      }}>
+                      {isHov && (
+                        <div style={{
+                          position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
+                          background: 'oklch(18% 0.015 260)', color: 'white',
+                          padding: '4px 8px', borderRadius: 5, fontSize: 10, fontWeight: 500,
+                          whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 20, lineHeight: 1.5,
+                          textAlign: 'center',
+                        }}>
+                          <div style={{ opacity: 0.65, fontSize: 9 }}>{hovered.date}</div>
+                          <div>{count === 0 ? 'No commits' : `${count} commit${count > 1 ? 's' : ''}`}</div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             ))}
           </div>
         </div>
-        {/* Tooltip */}
-        {hovered && (
-          <div style={{ position: 'absolute', top: -48, left: '50%', transform: 'translateX(-50%)', background: 'oklch(18% 0.015 260)', color: 'white', padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10, lineHeight: 1.6 }}>
-            <div style={{ opacity: 0.65, fontSize: 10 }}>{hovered.date}</div>
-            <div>{hovered.count === 0 ? 'No commits' : `${hovered.count} commit${hovered.count > 1 ? 's' : ''}`}</div>
-          </div>
-        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 16, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>Less</span>

@@ -1,7 +1,15 @@
 import express from 'express';
+import { ObjectId } from 'mongodb';
 import { getDB } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { Notification } from '../models/Notification.js';
+
+// Match a stored id (string or ObjectId) against a string value
+function idMatch(strId) {
+  const variants = [strId];
+  try { variants.push(new ObjectId(strId)); } catch {}
+  return { $in: variants };
+}
 
 const router = express.Router();
 
@@ -247,6 +255,16 @@ router.get('/suggested', authenticateToken, async (req, res) => {
     const countMap = {};
     counts.forEach(c => { countMap[c._id] = c.count; });
 
+    // Get follower counts: count how many users have each userId in their following array
+    const followerCounts = await db.collection('users').aggregate([
+      { $match: { following: { $exists: true, $ne: [] } } },
+      { $unwind: '$following' },
+      { $match: { following: { $in: userIds } } },
+      { $group: { _id: '$following', count: { $sum: 1 } } }
+    ]).toArray();
+    const followerCountMap = {};
+    followerCounts.forEach(c => { followerCountMap[c._id] = c.count; });
+
     // Build result with scoring:
     // - mutual (they follow someone I follow): +1000
     // - already following: deprioritize (shown as Following, not hidden)
@@ -255,10 +273,11 @@ router.get('/suggested', authenticateToken, async (req, res) => {
       const theirFollowing = u.following || [];
       const mutualCount = theirFollowing.filter(id => myFollowing.includes(id)).length;
       const commitCount = countMap[u.id] || 0;
+      const followerCount = followerCountMap[u.id] || 0;
       const isFollowing = myFollowing.includes(u.id);
       // Score: mutual people > popular > everyone else; already-following goes last
       const score = isFollowing ? -1 : (mutualCount * 1000 + commitCount);
-      return { id: u.id, username: u.username, fullName: u.fullName, avatarUrl: u.avatarUrl, commitCount, mutualCount, isFollowing, score };
+      return { id: u.id, username: u.username, fullName: u.fullName, avatarUrl: u.avatarUrl, commitCount, mutualCount, followerCount, isFollowing, score };
     });
 
     result.sort((a, b) => b.score - a.score);
@@ -297,12 +316,27 @@ router.get('/following', authenticateToken, async (req, res) => {
   }
 });
 
+// Helper: resolve a userId param (which may be a username) to the actual MongoDB id string
+async function resolveTargetId(db, userIdOrUsername) {
+  // Check if it looks like a MongoDB ObjectId (24 hex chars)
+  if (/^[0-9a-fA-F]{24}$/.test(userIdOrUsername)) {
+    return userIdOrUsername;
+  }
+  // Otherwise treat as username and look up the real id
+  const found = await db.collection('users').aggregate([
+    { $addFields: { id: { $toString: '$_id' } } },
+    { $match: { username: userIdOrUsername } },
+    { $project: { id: 1 } }
+  ]).next();
+  return found ? found.id : userIdOrUsername;
+}
+
 // POST /explore/follow/:userId - follow a user
 router.post('/follow/:userId', authenticateToken, async (req, res) => {
   try {
     const db = getDB();
     const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
-    const targetUserId = req.params.userId;
+    const targetUserId = await resolveTargetId(db, req.params.userId);
 
     if (currentUserId === targetUserId) {
       return res.status(400).json({ error: 'Cannot follow yourself' });
@@ -335,7 +369,7 @@ router.delete('/follow/:userId', authenticateToken, async (req, res) => {
   try {
     const db = getDB();
     const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
-    const targetUserId = req.params.userId;
+    const targetUserId = await resolveTargetId(db, req.params.userId);
 
     await db.collection('users').updateOne(
       { $expr: { $eq: [{ $toString: '$_id' }, currentUserId] } },
@@ -365,21 +399,71 @@ router.get('/users/:userId', authenticateToken, async (req, res) => {
     let user = await db.collection('users').aggregate([
       { $addFields: { id: { $toString: '$_id' } } },
       { $match: { id: userId } },
-      { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1, followers: 1 } }
+      { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1 } }
     ]).next();
 
     if (!user) {
       user = await db.collection('users').aggregate([
         { $addFields: { id: { $toString: '$_id' } } },
         { $match: { username: userId } },
-        { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1, followers: 1 } }
+        { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1 } }
       ]).next();
     }
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const commitCount = await db.collection('decisions').countDocuments({ userId: user.id });
-    const isFollowing = (user.followers || []).includes(currentUserId);
+
+    // Fetch current user's following list.
+    // Entries may be stored as MongoDB id strings, ObjectId strings, or legacy usernames —
+    // resolve all of them to canonical MongoDB id strings.
+    const me = await db.collection('users').findOne(
+      { $expr: { $eq: [{ $toString: '$_id' }, currentUserId] } },
+      { projection: { following: 1 } }
+    );
+    const rawFollowing = (me?.following || []).map(id => id?.toString());
+
+    // Resolve any username-like entries to their real ids
+    const usernameEntries = rawFollowing.filter(e => !/^[0-9a-fA-F]{24}$/.test(e));
+    let resolvedUsernameMap = {};
+    if (usernameEntries.length > 0) {
+      const resolved = await db.collection('users').aggregate([
+        { $addFields: { id: { $toString: '$_id' } } },
+        { $match: { username: { $in: usernameEntries } } },
+        { $project: { _id: 0, id: 1, username: 1 } }
+      ]).toArray();
+      resolved.forEach(u => { resolvedUsernameMap[u.username] = u.id; });
+    }
+    const myFollowingIds = new Set(
+      rawFollowing.map(e => resolvedUsernameMap[e] || e)
+    );
+
+    // isFollowing: check if the target's id or username is in my following list
+    const isFollowing = myFollowingIds.has(user.id);
+
+    // People who follow the target (scan all users' following arrays).
+    // The following array may contain the target's MongoDB id (string), ObjectId, or legacy username.
+    const targetVariants = [user.id];
+    try { targetVariants.push(new ObjectId(user.id)); } catch {}
+    if (user.username) targetVariants.push(user.username);
+    const theirFollowerDocs = await db.collection('users').aggregate([
+      { $addFields: { id: { $toString: '$_id' } } },
+      { $match: { following: { $in: targetVariants } } },
+      { $project: { _id: 0, id: 1 } }
+    ]).toArray();
+    const theirFollowerIds = theirFollowerDocs.map(u => u.id);
+
+    // Mutuals = people you follow who also follow the target (excluding yourself).
+    const mutualIds = theirFollowerIds.filter(id => id !== currentUserId && myFollowingIds.has(id));
+
+    let mutualFollowers = [];
+    if (mutualIds.length > 0) {
+      mutualFollowers = await db.collection('users').aggregate([
+        { $addFields: { id: { $toString: '$_id' } } },
+        { $match: { id: { $in: mutualIds.slice(0, 5) } } },
+        { $project: { _id: 0, id: 1, username: 1, fullName: 1, avatarUrl: 1 } }
+      ]).toArray();
+    }
 
     res.json({
       id: user.id,
@@ -387,8 +471,10 @@ router.get('/users/:userId', authenticateToken, async (req, res) => {
       fullName: user.fullName,
       avatarUrl: user.avatarUrl,
       commitCount,
-      followerCount: (user.followers || []).length,
+      followerCount: theirFollowerDocs.length,
       isFollowing,
+      mutualFollowers,
+      mutualFollowerCount: mutualIds.length,
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);

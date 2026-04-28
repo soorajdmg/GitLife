@@ -571,7 +571,10 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
       {/* Search bar */}
       <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: 'clamp(10px, 2vw, 12px) var(--explore-h-padding, 28px)', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'oklch(62% 0.01 260)', pointerEvents: 'none' }}>⌕</span>
+          <svg style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="oklch(62% 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6.8" cy="6.8" r="4.3" />
+            <line x1="10" y1="10" x2="14" y2="14" />
+          </svg>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -581,7 +584,12 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
             onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', fontSize: 17, color: 'oklch(60% 0.01 260)', lineHeight: 1, padding: 0 }}>×</button>
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="oklch(60% 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="4" x2="12" y2="12" />
+                <line x1="12" y1="4" x2="4" y2="12" />
+              </svg>
+            </button>
           )}
         </div>
       </div>
@@ -616,12 +624,16 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                         onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
                         {(() => { const parts = (u.fullName || u.username || '').split(' '); return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })()}
                       </div>
-                      <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', textAlign: 'center', marginBottom: u.mutualCount > 0 ? 4 : 12 }}>{u.commitCount} commits</div>
-                      {u.mutualCount > 0 && (
+                      <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', textAlign: 'center', marginBottom: (u.mutualCount > 0 || (!u.mutualCount && u.followerCount > 0)) ? 4 : 12 }}>{u.commitCount} commits</div>
+                      {u.mutualCount > 0 ? (
                         <div style={{ fontSize: 10.5, color: 'oklch(45% 0.18 155)', textAlign: 'center', marginBottom: 12, fontWeight: 500 }}>
                           {u.mutualCount} mutual
                         </div>
-                      )}
+                      ) : u.followerCount > 0 ? (
+                        <div style={{ fontSize: 10.5, color: 'oklch(55% 0.01 260)', textAlign: 'center', marginBottom: 12 }}>
+                          {fmt(u.followerCount)} followers
+                        </div>
+                      ) : null}
                       <button onClick={() => toggleFollow(u.id)}
                         style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: `1px solid ${isFollowed ? 'oklch(88% 0.008 260)' : 'oklch(52% 0.2 260)'}`, background: isFollowed ? 'white' : 'oklch(52% 0.2 260)', color: isFollowed ? 'oklch(44% 0.01 260)' : 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.14s', marginBottom: 6 }}>
                         {isFollowed ? 'Following' : 'Follow'}
@@ -707,7 +719,12 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
           {/* Empty */}
           {!loading && !error && sortedItems.length === 0 && (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(58% 0.01 260)' }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>⌕</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                <svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="oklch(72% 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="6.8" cy="6.8" r="4.3" />
+                  <line x1="10" y1="10" x2="14" y2="14" />
+                </svg>
+              </div>
               <div style={{ fontSize: 14, fontWeight: 500 }}>
                 {feed.length === 0 ? 'No decisions shared yet. Be the first!' : 'No results found'}
               </div>

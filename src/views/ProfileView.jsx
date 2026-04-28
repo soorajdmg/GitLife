@@ -783,13 +783,18 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
     staleTime: 60_000,
   });
 
-  // Other profile: fetch profile first, then decisions (dependent query)
-  const { data: otherProfile, isLoading: otherProfileLoading } = useQuery({
-    queryKey: QUERY_KEYS.profile(username),
-    queryFn: () => api.getUserProfile(username),
-    enabled: !isOwnProfile && !!username,
-    staleTime: 60_000,
-  });
+  // Other profile: always fetch fresh (no cache) so mutual/follower data is never stale
+  const [otherProfile, setOtherProfile] = useState(null);
+  const [otherProfileLoading, setOtherProfileLoading] = useState(false);
+  useEffect(() => {
+    if (isOwnProfile || !username) return;
+    setOtherProfile(null);
+    setOtherProfileLoading(true);
+    api.getUserProfile(username)
+      .then(data => { setOtherProfile(data); setIsFollowing(data.isFollowing); })
+      .catch(() => {})
+      .finally(() => setOtherProfileLoading(false));
+  }, [username, isOwnProfile]);
   const resolvedUserId = otherProfile ? (otherProfile.id || otherProfile._id || username) : null;
   const { data: otherDecisions = [], isLoading: otherDecisionsLoading } = useQuery({
     queryKey: QUERY_KEYS.userDecisions(resolvedUserId),
@@ -798,11 +803,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
     staleTime: 30_000,
   });
 
-  // Sync isFollowing from profile data
   const otherUser = otherProfile || null;
-  useEffect(() => {
-    if (otherProfile) setIsFollowing(otherProfile.isFollowing);
-  }, [otherProfile]);
 
   // Derive loading, rawDecisions, commits, branches from query data
   const loading = isOwnProfile
@@ -939,11 +940,11 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
       if (isFollowing) {
         await api.unfollowUser(resolvedUserId || username);
         setIsFollowing(false);
-        setOtherUser(prev => prev ? { ...prev, followerCount: Math.max(0, (prev.followerCount || 1) - 1) } : prev);
+        setOtherProfile(prev => prev ? { ...prev, followerCount: Math.max(0, (prev.followerCount || 1) - 1) } : prev);
       } else {
         await api.followUser(resolvedUserId || username);
         setIsFollowing(true);
-        setOtherUser(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) + 1 } : prev);
+        setOtherProfile(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) + 1 } : prev);
       }
     } catch {
       // ignore
@@ -1044,9 +1045,42 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                       style={{ padding: '6px 18px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? '1.5px solid oklch(88% 0.008 260)' : 'none', background: isFollowing ? 'white' : 'oklch(52% 0.2 260)', color: isFollowing ? 'oklch(42% 0.2 260)' : 'white' }}>
                       {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                     </button>
+                    {onMessage && (
+                      <button onClick={() => onMessage(resolvedUserId || username)}
+                        style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: '1.5px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(30% 0.015 260)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H8L5 11V10H3.5C2.7 10 2 9.3 2 8.5v-5z" />
+                        </svg>
+                        Message
+                      </button>
+                    )}
                   </>
                 )}
               </div>
+              {/* Mutual followers — mobile */}
+              {!isOwnProfile && otherUser?.mutualFollowerCount > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexShrink: 0 }}>
+                    {(otherUser.mutualFollowers || []).slice(0, 3).map((mu, i) => (
+                      <div key={mu.id} style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid white', marginLeft: i === 0 ? 0 : -6, zIndex: 3 - i, flexShrink: 0, overflow: 'hidden', background: userColor(mu.id) }}>
+                        {mu.avatarUrl
+                          ? <img src={mu.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6, fontWeight: 700, color: 'white' }}>{userInitials(mu).slice(0, 1)}</div>
+                        }
+                      </div>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)' }}>
+                    Followed by{' '}
+                    <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>
+                      {(otherUser.mutualFollowers || [])[0]?.fullName?.split(' ')[0] || (otherUser.mutualFollowers || [])[0]?.username}
+                    </span>
+                    {otherUser.mutualFollowerCount > 1 && (
+                      <span> and <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>{otherUser.mutualFollowerCount - 1} {otherUser.mutualFollowerCount - 1 === 1 ? 'other' : 'others'}</span></span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1207,9 +1241,44 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                     style={{ marginLeft: 8, padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? '1px solid oklch(88% 0.008 260)' : 'none', background: isFollowing ? 'white' : 'oklch(52% 0.2 260)', color: isFollowing ? 'oklch(42% 0.2 260)' : 'white', transition: 'all 0.12s' }}>
                     {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                   </button>
+                  {onMessage && (
+                    <button onClick={() => onMessage(resolvedUserId || username)}
+                      style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(30% 0.015 260)', transition: 'all 0.12s', display: 'flex', alignItems: 'center', gap: 6 }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'oklch(96% 0.006 260)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}>
+                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H8L5 11V10H3.5C2.7 10 2 9.3 2 8.5v-5z" />
+                      </svg>
+                      Message
+                    </button>
+                  )}
                 </>
               )}
             </div>
+            {/* Mutual followers */}
+            {!isOwnProfile && otherUser?.mutualFollowerCount > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                <div style={{ display: 'flex', flexShrink: 0 }}>
+                  {(otherUser.mutualFollowers || []).slice(0, 3).map((mu, i) => (
+                    <div key={mu.id} style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid white', marginLeft: i === 0 ? 0 : -7, zIndex: 3 - i, flexShrink: 0, overflow: 'hidden', background: userColor(mu.id) }}>
+                      {mu.avatarUrl
+                        ? <img src={mu.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: 'white' }}>{userInitials(mu).slice(0, 1)}</div>
+                      }
+                    </div>
+                  ))}
+                </div>
+                <span style={{ fontSize: 12, color: 'oklch(52% 0.01 260)' }}>
+                  Followed by{' '}
+                  <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>
+                    {(otherUser.mutualFollowers || [])[0]?.fullName?.split(' ')[0] || (otherUser.mutualFollowers || [])[0]?.username}
+                  </span>
+                  {otherUser.mutualFollowerCount > 1 && (
+                    <span> and <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>{otherUser.mutualFollowerCount - 1} {otherUser.mutualFollowerCount - 1 === 1 ? 'other' : 'others'}</span></span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

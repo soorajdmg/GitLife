@@ -494,10 +494,11 @@ export default function MessagesView({ onProfile, isMobile }) {
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
 
   const send = useCallback(async () => {
-    const text = inputValueRef.current.trim();
+    const text = (inputRef.current?.value ?? inputValueRef.current).trim();
     const convId = activeConvIdRef.current;
     if (!text || !convId || sendingRef.current) return;
     inputValueRef.current = '';
+    if (inputRef.current) inputRef.current.value = '';
     setInput('');
     sendingRef.current = true;
     setSending(true);

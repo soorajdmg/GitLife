@@ -78,7 +78,7 @@ export default function NotificationsView() {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
-      <div style={{ maxWidth: 620, margin: '0 auto', padding: '24px 0 60px' }}>
+      <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '24px 16px 60px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, padding: '0 2px' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'oklch(45% 0.01 260)' }}>
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}

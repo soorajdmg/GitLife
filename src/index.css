@@ -34,3 +34,36 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
 @media (max-width: 768px) {
   ::-webkit-scrollbar { width: 3px; height: 3px; }
 }
+
+/* ─── Large screen CSS custom properties ─── */
+:root {
+  --sidebar-width: 230px;
+  --content-max-width: 680px;
+  --feed-max-width: 680px;
+  --profile-max-width: 960px;
+  --explore-h-padding: 28px;
+  --topbar-height: 52px;
+  --messages-list-width: 280px;
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --sidebar-width: 260px;
+    --content-max-width: 740px;
+    --feed-max-width: 740px;
+    --profile-max-width: 1100px;
+    --explore-h-padding: 40px;
+    --messages-list-width: 320px;
+  }
+}
+
+@media (min-width: 1536px) {
+  :root {
+    --sidebar-width: 290px;
+    --content-max-width: 820px;
+    --feed-max-width: 820px;
+    --profile-max-width: 1260px;
+    --explore-h-padding: 56px;
+    --messages-list-width: 360px;
+  }
+}

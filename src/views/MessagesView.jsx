@@ -628,7 +628,7 @@ export default function MessagesView({ onProfile, isMobile }) {
 
       {/* ── Conversation list ─────────────────────────────────────────────── */}
       <div style={{
-        width: isMobile ? '100%' : 280,
+        width: isMobile ? '100%' : 'var(--messages-list-width, 280px)',
         flexShrink: 0,
         borderRight: isMobile ? 'none' : '1px solid oklch(91% 0.006 80)',
         overflowY: 'auto',
@@ -685,7 +685,7 @@ export default function MessagesView({ onProfile, isMobile }) {
       </div>
 
       {/* ── Chat area ─────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: showChat ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)' }}>
+      <div style={{ flex: 1, display: showChat ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)', minWidth: 0 }}>
         {!activeConvId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'oklch(60% 0.01 260)' }}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Your Messages</div>
@@ -726,7 +726,7 @@ export default function MessagesView({ onProfile, isMobile }) {
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px' : '20px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px' : 'clamp(16px, 2.5vw, 32px) clamp(20px, 3vw, 48px)', display: 'flex', flexDirection: 'column', gap: 4 }}>
               {hasMore && (
                 <button onClick={loadMore}
                   style={{ alignSelf: 'center', border: '1px solid oklch(88% 0.008 260)', background: 'white', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', color: 'oklch(45% 0.15 260)', marginBottom: 8, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -787,7 +787,7 @@ export default function MessagesView({ onProfile, isMobile }) {
               </div>
               <button
                 type="button"
-                onPointerDown={e => { e.preventDefault(); send(); }}
+                onClick={send}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',

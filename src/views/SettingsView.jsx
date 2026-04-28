@@ -442,7 +442,7 @@ export default function SettingsView({ saveRef, onHasChanges }) {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 28px 60px' }}>
+      <div style={{ maxWidth: 'clamp(600px, 60vw, 780px)', margin: '0 auto', padding: 'clamp(20px, 3vw, 36px) clamp(20px, 3vw, 40px) 60px' }}>
 
         {/* Account Section */}
         <Section title="Account">

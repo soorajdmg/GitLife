@@ -25,6 +25,23 @@ function useIsMobile() {
   return isMobile;
 }
 
+/* ─── SIDEBAR WIDTH HOOK ─── */
+function useSidebarWidth() {
+  const getWidth = () => {
+    const w = window.innerWidth;
+    if (w >= 1536) return 290;
+    if (w >= 1280) return 260;
+    return 230;
+  };
+  const [width, setWidth] = useState(getWidth);
+  useEffect(() => {
+    const handler = () => setWidth(getWidth());
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return width;
+}
+
 /* ─── NAV ICONS ─── */
 function NavIcon({ type, active, size = 22 }) {
   const col = active ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)';
@@ -422,6 +439,7 @@ export default function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isMobile = useIsMobile();
+  const sidebarWidth = useSidebarWidth();
   const [feedData, setFeedData] = useState({ following: [], trending: [], hasFollowing: false });
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedSeeded, setFeedSeeded] = useState(false);
@@ -703,7 +721,7 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', background: 'oklch(98.5% 0.005 80)', flexDirection: isMobile ? 'column' : 'row' }}>
 
       {/* ── Desktop Sidebar ── */}
-      <aside className="desktop-only" style={{ width: 230, flexShrink: 0, background: 'white', borderRight: '1px solid oklch(91% 0.006 80)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
+      <aside className="desktop-only" style={{ width: sidebarWidth, flexShrink: 0, background: 'white', borderRight: '1px solid oklch(91% 0.006 80)', display: 'flex', flexDirection: 'column', padding: `18px ${sidebarWidth >= 260 ? '18px' : '14px'}` }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 20px', fontSize: 17, fontWeight: 700 }}>
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -794,7 +812,7 @@ export default function App() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
         {/* Desktop top bar */}
-        <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 22px' }}>
+        <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(22px, 2.5vw, 40px)' }}>
           <div style={{ fontSize: 15, fontWeight: 700 }}>{VIEW_TITLE[activeNav] || 'Feed'}</div>
           {topBarIcons}
         </div>

@@ -325,7 +325,7 @@ function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, 
         </button>
       </div>
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 620, margin: '0 auto', padding: '20px 16px 80px' }}>
+        <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '20px 16px 80px' }}>
           {items.map(item => {
             const id = item.id || item._id;
             return (
@@ -1172,7 +1172,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
   // ── Desktop layout ──
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
-      <div style={{ maxWidth: 940, margin: '0 auto', padding: '28px 28px 60px' }}>
+      <div style={{ maxWidth: 'var(--profile-max-width, 960px)', margin: '0 auto', padding: 'clamp(20px, 3vw, 36px) clamp(20px, 3vw, 40px) 60px' }}>
         {/* Header */}
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 32 }}>
           {avatarUrl ? (
@@ -1202,7 +1202,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'clamp(240px, 25%, 320px) 1fr', gap: 'clamp(16px, 2vw, 28px)' }}>
           {/* Left */}
           <div>
             <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 9 }}>Branches</div>
@@ -1256,7 +1256,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
             Posts ({rawDecisions.length})
           </div>
           {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(160px, 30%), 1fr))', gap: 3 }}>
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)' }} />
               ))}
@@ -1266,7 +1266,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
               No posts yet.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(160px, 30%), 1fr))', gap: 3 }}>
               {sortedDecisions.map(d => (
                 <GridTile key={d.id || d._id} item={d} onClick={openFeed} />
               ))}

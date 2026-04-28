@@ -62,7 +62,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Filter bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px 24px', flexShrink: 0 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px clamp(16px, 2.5vw, 40px)', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['All', ...CATEGORIES].map(f => (
             <button key={f} onClick={() => setFilter(f)}
@@ -75,7 +75,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
       {/* Feed */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 620, margin: '0 auto', padding: '20px 0 80px' }}>
+        <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '20px 16px 80px' }}>
           {loading ? (
             [1, 2, 3].map(i => (
               <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '18px 20px', marginBottom: 12 }}>
@@ -129,7 +129,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
       {!hideFab && (
         <button onClick={onNew}
-          style={{ position: 'fixed', bottom: 28, right: 28, background: 'oklch(52% 0.2 260)', color: 'white', border: 'none', borderRadius: 13, padding: '12px 22px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 20px oklch(52% 0.2 260 / 0.35)', transition: 'all 0.15s', cursor: 'pointer' }}
+          style={{ position: 'fixed', bottom: 28, right: 'clamp(28px, 3vw, 48px)', background: 'oklch(52% 0.2 260)', color: 'white', border: 'none', borderRadius: 13, padding: '12px 22px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 20px oklch(52% 0.2 260 / 0.35)', transition: 'all 0.15s', cursor: 'pointer' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 26px oklch(52% 0.2 260 / 0.42)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px oklch(52% 0.2 260 / 0.35)'; }}>
           + New commit

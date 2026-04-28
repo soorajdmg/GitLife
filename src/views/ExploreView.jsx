@@ -363,7 +363,7 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
 
       {/* Scrollable feed */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 620, margin: '0 auto', padding: '20px 16px 80px' }}>
+        <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '20px 16px 80px' }}>
           {items.map((item) => (
             <div key={item.id}>
               <PostCard
@@ -569,7 +569,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Search bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: 'clamp(10px, 2vw, 12px) clamp(12px, 3vw, 28px)', flexShrink: 0 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: 'clamp(10px, 2vw, 12px) var(--explore-h-padding, 28px)', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'oklch(62% 0.01 260)', pointerEvents: 'none' }}>⌕</span>
           <input
@@ -587,7 +587,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: '100%', padding: 'clamp(14px, 3vw, 18px) clamp(12px, 3vw, 28px) 80px' }}>
+        <div style={{ maxWidth: '100%', padding: 'clamp(14px, 3vw, 18px) var(--explore-h-padding, 28px) 80px' }}>
 
           {/* Suggested people */}
           {!search && suggestedUsers.length > 0 && (
@@ -678,7 +678,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
 
           {/* Loading skeleton */}
           {loading && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(180px, 30%), 1fr))', gap: 3 }}>
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: `${i * 0.08}s` }} />
               ))}
@@ -697,7 +697,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
 
           {/* Grid */}
           {!loading && !error && sortedItems.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(180px, 30%), 1fr))', gap: 3 }}>
               {sortedItems.map(item => (
                 <GridTile key={item.id} item={item} onClick={openFeed} />
               ))}

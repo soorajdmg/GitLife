@@ -820,17 +820,16 @@ export default function MessagesView({ onProfile, isMobile }) {
       </div>
 
       {/* DEBUG PANEL — remove before release */}
-      {debugLines.length > 0 && (
-        <div onClick={() => setDebugLines([])} style={{
-          position: 'fixed', top: 60, left: 8, right: 8, zIndex: 9999,
-          background: 'rgba(0,0,0,0.85)', borderRadius: 8, padding: '8px 10px',
-          fontFamily: 'monospace', fontSize: 11, color: '#0f0', lineHeight: 1.5,
-          pointerEvents: 'all',
-        }}>
-          {debugLines.map((l, i) => <div key={i}>{l}</div>)}
-          <div style={{ color: '#888', marginTop: 4 }}>tap to clear</div>
-        </div>
-      )}
+      <div onClick={() => setDebugLines([])} style={{
+        position: 'fixed', top: 60, left: 8, right: 8, zIndex: 9999,
+        background: 'rgba(0,0,0,0.85)', borderRadius: 8, padding: '8px 10px',
+        fontFamily: 'monospace', fontSize: 11, color: '#0f0', lineHeight: 1.6,
+        pointerEvents: 'all',
+      }}>
+        <div style={{ color: '#ff0' }}>conn={String(socket?.connected)} err={socket?.connectError ?? 'none'} url={import.meta.env.VITE_API_URL ?? 'undef'}</div>
+        {debugLines.map((l, i) => <div key={i}>{l}</div>)}
+        <div style={{ color: '#888', marginTop: 4 }}>tap to clear</div>
+      </div>
 
       <style>{`
         @keyframes typing-dot {

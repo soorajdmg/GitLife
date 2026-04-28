@@ -15,6 +15,7 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
 
   const [connected, setConnected] = useState(false);
+  const [connectError, setConnectError] = useState(null);
   // userId → true/false
   const [onlineUsers, setOnlineUsers] = useState({});
   // conversationId → { userId, ts }
@@ -49,7 +50,10 @@ export function SocketProvider({ children }) {
 
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', (reason) => { console.warn('[socket] disconnect:', reason); setConnected(false); });
-    socket.on('connect_error', (err) => console.warn('[socket] connect_error:', err.message));
+    socket.on('connect_error', (err) => {
+      console.warn('[socket] connect_error:', err.message);
+      setConnectError(err.message);
+    });
 
     socket.on('user_online', ({ userId }) => {
       setOnlineUsers(prev => ({ ...prev, [userId]: true }));
@@ -147,6 +151,7 @@ export function SocketProvider({ children }) {
   return (
     <SocketContext.Provider value={{
       connected,
+      connectError,
       onlineUsers,
       typingMap,
       on,

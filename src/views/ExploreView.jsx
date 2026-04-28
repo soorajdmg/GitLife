@@ -678,7 +678,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
 
           {/* Loading skeleton */}
           {loading && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(180px, 30%), 1fr))', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: `${i * 0.08}s` }} />
               ))}
@@ -697,7 +697,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
 
           {/* Grid */}
           {!loading && !error && sortedItems.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(180px, 30%), 1fr))', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {sortedItems.map(item => (
                 <GridTile key={item.id} item={item} onClick={openFeed} />
               ))}

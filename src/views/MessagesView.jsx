@@ -787,7 +787,10 @@ export default function MessagesView({ onProfile, isMobile }) {
               </div>
               <button
                 type="button"
-                onClick={send}
+                onPointerDown={e => {
+                  e.preventDefault(); // keeps input focused, prevents iOS scroll-swallow
+                  send();
+                }}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',

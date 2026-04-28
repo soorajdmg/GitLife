@@ -38,6 +38,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Temporary debug endpoint — remove after fixing OAuth
+app.get('/api/debug-env', (req, res) => {
+  const cid = process.env.GOOGLE_CLIENT_ID || '';
+  const csec = process.env.GOOGLE_CLIENT_SECRET || '';
+  res.json({
+    GOOGLE_CLIENT_ID: cid ? `${cid.slice(0, 12)}...${cid.slice(-6)}` : 'MISSING',
+    GOOGLE_CLIENT_SECRET: csec ? `${csec.slice(0, 8)}...${csec.slice(-4)}` : 'MISSING',
+    FRONTEND_URL: process.env.FRONTEND_URL || 'MISSING',
+    NODE_ENV: process.env.NODE_ENV || 'MISSING',
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

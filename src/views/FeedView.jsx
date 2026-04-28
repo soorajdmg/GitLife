@@ -129,10 +129,13 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
       {!hideFab && (
         <button onClick={onNew}
-          style={{ position: 'fixed', bottom: 28, right: 'clamp(28px, 3vw, 48px)', background: 'oklch(52% 0.2 260)', color: 'white', border: 'none', borderRadius: 13, padding: '12px 22px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 20px oklch(52% 0.2 260 / 0.35)', transition: 'all 0.15s', cursor: 'pointer' }}
+          style={{ position: 'fixed', bottom: 28, right: 'clamp(28px, 3vw, 48px)', background: 'oklch(52% 0.2 260)', color: 'white', border: 'none', borderRadius: 13, padding: '11px 20px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1, boxShadow: '0 4px 20px oklch(52% 0.2 260 / 0.35)', transition: 'all 0.15s', cursor: 'pointer' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 26px oklch(52% 0.2 260 / 0.42)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px oklch(52% 0.2 260 / 0.35)'; }}>
-          + New commit
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M8 2.5v11M2.5 8h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          New commit
         </button>
       )}
     </div>

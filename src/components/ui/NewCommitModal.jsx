@@ -14,14 +14,22 @@ export default function NewCommitModal({ onClose, onSubmit }) {
   const [body, setBody] = useState('');
   const [cat, setCat] = useState('');
   const [branchName, setBranchName] = useState('');
-  const [branchMode, setBranchMode] = useState('new');       // 'existing' | 'new'
   const [existingBranches, setExistingBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState('');
   const [loadingBranches, setLoadingBranches] = useState(false);
+  const [branchDropOpen, setBranchDropOpen] = useState(false);
+  const branchDropRef = useRef();
   const [visibility, setVisibility] = useState('public');
   const [image, setImage] = useState(null);   // { file, url }
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
+
+  useEffect(() => {
+    if (!branchDropOpen) return;
+    const handler = e => { if (branchDropRef.current && !branchDropRef.current.contains(e.target)) setBranchDropOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [branchDropOpen]);
 
   useEffect(() => {
     if (commitType !== 'whatif') return;
@@ -33,8 +41,7 @@ export default function NewCommitModal({ onClose, onSubmit }) {
           .map(d => d.branch_name || d.branch)
       )];
       setExistingBranches(names);
-      setBranchMode(names.length > 0 ? 'existing' : 'new');
-      if (names.length > 0) setSelectedBranch(names[0]);
+      setSelectedBranch(names.length > 0 ? names[0] : '__new__');
     }).catch(() => {}).finally(() => setLoadingBranches(false));
   }, [commitType]);
 
@@ -72,9 +79,9 @@ export default function NewCommitModal({ onClose, onSubmit }) {
 
     const resolvedBranch = commitType === 'main'
       ? 'main'
-      : branchMode === 'existing'
-        ? selectedBranch
-        : `what-if/${branchName || 'untitled'}`;
+      : selectedBranch === '__new__'
+        ? `what-if/${branchName || 'untitled'}`
+        : selectedBranch;
 
     onSubmit({
       message: msg.trim(),
@@ -82,7 +89,7 @@ export default function NewCommitModal({ onClose, onSubmit }) {
       category: cat || 'Career',
       branch: resolvedBranch,
       wi: commitType === 'whatif',
-      isNewBranch: commitType === 'whatif' && branchMode === 'new',
+      isNewBranch: commitType === 'whatif' && selectedBranch === '__new__',
       visibility,
       image: imageUrl,
     });
@@ -135,45 +142,122 @@ export default function NewCommitModal({ onClose, onSubmit }) {
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'oklch(50% 0.01 260)', marginBottom: 7 }}>Branch</div>
 
-            {/* Mode toggle */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              {[['existing', 'Existing branch'], ['new', 'New branch']].map(([mode, lbl]) => {
-                const disabled = mode === 'existing' && existingBranches.length === 0;
-                const active = branchMode === mode;
-                return (
-                  <button key={mode} onClick={() => !disabled && setBranchMode(mode)} disabled={disabled}
-                    style={{ flex: 1, padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.12s', border: active ? '1px solid oklch(60% 0.19 55)' : '1px solid oklch(88% 0.008 260)', background: active ? 'oklch(60% 0.19 55)' : disabled ? 'oklch(96% 0.004 260)' : 'white', color: active ? 'white' : disabled ? 'oklch(72% 0.01 260)' : 'oklch(48% 0.01 260)' }}>
-                    {lbl}
+            {loadingBranches ? (
+              <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', padding: '8px 0' }}>Loading branches…</div>
+            ) : (
+              <>
+                {/* Custom branch picker */}
+                <div ref={branchDropRef} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() => setBranchDropOpen(o => !o)}
+                    style={{
+                      ...iStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      cursor: 'pointer', textAlign: 'left',
+                      borderColor: branchDropOpen ? 'oklch(60% 0.19 55)' : 'oklch(88% 0.008 260)',
+                      background: 'white',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      {selectedBranch === '__new__' ? (
+                        <>
+                          <span style={{ fontSize: 13, color: 'oklch(60% 0.19 55)', fontWeight: 600, lineHeight: 1 }}>+</span>
+                          <span style={{ color: 'oklch(42% 0.12 55)', fontWeight: 500 }}>New branch…</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="oklch(60% 0.19 55)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <circle cx="5" cy="3" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="3" r="1.5"/>
+                            <path d="M5 4.5v7M11 4.5c0 3-6 4-6 7"/>
+                          </svg>
+                          <span style={{ color: 'oklch(22% 0.015 260)', fontWeight: 500 }}>
+                            {selectedBranch.replace(/^what-if\//i, '')}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="oklch(58% 0.01 260)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ flexShrink: 0, transition: 'transform 0.15s', transform: branchDropOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                      <path d="M2 4l4 4 4-4"/>
+                    </svg>
                   </button>
-                );
-              })}
-            </div>
 
-            {loadingBranches && (
-              <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', marginBottom: 8 }}>Loading branches…</div>
-            )}
+                  {branchDropOpen && (
+                    <div style={{
+                      position: 'absolute', top: 'calc(100% + 5px)', left: 0, right: 0, zIndex: 20,
+                      background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10,
+                      boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', overflow: 'hidden',
+                    }}>
+                      {existingBranches.length > 0 && (
+                        <>
+                          <div style={{ padding: '7px 12px 4px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'oklch(60% 0.01 260)' }}>
+                            Existing branches
+                          </div>
+                          {existingBranches.map(b => (
+                            <button key={b} type="button"
+                              onClick={() => { setSelectedBranch(b); setBranchDropOpen(false); }}
+                              style={{
+                                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                                padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                                fontSize: 13, fontWeight: selectedBranch === b ? 600 : 400,
+                                background: selectedBranch === b ? 'oklch(96% 0.015 60)' : 'white',
+                                color: selectedBranch === b ? 'oklch(42% 0.18 55)' : 'oklch(22% 0.015 260)',
+                                transition: 'background 0.1s',
+                              }}
+                              onMouseEnter={e => { if (selectedBranch !== b) e.currentTarget.style.background = 'oklch(97% 0.006 80)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = selectedBranch === b ? 'oklch(96% 0.015 60)' : 'white'; }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6, flexShrink: 0 }}>
+                                <circle cx="5" cy="3" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="3" r="1.5"/>
+                                <path d="M5 4.5v7M11 4.5c0 3-6 4-6 7"/>
+                              </svg>
+                              {b.replace(/^what-if\//i, '')}
+                              {selectedBranch === b && (
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
+                                  <path d="M2 6l3 3 5-5"/>
+                                </svg>
+                              )}
+                            </button>
+                          ))}
+                          <div style={{ margin: '4px 12px', borderTop: '1px solid oklch(94% 0.004 80)' }} />
+                        </>
+                      )}
+                      <button type="button"
+                        onClick={() => { setSelectedBranch('__new__'); setBranchDropOpen(false); }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                          fontSize: 13, fontWeight: selectedBranch === '__new__' ? 600 : 500,
+                          background: selectedBranch === '__new__' ? 'oklch(96% 0.015 60)' : 'white',
+                          color: selectedBranch === '__new__' ? 'oklch(42% 0.18 55)' : 'oklch(48% 0.01 260)',
+                          transition: 'background 0.1s',
+                        }}
+                        onMouseEnter={e => { if (selectedBranch !== '__new__') e.currentTarget.style.background = 'oklch(97% 0.006 80)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = selectedBranch === '__new__' ? 'oklch(96% 0.015 60)' : 'white'; }}
+                      >
+                        <span style={{ width: 12, height: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, lineHeight: 1, color: 'oklch(60% 0.19 55)', flexShrink: 0 }}>+</span>
+                        New branch…
+                        {selectedBranch === '__new__' && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
+                            <path d="M2 6l3 3 5-5"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-            {branchMode === 'existing' && !loadingBranches && (
-              <>
-                <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)}
-                  style={{ ...iStyle, appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: 34, cursor: 'pointer' }}
-                  onFocus={e => e.target.style.borderColor = 'oklch(60% 0.19 55)'} onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'}>
-                  <option value="">— select a branch —</option>
-                  {existingBranches.map(b => (
-                    <option key={b} value={b}>{b.replace(/^what-if\//i, '')}</option>
-                  ))}
-                </select>
-                {selectedBranch && (
-                  <div style={{ fontSize: 11, color: 'oklch(60% 0.01 260)', marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{selectedBranch}</div>
+                {selectedBranch && selectedBranch !== '__new__' && (
+                  <div style={{ fontSize: 11, color: 'oklch(60% 0.01 260)', marginTop: 5, fontFamily: "'JetBrains Mono', monospace" }}>{selectedBranch}</div>
                 )}
-              </>
-            )}
 
-            {branchMode === 'new' && !loadingBranches && (
-              <>
-                <input style={iStyle} placeholder="e.g. move-to-berlin" value={branchName} onChange={e => setBranchName(e.target.value)}
-                  onFocus={e => e.target.style.borderColor = 'oklch(60% 0.19 55)'} onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'} />
-                <div style={{ fontSize: 11, color: 'oklch(60% 0.01 260)', marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>what-if/{branchName || 'branch-name'}</div>
+                {selectedBranch === '__new__' && (
+                  <div style={{ marginTop: 10 }}>
+                    <input style={iStyle} placeholder="e.g. move-to-berlin" value={branchName} onChange={e => setBranchName(e.target.value)}
+                      onFocus={e => e.target.style.borderColor = 'oklch(60% 0.19 55)'} onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'} />
+                    <div style={{ fontSize: 11, color: 'oklch(60% 0.01 260)', marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>what-if/{branchName || 'branch-name'}</div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -253,8 +337,8 @@ export default function NewCommitModal({ onClose, onSubmit }) {
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid oklch(88% 0.008 260)', background: 'white', fontSize: 13.5, fontWeight: 500, color: 'oklch(44% 0.01 260)', cursor: 'pointer' }}>Cancel</button>
           <button onClick={submit}
-            disabled={!msg.trim() || uploading || (commitType === 'whatif' && branchMode === 'existing' && !selectedBranch)}
-            style={{ padding: '9px 22px', borderRadius: 9, border: 'none', background: (msg.trim() && !uploading && !(commitType === 'whatif' && branchMode === 'existing' && !selectedBranch)) ? 'oklch(52% 0.2 260)' : 'oklch(80% 0.05 260)', color: 'white', fontSize: 13.5, fontWeight: 600, cursor: (msg.trim() && !uploading && !(commitType === 'whatif' && branchMode === 'existing' && !selectedBranch)) ? 'pointer' : 'not-allowed', transition: 'background 0.15s', minWidth: 90 }}>{uploading ? 'Uploading…' : 'Commit'}</button>
+            disabled={!msg.trim() || uploading || (commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())}
+            style={{ padding: '9px 22px', borderRadius: 9, border: 'none', background: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'oklch(52% 0.2 260)' : 'oklch(80% 0.05 260)', color: 'white', fontSize: 13.5, fontWeight: 600, cursor: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'pointer' : 'not-allowed', transition: 'background 0.15s', minWidth: 90 }}>{uploading ? 'Uploading…' : 'Commit'}</button>
         </div>
       </div>
     </div>

@@ -179,13 +179,13 @@ function NewChatModal({ onClose, onStart, currentUserId }) {
 
 // ─── Message bubble group ─────────────────────────────────────────────────────
 
-function MessageGroup({ group, isMe, readByOther }) {
+function MessageGroup({ group, isMe, readByOther, isMobile }) {
   return (
-    <div style={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
+    <div style={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: 6 }}>
       {!isMe && (
         <Avatar user={group.senderUser} size={28} />
       )}
-      <div style={{ maxWidth: '65%', display: 'flex', flexDirection: 'column', gap: 3, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+      <div style={{ maxWidth: isMobile ? '78%' : '65%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
         {group.messages.map((msg, mi) => (
           <div key={msg.id}>
             {msg.sharedCommit && (
@@ -198,30 +198,29 @@ function MessageGroup({ group, isMe, readByOther }) {
               </div>
             )}
             <div style={{
-              padding: '9px 14px',
+              padding: '8px 13px',
               borderRadius: (() => {
                 const only = group.messages.length === 1, first = mi === 0, last = mi === group.messages.length - 1;
-                if (only) return '14px';
+                if (only) return '16px';
                 if (isMe) {
-                  if (first) return '14px 14px 4px 14px';
-                  if (last) return '14px 4px 14px 14px';
-                  return '14px 4px 4px 14px';
+                  if (first) return '16px 16px 4px 16px';
+                  if (last) return '16px 4px 16px 16px';
+                  return '16px 4px 4px 16px';
                 } else {
-                  if (first) return '14px 14px 14px 4px';
-                  if (last) return '4px 14px 14px 14px';
-                  return '4px 14px 14px 4px';
+                  if (first) return '16px 16px 16px 4px';
+                  if (last) return '4px 16px 16px 16px';
+                  return '4px 16px 16px 4px';
                 }
               })(),
               background: isMe ? 'oklch(52% 0.2 260)' : 'white',
               color: isMe ? 'white' : 'oklch(18% 0.015 260)',
               fontSize: 13.5, lineHeight: 1.5,
               border: isMe ? 'none' : '1px solid oklch(91% 0.006 80)',
-              boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)',
               wordBreak: 'break-word',
             }}>{msg.text}</div>
           </div>
         ))}
-        <div style={{ fontSize: 10.5, color: 'oklch(65% 0.01 260)', marginTop: 2, textAlign: isMe ? 'right' : 'left', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ fontSize: 10.5, color: 'oklch(65% 0.01 260)', marginTop: 1, textAlign: isMe ? 'right' : 'left', display: 'flex', alignItems: 'center', gap: 4 }}>
           {fmtMessageTime(group.messages[group.messages.length - 1]?.createdAt)}
           {isMe && (
             <span style={{ color: readByOther ? 'oklch(52% 0.2 260)' : 'oklch(72% 0.01 260)', fontSize: 11 }}>
@@ -236,7 +235,7 @@ function MessageGroup({ group, isMe, readByOther }) {
 
 // ─── Conversation row with hover-delete ──────────────────────────────────────
 
-function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
+function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobile }) {
   const [hovered, setHovered] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -266,11 +265,11 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
           Delete chat with <strong>{cv.otherUser?.fullName || cv.otherUser?.username}</strong>?
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={handleConfirm}
+          <button type="button" onClick={handleConfirm}
             style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: 'none', background: 'oklch(52% 0.18 20)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Delete
           </button>
-          <button onClick={handleCancel}
+          <button type="button" onClick={handleCancel}
             style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(44% 0.01 260)', fontSize: 12, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Cancel
           </button>
@@ -279,12 +278,22 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
     );
   }
 
+  // On mobile: no hover state (touch events leave hover stuck), show delete inline
+  const showDelete = isMobile ? true : hovered;
+
   return (
     <div
       onClick={onSelect}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', cursor: 'pointer', background: isActive ? 'oklch(95% 0.015 260)' : hovered ? 'oklch(97.5% 0.008 260)' : 'white', borderBottom: '1px solid oklch(96% 0.004 80)', transition: 'background 0.1s', position: 'relative' }}>
+      onMouseEnter={() => { if (!isMobile) setHovered(true); }}
+      onMouseLeave={() => { if (!isMobile) setHovered(false); }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', cursor: 'pointer',
+        background: isActive ? 'oklch(95% 0.015 260)' : hovered ? 'oklch(97.5% 0.008 260)' : 'white',
+        borderBottom: '1px solid oklch(96% 0.004 80)',
+        transition: isMobile ? 'none' : 'background 0.1s',
+        position: 'relative',
+        WebkitTapHighlightColor: 'transparent',
+      }}>
       <div onClick={(e) => { if (onProfile && cv.otherUser?.id) { e.stopPropagation(); onProfile(cv.otherUser.id); } }} style={{ cursor: onProfile && cv.otherUser?.id ? 'pointer' : 'default', flexShrink: 0 }}>
         <Avatar user={cv.otherUser} size={40} showOnline isOnline={isOnline} />
       </div>
@@ -299,20 +308,26 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile }) {
           <div style={{ fontSize: 12, color: 'oklch(52% 0.01 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread ? 600 : 400, flex: 1 }}>
             {lastText || <span style={{ color: 'oklch(68% 0.01 260)', fontStyle: 'italic' }}>No messages yet</span>}
           </div>
-          {unread > 0 && !hovered && (
+          {unread > 0 && (isMobile || !hovered) && (
             <div style={{ flexShrink: 0, marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', padding: '0 4px' }}>
               {unread}
             </div>
           )}
         </div>
       </div>
-      {/* Trash button — fades in on hover */}
+      {/* Trash button — always visible on mobile, fades in on hover on desktop */}
       <button
+        type="button"
         onClick={handleDeleteClick}
         title="Delete chat"
-        style={{ flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: 'oklch(58% 0.01 260)', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s, background 0.1s' }}
-        onMouseEnter={e => { setHovered(true); e.currentTarget.style.background = 'oklch(92% 0.04 20)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
+        style={{
+          flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6,
+          color: 'oklch(58% 0.01 260)',
+          opacity: showDelete ? (isMobile ? 0.45 : 1) : 0,
+          transition: isMobile ? 'none' : 'opacity 0.15s, background 0.1s',
+        }}
+        onMouseEnter={e => { if (!isMobile) { setHovered(true); e.currentTarget.style.background = 'oklch(92% 0.04 20)'; } }}
+        onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="1,3 13,3" />
           <path d="M4 3V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
@@ -652,6 +667,7 @@ export default function MessagesView({ onProfile, isMobile }) {
               onSelect={() => { setActiveConvId(cv.id); setMobilePane('chat'); }}
               onDelete={handleDeleteConv}
               onProfile={onProfile}
+              isMobile={isMobile}
             />
           ))}
         </div>
@@ -672,7 +688,7 @@ export default function MessagesView({ onProfile, isMobile }) {
         ) : (
           <>
             {/* Header */}
-            <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
               {/* Back button on mobile */}
               {isMobile && (
                 <button
@@ -700,7 +716,7 @@ export default function MessagesView({ onProfile, isMobile }) {
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px' : '20px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
               {hasMore && (
                 <button onClick={loadMore}
                   style={{ alignSelf: 'center', border: '1px solid oklch(88% 0.008 260)', background: 'white', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', color: 'oklch(45% 0.15 260)', marginBottom: 8, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -722,7 +738,7 @@ export default function MessagesView({ onProfile, isMobile }) {
                 const lastMsg = group.messages[group.messages.length - 1];
                 const readByOther = isMe && lastMsg?.readBy?.includes(otherUser?.id);
                 return (
-                  <MessageGroup key={gi} group={group} isMe={isMe} readByOther={readByOther} />
+                  <MessageGroup key={gi} group={group} isMe={isMe} readByOther={readByOther} isMobile={isMobile} />
                 );
               })}
 
@@ -730,7 +746,7 @@ export default function MessagesView({ onProfile, isMobile }) {
               {isTyping && (
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
                   <Avatar user={otherUser} size={28} />
-                  <div style={{ padding: '9px 14px', background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: '14px 14px 14px 4px', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)' }}>
+                  <div style={{ padding: '9px 14px', background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: '14px 14px 14px 4px' }}>
                     <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
                       {[0, 1, 2].map(i => (
                         <span key={i} style={{
@@ -747,16 +763,32 @@ export default function MessagesView({ onProfile, isMobile }) {
             </div>
 
             {/* Input */}
-            <div style={{ flexShrink: 0, padding: '14px 20px', borderTop: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1, border: '1px solid oklch(88% 0.008 260)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'oklch(98.5% 0.005 80)' }}>
-                <input value={input} onChange={handleInputChange}
+            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', paddingBottom: isMobile ? 'max(10px, env(safe-area-inset-bottom, 10px))' : '14px', borderTop: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ flex: 1, border: '1px solid oklch(88% 0.008 260)', borderRadius: 22, padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'oklch(98.5% 0.005 80)' }}>
+                <input
+                  type="text"
+                  inputMode="text"
+                  value={input}
+                  onChange={handleInputChange}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
                   placeholder="Send a message…"
-                  style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)' }} />
+                  style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)', minWidth: 0 }} />
               </div>
-              <button onClick={send} disabled={!input.trim() || sending}
-                style={{ width: 40, height: 40, borderRadius: 11, border: 'none', background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: input.trim() ? 'pointer' : 'default', flexShrink: 0, fontSize: 16, transition: 'background 0.15s' }}>
-                ↑
+              <button
+                type="button"
+                onPointerDown={e => { if (isMobile) e.preventDefault(); if (input.trim() && !sending) send(); }}
+                style={{
+                  width: 38, height: 38, borderRadius: '50%', border: 'none',
+                  background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',
+                  color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: input.trim() ? 'pointer' : 'default', flexShrink: 0,
+                  transition: 'background 0.15s',
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="8" y1="13" x2="8" y2="3" />
+                  <polyline points="4 7 8 3 12 7" />
+                </svg>
               </button>
             </div>
           </>

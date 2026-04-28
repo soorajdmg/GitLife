@@ -90,6 +90,10 @@ export function SocketProvider({ children }) {
       (listenersRef.current.message_failed || []).forEach(h => h(payload));
     });
 
+    socket.on('conversation_updated', (payload) => {
+      (listenersRef.current.conversation_updated || []).forEach(h => h(payload));
+    });
+
     // Server pushes this when someone starts a new conversation with us
     socket.on('join_conversation', (conversationId) => {
       socket.emit('join_conversation', conversationId);

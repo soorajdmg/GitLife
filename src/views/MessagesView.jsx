@@ -360,12 +360,34 @@ export default function MessagesView({ onProfile, isMobile }) {
   // Mobile: track which pane is visible ('list' or 'chat')
   const [mobilePane, setMobilePane] = useState('list');
 
+  // ── iOS Safari: use visualViewport to set actual height when keyboard opens ─
+  const chatPaneRef = useRef(null);
+  useEffect(() => {
+    if (!isMobile) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      if (chatPaneRef.current) {
+        chatPaneRef.current.style.height = vv.height + 'px';
+        chatPaneRef.current.style.top = vv.offsetTop + 'px';
+      }
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [isMobile, mobilePane]);
+
   const bottomRef = useRef(null);
   const typingTimerRef = useRef(null);
   const isTypingRef = useRef(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const inputValueRef = useRef('');
+  const conversationsRef = useRef([]);
 
   const activeConv = conversations.find(c => c.id === activeConvId);
   const otherUser = activeConv?.otherUser;
@@ -384,6 +406,9 @@ export default function MessagesView({ onProfile, isMobile }) {
       setConversations(convsData.conversations || []);
     }
   }, [convsData]);
+
+  // Keep ref in sync so socket callbacks can read current conversations without stale closure
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // ── If opened with a userId (from profile/explore), start that conversation ─
   // NOTE: `conversations` intentionally excluded from deps — we only want this
@@ -441,8 +466,21 @@ export default function MessagesView({ onProfile, isMobile }) {
       // Skip messages we sent — already handled optimistically in send()
       if (message.senderId === user?.id) return;
 
+      // If this conversation isn't in our list yet (first message from someone),
+      // refresh the conversation list to pick it up
+      if (!conversationsRef.current.find(c => c.id === conversationId)) {
+        api.getConversations().then(({ conversations: fresh }) => {
+          setConversations(fresh);
+        }).catch(() => {});
+        return;
+      }
+
       if (conversationId === activeConvId) {
-        setMessages(prev => [...prev, message]);
+        setMessages(prev => {
+          // Deduplicate — ignore if we already have this message id
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
         socket.emitMarkRead(conversationId);
       } else {
         // Bump unread count
@@ -465,6 +503,13 @@ export default function MessagesView({ onProfile, isMobile }) {
       });
     });
 
+    const offConvUpdated = socket.on('conversation_updated', () => {
+      // Conversation metadata changed (e.g. last message) — refresh the list
+      api.getConversations().then(({ conversations: fresh }) => {
+        setConversations(fresh);
+      }).catch(() => {});
+    });
+
     const offSaved = socket.on('message_saved', ({ tempId, message }) => {
       setMessages(prev => prev.map(m => m.id === tempId ? message : m));
     });
@@ -483,7 +528,7 @@ export default function MessagesView({ onProfile, isMobile }) {
       }
     });
 
-    return () => { offMsg?.(); offRead?.(); offSaved?.(); offFailed?.(); };
+    return () => { offMsg?.(); offRead?.(); offSaved?.(); offFailed?.(); offConvUpdated?.(); };
   }, [socket, activeConvId, user]);
 
   // ── Query online status for conversation users ─────────────────────────────

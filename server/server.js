@@ -174,9 +174,9 @@ io.on('connection', async (socket) => {
         const conv = await Conversation.findById(conversationId);
         if (conv) {
           await Conversation.updateLastMessage(conversationId, userId, trimmed, conv.participants);
-          // Also broadcast to participant personal rooms in case conv room missed it
+          // Notify recipient that a new conversation appeared in their list (first message case)
           conv.participants.forEach(pid => {
-            if (pid !== userId) io.to(`user:${pid}`).emit('new_message', { conversationId, message });
+            if (pid !== userId) io.to(`user:${pid}`).emit('conversation_updated', { conversationId });
           });
         }
       } catch (err) {

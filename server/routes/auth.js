@@ -4,8 +4,6 @@ import { User } from '../models/User.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
 import { OAuth2Client } from 'google-auth-library';
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
 const router = express.Router();
 
 // Validation middleware
@@ -179,7 +177,7 @@ router.post('/google/callback', async (req, res) => {
     );
 
     const { tokens } = await oauth2Client.getToken(code);
-    const ticket = await googleClient.verifyIdToken({
+    const ticket = await oauth2Client.verifyIdToken({
       idToken: tokens.id_token,
       audience: process.env.GOOGLE_CLIENT_ID
     });

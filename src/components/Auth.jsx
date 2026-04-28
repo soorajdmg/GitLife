@@ -4,10 +4,10 @@ import { api } from '../config/api';
 import { Eye, EyeOff, CheckCircle, XCircle, Loader } from 'lucide-react';
 
 import img1 from '../assets/images/login-1.jpg';
-import img2 from '../assets/images/login-2.png';
-import img3 from '../assets/images/login-3.png';
-import img4 from '../assets/images/login-4.png';
-import img5 from '../assets/images/login-5.png';
+import img2 from '../assets/images/login-2.webp';
+import img3 from '../assets/images/login-3.webp';
+import img4 from '../assets/images/login-4.webp';
+import img5 from '../assets/images/login-5.webp';
 import './Auth.css';
 
 const SLIDES = [

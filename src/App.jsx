@@ -811,7 +811,7 @@ export default function App() {
       </aside>
 
       {/* ── Main content area ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingBottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingBottom: (isMobile && activeNav !== 'messages') ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
         {/* Desktop top bar */}
         <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(22px, 2.5vw, 40px)' }}>
@@ -851,7 +851,7 @@ export default function App() {
       </main>
 
       {/* ── Mobile Bottom Navigation ── */}
-      {isMobile && (
+      {isMobile && activeNav !== 'messages' && (
         <BottomNav
           activeNav={activeNav}
           navigate={navigate}

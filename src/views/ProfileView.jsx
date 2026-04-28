@@ -163,9 +163,10 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
   const isOwnPost = currentUserId && currentUserId === item.userId;
   const [localCommentCount, setLocalCommentCount] = useState(item.commentCount ?? 0);
   const [commentOpen, setCommentOpen] = useState(false);
+  const [bodyOpen, setBodyOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const menuRef = useRef();
-  const { bg } = tileBg(category, wi);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -182,83 +183,117 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
   const userReactions = reactionOverride?.userReactions || item.userReactions || {};
 
   return (
-    <div style={{ background: wi ? 'oklch(99.5% 0.012 65)' : 'white', border: `1px solid ${wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`, borderRadius: 14, marginBottom: 12, overflow: 'hidden' }}>
-      {/* Media */}
-      {(item.image || item.img) ? (
-        <div style={{ width: '100%', maxHeight: 300, overflow: 'hidden', background: '#000' }}>
-          <img src={item.image || item.img} alt="" style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }} onError={e => e.target.parentElement.style.display = 'none'} />
-        </div>
-      ) : (
-        <div style={{ width: '100%', height: 160, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 24px', boxSizing: 'border-box', position: 'relative' }}>
-          {wi && <div style={{ position: 'absolute', top: 10, left: 14, fontSize: 10.5, fontWeight: 700, color: 'oklch(80% 0.1 60)', background: 'oklch(20% 0.1 55 / 0.5)', borderRadius: 5, padding: '2px 7px' }}>⎇ what-if</div>}
-          {category && <div style={{ position: 'absolute', top: 10, right: 14, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'white', opacity: 0.5 }}>{category}</div>}
-          <p style={{ color: 'white', fontSize: 18, fontWeight: 800, lineHeight: 1.3, textAlign: 'center', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.decision}</p>
+    <div
+      style={{
+        background: wi ? 'oklch(99.5% 0.012 65)' : 'white',
+        border: `1px solid ${wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`,
+        borderRadius: 14,
+        marginBottom: 12,
+        padding: '14px 16px',
+        transition: 'box-shadow 0.15s',
+        position: 'relative',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; setHovered(false); }}
+    >
+      {/* what-if label */}
+      {wi && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
+          ⎇ what-if branch
         </div>
       )}
-      {/* Post body */}
-      <div style={{ padding: '14px 18px 0' }}>
-        {/* Author row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-          {user?.avatarUrl
-            ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(userHandle || userId)} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} referrerPolicy="no-referrer" />
-            : <div onClick={() => onProfile?.(userHandle || userId)} style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: 'white', flexShrink: 0, cursor: 'pointer' }}>{ini}</div>
-          }
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <span onClick={() => onProfile?.(userHandle || userId)} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
-              {user?.fullName || user?.username || 'Unknown'}
-            </span>
-            {user?.username && <span style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 6 }}>@{user.username}</span>}
-            <span style={{ fontSize: 11.5, color: 'oklch(62% 0.01 260)', marginLeft: 6 }}>· {timeAgo(item.createdAt || item.timestamp)}</span>
+
+      {/* Author row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        {user?.avatarUrl
+          ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(userHandle || userId)} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} referrerPolicy="no-referrer" />
+          : <div onClick={() => onProfile?.(userHandle || userId)} style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white', flexShrink: 0, cursor: 'pointer' }}>{ini}</div>
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            onClick={() => onProfile?.(userHandle || userId)}
+            style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block' }}
+            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+          >
+            {user?.fullName || user?.username || 'Unknown'}
           </div>
-          <BranchPill name={item.branch_name || 'main'} wi={wi} merged={false} />
-          {isOwnPost && onDelete && (
-            <div style={{ position: 'relative' }} ref={menuRef}>
-              <button onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }} title="More options"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: 'none', background: menuOpen ? 'oklch(93% 0.006 260)' : 'transparent', color: 'oklch(55% 0.01 260)', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
-                <svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="2.5" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="7" cy="11.5" r="1.2" /></svg>
-              </button>
-              {menuOpen && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
-                  <button onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(item.id); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 25)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" /></svg>
-                    Delete post
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>
+            {user?.username && <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</span>}
+            <span>·</span>
+            <span>{timeAgo(item.createdAt || item.timestamp)}</span>
+          </div>
         </div>
-        {/* Decision title */}
-        <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.4, marginBottom: 8, color: wi ? 'oklch(40% 0.18 55)' : 'oklch(15% 0.015 260)' }}>{item.decision}</div>
-        {item.body && <div style={{ fontSize: 13, color: 'oklch(44% 0.01 260)', lineHeight: 1.6, marginBottom: 10 }}>{item.body}</div>}
-        {category && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <Tag cat={category} />
-            {item.impact != null && <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>impact {item.impact}</span>}
+        <BranchPill name={item.branch_name || 'main'} wi={wi} merged={false} />
+        {isOwnPost && onDelete && (
+          <div style={{ position: 'relative' }} ref={menuRef}>
+            <button onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }} title="More options"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: 'none', background: menuOpen ? 'oklch(93% 0.006 260)' : 'transparent', color: 'oklch(55% 0.01 260)', cursor: 'pointer', padding: 0, flexShrink: 0, opacity: hovered || menuOpen ? 1 : 0, transition: 'opacity 0.15s, background 0.12s' }}>
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="2.5" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="7" cy="11.5" r="1.2" /></svg>
+            </button>
+            {menuOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
+                <button onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(item.id); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 25)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" /></svg>
+                  Delete post
+                </button>
+              </div>
+            )}
           </div>
         )}
-        <EngagementBar
-          commitId={item.id}
-          reactions={reactions}
-          userReactions={userReactions}
-          commentCount={localCommentCount}
-          isStashed={isStashed}
-          isAuthor={isOwnPost}
-          viewCount={item.viewCount ?? 0}
-          onReact={onReact}
-          onReplyClick={() => setCommentOpen(p => !p)}
-          onStash={onStash}
-          onShare={!isOwnPost && onMessage && userId ? () => onMessage(userId) : null}
-          compact
-        />
       </div>
-      {commentOpen && (
-        <div style={{ padding: '0 18px 16px' }}>
-          <CommentThread decisionId={item.id} currentUserId={currentUserId} initialCount={localCommentCount} onCountChange={delta => setLocalCommentCount(p => Math.max(0, p + delta))} />
+
+      {/* Decision title */}
+      <div
+        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: item.body ? 6 : 10, color: wi ? 'oklch(42% 0.18 55)' : 'oklch(15% 0.015 260)', cursor: item.body ? 'pointer' : 'default' }}
+        onClick={() => item.body && setBodyOpen(p => !p)}
+      >
+        {item.decision}
+      </div>
+
+      {/* Body with read more */}
+      {item.body && (bodyOpen || item.body.length < 90) && (
+        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{item.body}</div>
+      )}
+      {item.body && item.body.length >= 90 && !bodyOpen && (
+        <div style={{ fontSize: 12, color: 'oklch(52% 0.2 260)', marginBottom: 8, marginTop: -2, cursor: 'pointer' }} onClick={() => setBodyOpen(true)}>Read more</div>
+      )}
+
+      {/* Image */}
+      {(item.image || item.img) && (
+        <div style={{ margin: '10px 0', borderRadius: 10, overflow: 'hidden', maxHeight: 220 }}>
+          <img src={item.image || item.img} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 220 }} onError={e => e.target.style.display = 'none'} />
         </div>
+      )}
+
+      {/* Tags row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <Tag cat={category} />
+        {item.impact != null && <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>impact {item.impact}</span>}
+      </div>
+
+      {/* Engagement bar */}
+      <EngagementBar
+        commitId={item.id}
+        reactions={reactions}
+        userReactions={userReactions}
+        commentCount={localCommentCount}
+        isStashed={isStashed}
+        isAuthor={isOwnPost}
+        viewCount={item.viewCount ?? 0}
+        onReact={onReact}
+        onReplyClick={() => setCommentOpen(p => !p)}
+        onStash={onStash}
+        onShare={!isOwnPost && onMessage && userId ? () => onMessage(userId) : null}
+        compact
+      />
+
+      {/* Comments (toggled) */}
+      {commentOpen && (
+        <CommentThread decisionId={item.id} currentUserId={currentUserId} initialCount={localCommentCount} onCountChange={delta => setLocalCommentCount(p => Math.max(0, p + delta))} />
       )}
     </div>
   );
@@ -928,9 +963,15 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
   const avatarUrl = profileData?.avatarUrl;
 
   // Sort decisions by date (newest first) for the feed
-  const sortedDecisions = [...rawDecisions].sort((a, b) =>
-    new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp)
-  );
+  // Inject userInfo from profileData when the backend doesn't populate it (own profile)
+  const fallbackUserInfo = profileData ? {
+    fullName: profileData.fullName,
+    username: profileData.username,
+    avatarUrl: profileData.avatarUrl,
+  } : null;
+  const sortedDecisions = [...rawDecisions]
+    .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
+    .map(d => (!d.userInfo && fallbackUserInfo) ? { ...d, userInfo: fallbackUserInfo } : d);
 
   // Active branch display name
   const activeBranchData = allBranches.find(b => b.id === activeBranch);

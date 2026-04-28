@@ -787,8 +787,7 @@ export default function MessagesView({ onProfile, isMobile }) {
               </div>
               <button
                 type="button"
-                onClick={send}
-                onTouchEnd={e => { e.preventDefault(); send(); }}
+                onPointerDown={e => { e.preventDefault(); send(); }}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',
@@ -797,6 +796,8 @@ export default function MessagesView({ onProfile, isMobile }) {
                   transition: 'background 0.15s',
                   WebkitTapHighlightColor: 'transparent',
                   touchAction: 'manipulation',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
                 }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="8" y1="13" x2="8" y2="3" />

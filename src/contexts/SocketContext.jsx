@@ -42,6 +42,7 @@ export function SocketProvider({ children }) {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      retries: 3,
     });
 
     socketRef.current = socket;
@@ -92,8 +93,10 @@ export function SocketProvider({ children }) {
 
   const sendMessage = useCallback(({ conversationId, text, sharedCommit }) => {
     return new Promise((resolve, reject) => {
-      if (!socketRef.current?.connected) return reject(new Error('Socket not connected'));
+      if (!socketRef.current) return reject(new Error('No socket'));
+      const timeout = setTimeout(() => reject(new Error('Send timed out')), 8000);
       socketRef.current.emit('send_message', { conversationId, text, sharedCommit }, (res) => {
+        clearTimeout(timeout);
         if (res?.error) reject(new Error(res.error));
         else resolve(res);
       });

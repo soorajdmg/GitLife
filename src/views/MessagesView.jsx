@@ -528,7 +528,7 @@ export default function MessagesView({ onProfile, isMobile }) {
     setMessages(prev => [...prev, optimistic]);
 
     try {
-      dbg('emitting to socket...');
+      dbg(`emitting... conn=${socket?.connected} sockId=${socket?.id ?? 'none'}`);
       const res = await socket?.sendMessage({ conversationId: convId, text });
       dbg(`socket res: ${JSON.stringify(res)?.slice(0,60)}`);
       if (res?.message) {

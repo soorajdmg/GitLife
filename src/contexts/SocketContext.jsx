@@ -48,7 +48,8 @@ export function SocketProvider({ children }) {
     socketRef.current = socket;
 
     socket.on('connect', () => setConnected(true));
-    socket.on('disconnect', () => setConnected(false));
+    socket.on('disconnect', (reason) => { console.warn('[socket] disconnect:', reason); setConnected(false); });
+    socket.on('connect_error', (err) => console.warn('[socket] connect_error:', err.message));
 
     socket.on('user_online', ({ userId }) => {
       setOnlineUsers(prev => ({ ...prev, [userId]: true }));
@@ -87,7 +88,7 @@ export function SocketProvider({ children }) {
       socketRef.current = null;
       setConnected(false);
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id]);
 
   // ── Emit helpers ──────────────────────────────────────────────────────────
 

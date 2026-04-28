@@ -61,11 +61,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Serve frontend in production — catch-all so React Router handles client-side paths
-app.use(express.static(join(__dirname, '../build')));
-app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, '../build/index.html'));
-});
+// Frontend is served by Vercel — no static files here
 
 // Error handling middleware
 app.use((err, req, res, next) => {

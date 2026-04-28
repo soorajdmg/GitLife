@@ -210,7 +210,7 @@ router.post('/google/callback', async (req, res) => {
     });
   } catch (error) {
     console.error('Google callback error:', error);
-    res.status(401).json({ error: 'Google authentication failed' });
+    res.status(401).json({ error: 'Google authentication failed', detail: error?.message });
   }
 });
 

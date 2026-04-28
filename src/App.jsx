@@ -435,6 +435,9 @@ export default function App() {
   const [stashedIds, setStashedIds] = useState([]);
   const bellRef = useRef();
   const unreadConvIdsRef = useRef(new Set());
+  const settingsSaveRef = useRef(null); // set by SettingsView
+  const [settingsHasChanges, setSettingsHasChanges] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const queryClient = useQueryClient();
 
   // Derive active nav from URL
@@ -638,8 +641,40 @@ export default function App() {
     </div>
   );
 
-  /* ── Desktop top-bar icons (search + bell) ── */
-  const topBarIcons = (
+  /* ── Settings save handler ── */
+  const handleSettingsSave = async () => {
+    if (!settingsSaveRef.current || settingsSaving) return;
+    setSettingsSaving(true);
+    await settingsSaveRef.current();
+    setSettingsSaving(false);
+    setSettingsHasChanges(false);
+  };
+
+  /* ── Settings save button (used in both top bars) ── */
+  const settingsSaveBtn = (
+    <button
+      onClick={handleSettingsSave}
+      disabled={!settingsHasChanges || settingsSaving}
+      style={{
+        padding: '6px 16px',
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: 600,
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        border: settingsHasChanges ? '1px solid oklch(52% 0.2 260)' : '1px solid oklch(88% 0.008 260)',
+        background: settingsHasChanges ? 'oklch(52% 0.2 260)' : 'oklch(96% 0.008 80)',
+        color: settingsHasChanges ? 'white' : 'oklch(65% 0.01 260)',
+        cursor: settingsHasChanges && !settingsSaving ? 'pointer' : 'default',
+        transition: 'all 0.15s',
+        opacity: settingsSaving ? 0.7 : 1,
+      }}
+    >
+      {settingsSaving ? 'Saving…' : 'Save'}
+    </button>
+  );
+
+  /* ── Desktop top-bar icons (search + bell, or save on settings) ── */
+  const topBarIcons = activeNav === 'settings' ? settingsSaveBtn : (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'oklch(48% 0.01 260)' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="13.5" y2="13.5" /></svg>
@@ -648,11 +683,11 @@ export default function App() {
     </div>
   );
 
-  /* ── Mobile top-bar icons (settings + bell) ── */
-  const mobileTopBarIcons = (
+  /* ── Mobile top-bar icons (settings + bell, or save on settings) ── */
+  const mobileTopBarIcons = activeNav === 'settings' ? settingsSaveBtn : (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <div onClick={() => navigate('/settings')}
-        style={{ width: 32, height: 32, borderRadius: 8, background: activeNav === 'settings' ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: activeNav === 'settings' ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
+        style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
           <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="8" x2="14" y2="8" /><line x1="2" y1="12" x2="14" y2="12" />
           <circle cx="5" cy="4" r="1.5" fill="currentColor" stroke="none" />
@@ -789,7 +824,7 @@ export default function App() {
             <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} />} />
-            <Route path="/settings" element={<SettingsView />} />
+            <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
           </Routes>
         </div>

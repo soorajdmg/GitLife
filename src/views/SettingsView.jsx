@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../config/api';
 import { useToast } from '../contexts/ToastContext';
@@ -25,10 +25,10 @@ function Row({ label, sub, right }) {
   );
 }
 
-function SelectInput({ value, onChange, opts }) {
+function SelectInput({ value, onChange, opts, disabled }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)}
-      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid oklch(88% 0.008 260)', fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(25% 0.01 260)', background: 'white', cursor: 'pointer', outline: 'none' }}>
+    <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
+      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid oklch(88% 0.008 260)', fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(25% 0.01 260)', background: disabled ? 'oklch(97% 0.004 80)' : 'white', cursor: disabled ? 'not-allowed' : 'pointer', outline: 'none' }}>
       {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   );
@@ -98,7 +98,6 @@ function EditProfileModal({ user, onClose, onSaved }) {
   const [error, setError] = useState('');
   const fileRef = useRef();
 
-  const avatarColor = 'oklch(52% 0.2 260)';
   const ini = (user?.fullName || user?.username || '?').slice(0, 2).toUpperCase();
 
   const handleFileChange = (e) => {
@@ -126,7 +125,7 @@ function EditProfileModal({ user, onClose, onSaved }) {
       if (avatarFile) {
         avatarUrl = await uploadToCloudinary(avatarFile);
       } else if (avatarPreview === null && user?.avatarUrl) {
-        avatarUrl = null; // intentionally removed
+        avatarUrl = null;
       }
 
       const payload = { fullName: fullName.trim(), username: username.trim() };
@@ -148,12 +147,11 @@ function EditProfileModal({ user, onClose, onSaved }) {
       <div style={{ background: 'white', borderRadius: 16, width: 420, padding: '28px 28px 24px', boxShadow: '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 22 }}>Edit Profile</div>
 
-        {/* Avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
           <div style={{ position: 'relative' }}>
             {avatarPreview
               ? <img src={avatarPreview} alt="avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid oklch(91% 0.006 80)' }} />
-              : <div style={{ width: 72, height: 72, borderRadius: '50%', background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'white' }}>{ini}</div>
+              : <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'white' }}>{ini}</div>
             }
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -169,7 +167,6 @@ function EditProfileModal({ user, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* Fields */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>Full Name</div>
@@ -293,21 +290,154 @@ function ChangePasswordModal({ onClose }) {
   );
 }
 
+/* ─── DELETE ACCOUNT MODAL ─── */
+function DeleteAccountModal({ user, onClose, onDeleted }) {
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+  const expected = user?.username || '';
+
+  const handleDelete = async () => {
+    if (confirmText !== expected) {
+      setError(`Type your username "${expected}" to confirm`);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.deleteAccount();
+      onDeleted();
+    } catch (err) {
+      setError(err.message || 'Failed to delete account');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
+      onClick={e => { if (e.target === e.currentTarget && !deleting) onClose(); }}>
+      <div style={{ background: 'white', borderRadius: 16, width: 420, padding: '28px 28px 24px', boxShadow: '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, color: 'oklch(35% 0.18 20)' }}>Delete account</div>
+        <div style={{ fontSize: 13, color: 'oklch(40% 0.01 260)', marginBottom: 20, lineHeight: 1.6 }}>
+          This will permanently delete your account, all your commits, branches, and data. This cannot be undone.
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>
+          Type <span style={{ fontFamily: "'JetBrains Mono', monospace", background: 'oklch(96% 0.006 80)', padding: '1px 5px', borderRadius: 4 }}>{expected}</span> to confirm
+        </div>
+        <FieldInput value={confirmText} onChange={setConfirmText} placeholder={expected} />
+        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginTop: 10 }}>{error}</div>}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
+          <Btn onClick={onClose} disabled={deleting}>Cancel</Btn>
+          <Btn variant="danger" onClick={handleDelete} loading={deleting}>Delete my account</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── DEFAULT PREFERENCES ─── */
+const DEFAULT_PREFS = {
+  notifications: { reactions: true, follows: true, whatifs: true, digest: false },
+  privacy: { mainPublic: true, branchesPublic: true, activityPublic: true },
+  appearance: 'system',
+  language: 'en',
+};
+
 /* ─── MAIN SETTINGS VIEW ─── */
-export default function SettingsView() {
-  const { user, updateUser } = useAuth();
+export default function SettingsView({ saveRef, onHasChanges }) {
+  const { user, updateUser, logout } = useAuth();
   const { addToast } = useToast();
 
-  const [modal, setModal] = useState(null); // 'editProfile' | 'changeEmail' | 'changePassword'
+  const [modal, setModal] = useState(null);
+  const [prefs, setPrefs] = useState(DEFAULT_PREFS);
+  const [savedPrefs, setSavedPrefs] = useState(DEFAULT_PREFS); // last-saved snapshot
+  const [prefsLoading, setPrefsLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const username = user?.username || user?.email?.split('@')[0] || 'You';
   const fullName = user?.fullName || username;
   const email = user?.email || '';
   const ini = fullName.slice(0, 2).toUpperCase();
 
+  // Load preferences on mount
+  useEffect(() => {
+    let cancelled = false;
+    api.getPreferences()
+      .then(res => {
+        if (!cancelled) {
+          setPrefs(res.preferences);
+          setSavedPrefs(res.preferences);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPrefsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Keep dirty flag in sync with parent
+  useEffect(() => {
+    const dirty = JSON.stringify(prefs) !== JSON.stringify(savedPrefs);
+    onHasChanges?.(dirty);
+  }, [prefs, savedPrefs, onHasChanges]);
+
+  // Register save function into parent's ref
+  useEffect(() => {
+    if (!saveRef) return;
+    saveRef.current = async () => {
+      try {
+        await api.updatePreferences(prefs);
+        setSavedPrefs(prefs);
+        addToast({ message: 'Preferences saved', type: 'success' });
+      } catch {
+        addToast({ message: 'Failed to save preferences', type: 'error' });
+        throw new Error('save failed');
+      }
+    };
+  }, [prefs, saveRef, addToast]);
+
+  // Reset dirty state when navigating away
+  useEffect(() => {
+    return () => { onHasChanges?.(false); };
+  }, [onHasChanges]);
+
   const handleProfileSaved = (updatedUser) => {
     updateUser(updatedUser);
     addToast({ message: 'Profile updated', type: 'success' });
+  };
+
+  const setNotif = (key, val) =>
+    setPrefs(p => ({ ...p, notifications: { ...p.notifications, [key]: val } }));
+
+  const setPrivacy = (key, val) =>
+    setPrefs(p => ({ ...p, privacy: { ...p.privacy, [key]: val } }));
+
+  const setAppearance = (val) =>
+    setPrefs(p => ({ ...p, appearance: val }));
+
+  const setLanguage = (val) =>
+    setPrefs(p => ({ ...p, language: val }));
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const data = await api.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gitlife-export-${username}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addToast({ message: 'Data exported successfully', type: 'success' });
+    } catch {
+      addToast({ message: 'Export failed', type: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleAccountDeleted = () => {
+    addToast({ message: 'Account deleted', type: 'info' });
+    logout();
   };
 
   return (
@@ -347,46 +477,78 @@ export default function SettingsView() {
 
         {/* Notifications Section */}
         <Section title="Notifications">
-          <div style={{ fontSize: 12, color: 'oklch(60% 0.01 260)', marginBottom: 10, background: 'oklch(96% 0.008 80)', borderRadius: 8, padding: '8px 12px' }}>
-            Notification preferences coming soon — stay tuned.
-          </div>
           {[
             ['reactions', 'Reactions on your commits', 'When someone forks, merges or supports your decisions'],
             ['follows',   'New followers',             'When someone starts following your life'],
             ['whatifs',   'Branch activity',           'Updates on your what-if branches'],
             ['digest',    'Weekly digest',             'A summary of what people in your network are up to'],
           ].map(([key, label, sub]) => (
-            <Row key={key} label={label} sub={sub} right={<Toggle checked={true} onChange={() => {}} disabled />} />
+            <Row key={key} label={label} sub={sub} right={
+              <Toggle
+                checked={prefs.notifications[key]}
+                onChange={val => setNotif(key, val)}
+                disabled={prefsLoading}
+              />
+            } />
           ))}
         </Section>
 
         {/* Privacy Section */}
         <Section title="Privacy">
-          <div style={{ fontSize: 12, color: 'oklch(60% 0.01 260)', marginBottom: 10, background: 'oklch(96% 0.008 80)', borderRadius: 8, padding: '8px 12px' }}>
-            Privacy controls coming soon.
-          </div>
           {[
             ['mainPublic',     'Public main branch',      'Anyone can see your real-life decisions'],
             ['branchesPublic', 'Public what-if branches', 'Anyone can see your hypothetical branches'],
             ['activityPublic', 'Show activity graph',     'Display your commit activity on your profile'],
           ].map(([key, label, sub]) => (
-            <Row key={key} label={label} sub={sub} right={<Toggle checked={true} onChange={() => {}} disabled />} />
+            <Row key={key} label={label} sub={sub} right={
+              <Toggle
+                checked={prefs.privacy[key]}
+                onChange={val => setPrivacy(key, val)}
+                disabled={prefsLoading}
+              />
+            } />
           ))}
         </Section>
 
         {/* Preferences Section */}
         <Section title="Preferences">
-          <Row label="Appearance" sub="Interface theme (coming soon)" right={<SelectInput value="system" onChange={() => {}} opts={[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]} />} />
-          <Row label="Language" sub="Interface language" right={<SelectInput value="en" onChange={() => {}} opts={[['en', 'English'], ['es', 'Español'], ['fr', 'Français'], ['de', 'Deutsch'], ['ja', '日本語']]} />} />
+          <Row
+            label="Appearance"
+            sub="Interface theme"
+            right={
+              <SelectInput
+                value={prefs.appearance}
+                onChange={setAppearance}
+                disabled={prefsLoading}
+                opts={[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]}
+              />
+            }
+          />
+          <Row
+            label="Language"
+            sub="Interface language"
+            right={
+              <SelectInput
+                value={prefs.language}
+                onChange={setLanguage}
+                disabled={prefsLoading}
+                opts={[['en', 'English'], ['es', 'Español'], ['fr', 'Français'], ['de', 'Deutsch'], ['ja', '日本語']]}
+              />
+            }
+          />
         </Section>
 
         {/* Data & Export Section */}
         <Section title="Data & Export">
-          <Row label="Export my life data" sub="Download all your commits and branches as JSON" right={<Btn>Export</Btn>} />
+          <Row
+            label="Export my life data"
+            sub="Download all your commits and branches as JSON"
+            right={<Btn onClick={handleExport} loading={exporting}>Export</Btn>}
+          />
           <Row
             label="Delete account"
             sub="Permanently remove your account and all data"
-            right={<Btn variant="danger">Delete</Btn>}
+            right={<Btn variant="danger" onClick={() => setModal('deleteAccount')}>Delete</Btn>}
           />
         </Section>
 
@@ -401,6 +563,9 @@ export default function SettingsView() {
       )}
       {modal === 'changePassword' && (
         <ChangePasswordModal onClose={() => setModal(null)} />
+      )}
+      {modal === 'deleteAccount' && (
+        <DeleteAccountModal user={user} onClose={() => setModal(null)} onDeleted={handleAccountDeleted} />
       )}
     </div>
   );

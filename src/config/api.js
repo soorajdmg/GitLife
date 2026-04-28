@@ -100,6 +100,25 @@ class ApiClient {
     });
   }
 
+  async getPreferences() {
+    return this.request('/auth/me/preferences');
+  }
+
+  async updatePreferences(prefs) {
+    return this.request('/auth/me/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    });
+  }
+
+  async exportData() {
+    return this.request('/auth/me/export');
+  }
+
+  async deleteAccount() {
+    return this.request('/auth/me', { method: 'DELETE' });
+  }
+
   // Branch methods
   async getBranches() {
     return this.request('/branches');

@@ -367,6 +367,136 @@ router.put('/me/password', authenticateToken, [
   }
 });
 
+// Get user preferences (protected route)
+router.get('/me/preferences', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const prefs = user.preferences || {};
+    res.json({
+      preferences: {
+        notifications: {
+          reactions: prefs.notifications?.reactions ?? true,
+          follows: prefs.notifications?.follows ?? true,
+          whatifs: prefs.notifications?.whatifs ?? true,
+          digest: prefs.notifications?.digest ?? false,
+        },
+        privacy: {
+          mainPublic: prefs.privacy?.mainPublic ?? true,
+          branchesPublic: prefs.privacy?.branchesPublic ?? true,
+          activityPublic: prefs.privacy?.activityPublic ?? true,
+        },
+        appearance: prefs.appearance ?? 'system',
+        language: prefs.language ?? 'en',
+      }
+    });
+  } catch (error) {
+    console.error('Get preferences error:', error);
+    res.status(500).json({ error: 'Failed to get preferences' });
+  }
+});
+
+// Update user preferences (protected route)
+router.put('/me/preferences', authenticateToken, async (req, res) => {
+  try {
+    const { notifications, privacy, appearance, language } = req.body;
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const current = user.preferences || {};
+    const updated = {
+      notifications: { ...(current.notifications || {}), ...(notifications || {}) },
+      privacy: { ...(current.privacy || {}), ...(privacy || {}) },
+      appearance: appearance ?? current.appearance ?? 'system',
+      language: language ?? current.language ?? 'en',
+    };
+
+    await User.update(req.user.userId, { preferences: updated });
+    res.json({ preferences: updated });
+  } catch (error) {
+    console.error('Update preferences error:', error);
+    res.status(500).json({ error: 'Failed to update preferences' });
+  }
+});
+
+// Export user data (protected route)
+router.get('/me/export', authenticateToken, async (req, res) => {
+  try {
+    const { getDB } = await import('../config/database.js');
+    const { ObjectId } = await import('mongodb');
+    const db = getDB();
+    const uid = req.user.userId;
+    const oid = new ObjectId(uid);
+
+    const [user, branches, decisions] = await Promise.all([
+      User.findById(uid),
+      db.collection('branches').find({ userId: uid }).toArray(),
+      db.collection('decisions').find({ userId: uid }).toArray(),
+    ]);
+
+    const clean = (arr) => arr.map(({ _id, ...rest }) => ({ id: _id?.toString() || rest.id, ...rest }));
+
+    res.json({
+      exportedAt: new Date().toISOString(),
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+      },
+      branches: clean(branches),
+      decisions: clean(decisions),
+    });
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
+// Delete account (protected route)
+router.delete('/me', authenticateToken, async (req, res) => {
+  try {
+    const { getDB } = await import('../config/database.js');
+    const { ObjectId } = await import('mongodb');
+    const db = getDB();
+    const uid = req.user.userId;
+
+    // Delete all user data in parallel
+    await Promise.all([
+      db.collection('decisions').deleteMany({ userId: uid }),
+      db.collection('branches').deleteMany({ userId: uid }),
+      db.collection('stats').deleteMany({ userId: uid }),
+      db.collection('stashes').deleteMany({ userId: uid }),
+      db.collection('comments').deleteMany({ authorId: uid }),
+      db.collection('notifications').deleteMany({ recipientId: uid }),
+      db.collection('notifications').deleteMany({ senderId: uid }),
+    ]);
+
+    // Handle conversations: remove user from participants, or delete if solo
+    const convs = await db.collection('conversations').find({ participants: uid }).toArray();
+    for (const conv of convs) {
+      const remaining = conv.participants.filter(p => p !== uid);
+      if (remaining.length === 0) {
+        await db.collection('conversations').deleteOne({ _id: conv._id });
+        await db.collection('messages').deleteMany({ conversationId: conv._id.toString() });
+      } else {
+        await db.collection('conversations').updateOne(
+          { _id: conv._id },
+          { $pull: { participants: uid } }
+        );
+      }
+    }
+
+    await User.delete(uid);
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 // Logout (client-side handles token removal, this is just for completeness)
 router.post('/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logout successful' });

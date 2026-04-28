@@ -354,6 +354,7 @@ export default function MessagesView({ onProfile, isMobile }) {
   const [input, setInput] = useState('');
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
+  const [dbgMsg, setDbgMsg] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasMore, setHasMore] = useState(false);
@@ -523,11 +524,14 @@ export default function MessagesView({ onProfile, isMobile }) {
     setMessages(prev => [...prev, optimistic]);
 
     try {
+      setDbgMsg(`sending... conn=${socket?.connected}`);
       const res = await socket?.sendMessage({ conversationId: convId, text });
+      setDbgMsg(`ok: ${JSON.stringify(res)?.slice(0,80)}`);
       if (res?.message) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
       }
-    } catch {
+    } catch (err) {
+      setDbgMsg(`ERR: ${err?.message}`);
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
       inputValueRef.current = text;
       setInput(text);
@@ -810,6 +814,12 @@ export default function MessagesView({ onProfile, isMobile }) {
           </>
         )}
       </div>
+
+      {dbgMsg && (
+        <div style={{ position:'fixed', bottom: 80, left: 8, right: 8, zIndex: 9999, background: 'rgba(0,0,0,0.9)', color: '#0f0', fontFamily: 'monospace', fontSize: 12, padding: '8px 10px', borderRadius: 8 }}>
+          {dbgMsg}
+        </div>
+      )}
 
       <style>{`
         @keyframes typing-dot {

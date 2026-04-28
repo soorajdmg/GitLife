@@ -354,7 +354,6 @@ export default function MessagesView({ onProfile, isMobile }) {
   const [input, setInput] = useState('');
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
-  const [dbgMsg, setDbgMsg] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasMore, setHasMore] = useState(false);
@@ -418,6 +417,7 @@ export default function MessagesView({ onProfile, isMobile }) {
     if (!activeConvId) return;
     setLoadingMsgs(true);
     setMessages([]);
+    inputRef.current?.focus();
     api.getMessages(activeConvId, { limit: 50 }).then(({ messages: msgs }) => {
       setMessages(msgs || []);
       setHasMore((msgs || []).length === 50);
@@ -465,6 +465,14 @@ export default function MessagesView({ onProfile, isMobile }) {
       });
     });
 
+    const offSaved = socket.on('message_saved', ({ tempId, message }) => {
+      setMessages(prev => prev.map(m => m.id === tempId ? message : m));
+    });
+
+    const offFailed = socket.on('message_failed', ({ tempId }) => {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+    });
+
     const offRead = socket.on('messages_read', ({ conversationId, readBy }) => {
       if (conversationId === activeConvId && readBy !== user?.id) {
         // Mark my messages as read by other
@@ -475,7 +483,7 @@ export default function MessagesView({ onProfile, isMobile }) {
       }
     });
 
-    return () => { offMsg?.(); offRead?.(); };
+    return () => { offMsg?.(); offRead?.(); offSaved?.(); offFailed?.(); };
   }, [socket, activeConvId, user]);
 
   // ── Query online status for conversation users ─────────────────────────────
@@ -523,22 +531,24 @@ export default function MessagesView({ onProfile, isMobile }) {
     };
     setMessages(prev => [...prev, optimistic]);
 
-    try {
-      setDbgMsg(`sending... conn=${socket?.connected}`);
-      const res = await socket?.sendMessage({ conversationId: convId, text });
-      setDbgMsg(`ok: ${JSON.stringify(res)?.slice(0,80)}`);
-      if (res?.message) {
-        setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
+    // Release the lock immediately so the user can type the next message
+    sendingRef.current = false;
+    setSending(false);
+
+    // Fire-and-forget via socket — server acks instantly, reconciles via message_saved/message_failed events
+    // Fall back to REST only if socket fails (disconnected etc.)
+    socket?.sendMessage({ conversationId: convId, text }).catch(async () => {
+      try {
+        const res = await api.sendMessageREST(convId, text);
+        if (res?.message) {
+          setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
+        }
+      } catch {
+        setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+        inputValueRef.current = text;
+        setInput(text);
       }
-    } catch (err) {
-      setDbgMsg(`ERR: ${err?.message}`);
-      setMessages(prev => prev.filter(m => m.id !== optimistic.id));
-      inputValueRef.current = text;
-      setInput(text);
-    } finally {
-      sendingRef.current = false;
-      setSending(false);
-    }
+    });
   }, [socket, user]);
 
   // ── Typing indicators ──────────────────────────────────────────────────────
@@ -814,12 +824,6 @@ export default function MessagesView({ onProfile, isMobile }) {
           </>
         )}
       </div>
-
-      {dbgMsg && (
-        <div style={{ position:'fixed', bottom: 80, left: 8, right: 8, zIndex: 9999, background: 'rgba(0,0,0,0.9)', color: '#0f0', fontFamily: 'monospace', fontSize: 12, padding: '8px 10px', borderRadius: 8 }}>
-          {dbgMsg}
-        </div>
-      )}
 
       <style>{`
         @keyframes typing-dot {

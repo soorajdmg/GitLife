@@ -269,6 +269,13 @@ class ApiClient {
     return this.request(`/messages/conversations/${conversationId}/messages?${params}`);
   }
 
+  async sendMessageREST(conversationId, text) {
+    return this.request(`/messages/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  }
+
   async markConversationRead(conversationId) {
     return this.request(`/messages/conversations/${conversationId}/read`, { method: 'POST' });
   }

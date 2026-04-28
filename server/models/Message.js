@@ -42,6 +42,10 @@ export class Message {
     );
   }
 
+  static async deleteById(id) {
+    await this.getCollection().deleteOne({ _id: new ObjectId(id) });
+  }
+
   static _format(msg) {
     return {
       ...msg,

@@ -79,6 +79,9 @@ const io = new SocketServer(httpServer, {
   },
 });
 
+// Make io accessible in route handlers via req.app.get('io')
+app.set('io', io);
+
 // Track online users: userId → Set of socketIds (multi-tab support)
 const onlineUsers = new Map();
 
@@ -129,31 +132,43 @@ io.on('connection', async (socket) => {
 
   // ── Send message ──────────────────────────────────────────────────────────
   socket.on('send_message', async ({ conversationId, text, sharedCommit }, ack) => {
-    try {
-      if (!text?.trim()) return ack?.({ error: 'Empty message' });
+    if (!text?.trim()) return ack?.({ error: 'Empty message' });
+    // Auth: socket already joined this room on connect — if they're not in the room they can't receive anyway.
+    // Verify membership via the rooms set (no DB call needed).
+    if (!socket.rooms.has(`conv:${conversationId}`)) return ack?.({ error: 'Forbidden' });
 
-      const conv = await Conversation.findById(conversationId);
-      if (!conv || !conv.participants.includes(userId)) {
-        return ack?.({ error: 'Forbidden' });
+    const trimmed = text.trim();
+    const now = new Date().toISOString();
+
+    // Build the message object locally and ack instantly — zero DB wait for the sender
+    const optimisticMsg = {
+      id: `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      conversationId,
+      senderId: userId,
+      text: trimmed,
+      sharedCommit: sharedCommit || null,
+      readBy: [userId],
+      createdAt: now,
+    };
+
+    // Ack sender and broadcast to room immediately
+    ack?.({ ok: true, message: optimisticMsg });
+    io.to(`conv:${conversationId}`).emit('new_message', { conversationId, message: optimisticMsg });
+
+    // Persist to DB in background
+    (async () => {
+      try {
+        const message = await Message.create({ conversationId, senderId: userId, text: trimmed, sharedCommit: sharedCommit || null });
+        // Send the real saved message (with real id) to the sender only, so they can reconcile
+        socket.emit('message_saved', { tempId: optimisticMsg.id, message });
+        // Update conversation metadata
+        const conv = await Conversation.findById(conversationId);
+        if (conv) await Conversation.updateLastMessage(conversationId, userId, trimmed, conv.participants);
+      } catch (err) {
+        console.error('send_message persist error:', err);
+        socket.emit('message_failed', { tempId: optimisticMsg.id });
       }
-
-      const message = await Message.create({
-        conversationId,
-        senderId: userId,
-        text: text.trim(),
-        sharedCommit: sharedCommit || null,
-      });
-
-      await Conversation.updateLastMessage(conversationId, userId, text.trim(), conv.participants);
-
-      // Broadcast to all participants in this conversation room
-      io.to(`conv:${conversationId}`).emit('new_message', { conversationId, message });
-
-      ack?.({ ok: true, message });
-    } catch (err) {
-      console.error('send_message error:', err);
-      ack?.({ error: 'Failed to send message' });
-    }
+    })();
   });
 
   // ── Typing indicators ─────────────────────────────────────────────────────

@@ -96,20 +96,33 @@ router.post('/conversations/:id/messages', async (req, res) => {
 
     if (!text?.trim()) return res.status(400).json({ error: 'text required' });
 
-    const conv = await Conversation.findById(id);
-    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
-    if (!conv.participants.includes(req.user.userId)) return res.status(403).json({ error: 'Forbidden' });
+    const [conv, message] = await Promise.all([
+      Conversation.findById(id),
+      Message.create({
+        conversationId: id,
+        senderId: req.user.userId,
+        text: text.trim(),
+        sharedCommit: sharedCommit || null,
+      }),
+    ]);
 
-    const message = await Message.create({
-      conversationId: id,
-      senderId: req.user.userId,
-      text: text.trim(),
-      sharedCommit: sharedCommit || null,
-    });
+    if (!conv) {
+      Message.deleteById(message.id).catch(() => {});
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    if (!conv.participants.includes(req.user.userId)) {
+      Message.deleteById(message.id).catch(() => {});
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
-    await Conversation.updateLastMessage(id, req.user.userId, text.trim(), conv.participants);
-
+    // Respond and broadcast immediately
+    const io = req.app.get('io');
+    if (io) io.to(`conv:${id}`).emit('new_message', { conversationId: id, message });
     res.status(201).json({ message });
+
+    // Update metadata in background
+    Conversation.updateLastMessage(id, req.user.userId, text.trim(), conv.participants)
+      .catch(err => console.error('updateLastMessage error:', err));
   } catch (err) {
     console.error('POST /messages error:', err);
     res.status(500).json({ error: 'Failed to send message' });

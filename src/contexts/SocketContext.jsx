@@ -21,7 +21,7 @@ export function SocketProvider({ children }) {
   // conversationId → { userId, ts }
   const [typingMap, setTypingMap] = useState({});
   // Listeners registered by consumers
-  const listenersRef = useRef({ new_message: [], messages_read: [], typing_start: [], typing_stop: [] });
+  const listenersRef = useRef({ new_message: [], messages_read: [], typing_start: [], typing_stop: [], message_saved: [], message_failed: [] });
 
   const typingTimers = useRef({});
 
@@ -82,6 +82,14 @@ export function SocketProvider({ children }) {
       (listenersRef.current.typing_stop || []).forEach(h => h({ conversationId }));
     });
 
+    socket.on('message_saved', (payload) => {
+      (listenersRef.current.message_saved || []).forEach(h => h(payload));
+    });
+
+    socket.on('message_failed', (payload) => {
+      (listenersRef.current.message_failed || []).forEach(h => h(payload));
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -94,7 +102,7 @@ export function SocketProvider({ children }) {
   const sendMessage = useCallback(({ conversationId, text, sharedCommit }) => {
     const tryEmit = () => new Promise((resolve, reject) => {
       if (!socketRef.current) return reject(new Error('No socket'));
-      const timeout = setTimeout(() => reject(new Error('Send timed out')), 8000);
+      const timeout = setTimeout(() => reject(new Error('Send timed out')), 2000);
       socketRef.current.emit('send_message', { conversationId, text, sharedCommit }, (res) => {
         clearTimeout(timeout);
         if (res?.error) reject(new Error(res.error));

@@ -351,13 +351,12 @@ function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user }) {
 
   return (
     <nav style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
+      flexShrink: 0,
       height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       background: 'white',
       borderTop: '1px solid oklch(91% 0.006 80)',
       display: 'flex', alignItems: 'stretch',
-      zIndex: 100,
     }}>
       {/* Feed */}
       <button style={btnBase} onClick={() => navigate('/feed')}>
@@ -835,7 +834,7 @@ export default function App() {
         </div>
 
         {/* View content — extra bottom padding on mobile for the bottom nav */}
-        <div style={{ flex: 1, overflow: 'hidden', paddingBottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
@@ -846,18 +845,18 @@ export default function App() {
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
           </Routes>
         </div>
-      </main>
 
-      {/* ── Mobile Bottom Navigation ── */}
-      {isMobile && (
-        <BottomNav
-          activeNav={activeNav}
-          navigate={navigate}
-          setModal={setModal}
-          unreadMsgCount={unreadMsgCount}
-          user={user}
-        />
-      )}
+        {/* ── Mobile Bottom Navigation ── */}
+        {isMobile && (
+          <BottomNav
+            activeNav={activeNav}
+            navigate={navigate}
+            setModal={setModal}
+            unreadMsgCount={unreadMsgCount}
+            user={user}
+          />
+        )}
+      </main>
 
       {modal && <NewCommitModal onClose={() => setModal(false)} onSubmit={addCommit} />}
       <TweaksPanel visible={tweaksVis} tweaks={tweaks} setTweaks={setTweaks} />

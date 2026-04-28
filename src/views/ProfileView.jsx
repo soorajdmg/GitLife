@@ -1256,7 +1256,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
             Posts ({rawDecisions.length})
           </div>
           {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(160px, 30%), 1fr))', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)' }} />
               ))}
@@ -1266,7 +1266,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
               No posts yet.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(160px, 30%), 1fr))', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {sortedDecisions.map(d => (
                 <GridTile key={d.id || d._id} item={d} onClick={openFeed} />
               ))}

@@ -29,6 +29,7 @@ class ApiClient {
         const error = await response.json();
         // Handle express-validator errors array
         const message = (error.error ? (error.detail ? `${error.error}: ${error.detail}` : error.error) : null) || (error.errors && error.errors[0]?.msg) || 'Request failed';
+        if (error.debug) console.error('API debug info:', JSON.stringify(error.debug));
         throw new Error(message);
       }
       return await response.json();

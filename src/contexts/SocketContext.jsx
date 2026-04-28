@@ -16,7 +16,6 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
 
   const [connected, setConnected] = useState(false);
-  const [connectError, setConnectError] = useState(null);
   // userId → true/false
   const [onlineUsers, setOnlineUsers] = useState({});
   // conversationId → { userId, ts }
@@ -34,14 +33,10 @@ export function SocketProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    console.log('[socket] effect — isAuthenticated:', isAuthenticated, 'userId:', user?.id, 'SOCKET_URL:', SOCKET_URL);
     if (!isAuthenticated || !user) return;
 
     const token = localStorage.getItem('token');
-    console.log('[socket] token:', token ? token.slice(0, 20) + '...' : 'MISSING');
     if (!token) return;
-
-    console.log('[socket] connecting to', SOCKET_URL);
     const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -53,11 +48,7 @@ export function SocketProvider({ children }) {
     socketRef.current = socket;
 
     socket.on('connect', () => setConnected(true));
-    socket.on('disconnect', (reason) => { console.warn('[socket] disconnect:', reason); setConnected(false); });
-    socket.on('connect_error', (err) => {
-      console.warn('[socket] connect_error:', err.message);
-      setConnectError(err.message);
-    });
+    socket.on('disconnect', () => setConnected(false));
 
     socket.on('user_online', ({ userId }) => {
       setOnlineUsers(prev => ({ ...prev, [userId]: true }));
@@ -155,8 +146,6 @@ export function SocketProvider({ children }) {
   return (
     <SocketContext.Provider value={{
       connected,
-      connectError,
-      socketUrl: SOCKET_URL,
       onlineUsers,
       typingMap,
       on,

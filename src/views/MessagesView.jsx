@@ -359,8 +359,6 @@ export default function MessagesView({ onProfile, isMobile }) {
   const [hasMore, setHasMore] = useState(false);
   // Mobile: track which pane is visible ('list' or 'chat')
   const [mobilePane, setMobilePane] = useState('list');
-  const [debugLines, setDebugLines] = useState([]);
-  const dbg = (msg) => { console.log(msg); setDebugLines(prev => [...prev.slice(-8), msg]); };
 
   const bottomRef = useRef(null);
   const typingTimerRef = useRef(null);
@@ -498,10 +496,7 @@ export default function MessagesView({ onProfile, isMobile }) {
   const send = useCallback(async () => {
     const text = (inputRef.current?.value ?? inputValueRef.current).trim();
     const convId = activeConvIdRef.current;
-    dbg(`send: txt="${text}" conv=${convId} snd=${sendingRef.current} sock=${!!socket} conn=${socket?.connected} usr=${!!user}`);
-    if (!text) { dbg('BAIL: no text'); return; }
-    if (!convId) { dbg('BAIL: no convId'); return; }
-    if (sendingRef.current) { dbg('BAIL: already sending'); return; }
+    if (!text || !convId || sendingRef.current) return;
     inputValueRef.current = '';
     if (inputRef.current) inputRef.current.value = '';
     setInput('');
@@ -528,14 +523,11 @@ export default function MessagesView({ onProfile, isMobile }) {
     setMessages(prev => [...prev, optimistic]);
 
     try {
-      dbg(`emitting... conn=${socket?.connected} sockId=${socket?.id ?? 'none'}`);
       const res = await socket?.sendMessage({ conversationId: convId, text });
-      dbg(`socket res: ${JSON.stringify(res)?.slice(0,60)}`);
       if (res?.message) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
       }
-    } catch (err) {
-      dbg(`socket ERR: ${err?.message}`);
+    } catch {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
       inputValueRef.current = text;
       setInput(text);
@@ -796,8 +788,8 @@ export default function MessagesView({ onProfile, isMobile }) {
               </div>
               <button
                 type="button"
-                onTouchEnd={e => { dbg('onTouchEnd'); e.preventDefault(); send(); }}
-                onClick={() => { dbg('onClick'); send(); }}
+                onTouchEnd={e => { e.preventDefault(); send(); }}
+                onClick={send}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',
@@ -817,21 +809,6 @@ export default function MessagesView({ onProfile, isMobile }) {
             </div>
           </>
         )}
-      </div>
-
-      {/* DEBUG PANEL — remove before release */}
-      <div onClick={() => setDebugLines([])} style={{
-        position: 'fixed', top: 60, left: 8, right: 8, zIndex: 9999,
-        background: 'rgba(0,0,0,0.85)', borderRadius: 8, padding: '8px 10px',
-        fontFamily: 'monospace', fontSize: 11, color: '#0f0', lineHeight: 1.6,
-        pointerEvents: 'all',
-      }}>
-        <div style={{ color: '#ff0' }}>conn={String(socket?.connected)} err={socket?.connectError ?? 'none'}</div>
-        <div style={{ color: '#ff0' }}>sockUrl={socket?.socketUrl ?? 'undef'}</div>
-        <div style={{ color: '#ff0' }}>origin={window.location.origin}</div>
-        <div style={{ color: '#ff0' }}>sockObj={socket ? 'yes' : 'no'} sockId={socket?.id ?? 'none'}</div>
-        {debugLines.map((l, i) => <div key={i}>{l}</div>)}
-        <div style={{ color: '#888', marginTop: 4 }}>tap to clear</div>
       </div>
 
       <style>{`

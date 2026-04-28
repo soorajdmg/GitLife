@@ -351,12 +351,13 @@ function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user }) {
 
   return (
     <nav style={{
-      flexShrink: 0,
+      position: 'fixed', bottom: 0, left: 0, right: 0,
       height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       background: 'white',
       borderTop: '1px solid oklch(91% 0.006 80)',
       display: 'flex', alignItems: 'stretch',
+      zIndex: 100,
     }}>
       {/* Feed */}
       <button style={btnBase} onClick={() => navigate('/feed')}>
@@ -808,7 +809,7 @@ export default function App() {
       </aside>
 
       {/* ── Main content area ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingBottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
         {/* Desktop top bar */}
         <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(22px, 2.5vw, 40px)' }}>
@@ -834,7 +835,7 @@ export default function App() {
         </div>
 
         {/* View content — extra bottom padding on mobile for the bottom nav */}
-        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
@@ -845,18 +846,18 @@ export default function App() {
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
           </Routes>
         </div>
-
-        {/* ── Mobile Bottom Navigation ── */}
-        {isMobile && (
-          <BottomNav
-            activeNav={activeNav}
-            navigate={navigate}
-            setModal={setModal}
-            unreadMsgCount={unreadMsgCount}
-            user={user}
-          />
-        )}
       </main>
+
+      {/* ── Mobile Bottom Navigation ── */}
+      {isMobile && (
+        <BottomNav
+          activeNav={activeNav}
+          navigate={navigate}
+          setModal={setModal}
+          unreadMsgCount={unreadMsgCount}
+          user={user}
+        />
+      )}
 
       {modal && <NewCommitModal onClose={() => setModal(false)} onSubmit={addCommit} />}
       <TweaksPanel visible={tweaksVis} tweaks={tweaks} setTweaks={setTweaks} />

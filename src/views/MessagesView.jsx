@@ -496,7 +496,10 @@ export default function MessagesView({ onProfile, isMobile }) {
   const send = useCallback(async () => {
     const text = (inputRef.current?.value ?? inputValueRef.current).trim();
     const convId = activeConvIdRef.current;
-    if (!text || !convId || sendingRef.current) return;
+    console.log('[send] called — text:', JSON.stringify(text), 'convId:', convId, 'sending:', sendingRef.current, 'socket:', !!socket, 'user:', !!user);
+    if (!text) { console.log('[send] bailed: no text'); return; }
+    if (!convId) { console.log('[send] bailed: no convId'); return; }
+    if (sendingRef.current) { console.log('[send] bailed: already sending'); return; }
     inputValueRef.current = '';
     if (inputRef.current) inputRef.current.value = '';
     setInput('');
@@ -523,11 +526,14 @@ export default function MessagesView({ onProfile, isMobile }) {
     setMessages(prev => [...prev, optimistic]);
 
     try {
+      console.log('[send] emitting to socket...');
       const res = await socket?.sendMessage({ conversationId: convId, text });
+      console.log('[send] socket response:', res);
       if (res?.message) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
       }
-    } catch {
+    } catch (err) {
+      console.log('[send] socket error:', err);
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
       inputValueRef.current = text;
       setInput(text);
@@ -624,7 +630,7 @@ export default function MessagesView({ onProfile, isMobile }) {
   const showChat = !isMobile || mobilePane === 'chat';
 
   return (
-    <div style={{ height: '100%', display: 'flex', overflow: 'hidden' }}>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
       {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} onStart={handleStartChat} currentUserId={user?.id} />}
 
       {/* ── Conversation list ─────────────────────────────────────────────── */}
@@ -788,8 +794,8 @@ export default function MessagesView({ onProfile, isMobile }) {
               </div>
               <button
                 type="button"
-                onTouchEnd={e => { e.preventDefault(); send(); }}
-                onClick={send}
+                onTouchEnd={e => { console.log('[button] onTouchEnd'); e.preventDefault(); send(); }}
+                onClick={() => { console.log('[button] onClick'); send(); }}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',

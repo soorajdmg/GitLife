@@ -8,7 +8,8 @@ export function useSocket() {
   return useContext(SocketContext);
 }
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const _apiUrl = import.meta.env.VITE_API_URL || '';
+const SOCKET_URL = _apiUrl.startsWith('http') ? _apiUrl.replace('/api', '') : window.location.origin;
 
 export function SocketProvider({ children }) {
   const { user, isAuthenticated } = useAuth();

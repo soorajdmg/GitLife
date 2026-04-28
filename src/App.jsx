@@ -820,7 +820,7 @@ export default function App() {
         </div>
 
         {/* Mobile top bar — hidden on messages page (MessagesView has its own header) */}
-        <div className="mobile-only" style={{ height: activeNav === 'messages' ? 0 : 52, flexShrink: 0, background: 'white', borderBottom: activeNav === 'messages' ? 'none' : '1px solid oklch(91% 0.006 80)', display: activeNav === 'messages' ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
+        <div className="mobile-only" style={{ height: activeNav === 'messages' ? 0 : 'calc(52px + env(safe-area-inset-top, 0px))', flexShrink: 0, background: 'white', borderBottom: activeNav === 'messages' ? 'none' : '1px solid oklch(91% 0.006 80)', display: activeNav === 'messages' ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: 16, paddingRight: 16 }}>
           {/* Logo + brand name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>
             <svg width="26" height="26" viewBox="0 0 28 28" fill="none">

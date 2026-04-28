@@ -713,7 +713,7 @@ export default function MessagesView({ onProfile, isMobile }) {
         ) : (
           <>
             {/* Header */}
-            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12, ...(isMobile ? { position: 'sticky', top: 0, zIndex: 10 } : {}) }}>
               {/* Back button on mobile */}
               {isMobile && (
                 <button

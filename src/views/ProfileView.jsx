@@ -1072,7 +1072,10 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                   </div>
                   <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)' }}>
                     Followed by{' '}
-                    <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>
+                    <span
+                      style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'oklch(70% 0.01 260)' }}
+                      onClick={() => onProfile?.((otherUser.mutualFollowers || [])[0]?.username)}
+                    >
                       {(otherUser.mutualFollowers || [])[0]?.fullName?.split(' ')[0] || (otherUser.mutualFollowers || [])[0]?.username}
                     </span>
                     {otherUser.mutualFollowerCount > 1 && (
@@ -1270,7 +1273,10 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                 </div>
                 <span style={{ fontSize: 12, color: 'oklch(52% 0.01 260)' }}>
                   Followed by{' '}
-                  <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>
+                  <span
+                    style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'oklch(70% 0.01 260)' }}
+                    onClick={() => onProfile?.((otherUser.mutualFollowers || [])[0]?.username)}
+                  >
                     {(otherUser.mutualFollowers || [])[0]?.fullName?.split(' ')[0] || (otherUser.mutualFollowers || [])[0]?.username}
                   </span>
                   {otherUser.mutualFollowerCount > 1 && (

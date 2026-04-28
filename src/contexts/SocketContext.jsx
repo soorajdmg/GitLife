@@ -9,7 +9,10 @@ export function useSocket() {
 }
 
 const _apiUrl = import.meta.env.VITE_API_URL || '';
-const SOCKET_URL = _apiUrl.startsWith('http') ? _apiUrl.replace('/api', '') : window.location.origin;
+// Strip trailing /api path to get the socket server root
+const SOCKET_URL = _apiUrl.startsWith('http')
+  ? _apiUrl.replace(/\/api\/?$/, '')
+  : (import.meta.env.VITE_SOCKET_URL || window.location.origin);
 
 export function SocketProvider({ children }) {
   const { user, isAuthenticated } = useAuth();
@@ -59,6 +62,7 @@ export function SocketProvider({ children }) {
     });
 
     socket.on('new_message', (payload) => {
+      console.log('[socket] new_message received', payload?.message?.senderId, 'handlers:', listenersRef.current.new_message?.length);
       (listenersRef.current.new_message || []).forEach(h => h(payload));
     });
 

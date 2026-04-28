@@ -473,6 +473,11 @@ export default function SettingsView({ saveRef, onHasChanges }) {
             sub={user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}
             right={null}
           />
+          <Row
+            label="Sign out"
+            sub="Log out of your account on this device"
+            right={<Btn variant="danger" onClick={logout}>Sign out</Btn>}
+          />
         </Section>
 
         {/* Notifications Section */}

@@ -456,6 +456,7 @@ export default function App() {
   const settingsSaveRef = useRef(null); // set by SettingsView
   const [settingsHasChanges, setSettingsHasChanges] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [msgMobilePane, setMsgMobilePane] = useState('list'); // 'list' | 'chat'
   const queryClient = useQueryClient();
 
   // Derive active nav from URL
@@ -503,6 +504,8 @@ export default function App() {
     if (pathname.startsWith('/messages')) {
       unreadConvIdsRef.current.clear();
       setUnreadMsgCount(0);
+    } else {
+      setMsgMobilePane('list');
     }
   }, [pathname]);
 
@@ -811,7 +814,7 @@ export default function App() {
       </aside>
 
       {/* ── Main content area ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingBottom: (isMobile && activeNav !== 'messages') ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingBottom: (isMobile && (activeNav !== 'messages' || msgMobilePane === 'list')) ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
         {/* Desktop top bar */}
         <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(22px, 2.5vw, 40px)' }}>
@@ -843,7 +846,7 @@ export default function App() {
             <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
             <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
-            <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} />} />
+            <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
             <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
           </Routes>
@@ -851,7 +854,7 @@ export default function App() {
       </main>
 
       {/* ── Mobile Bottom Navigation ── */}
-      {isMobile && activeNav !== 'messages' && (
+      {isMobile && (activeNav !== 'messages' || msgMobilePane === 'list') && (
         <BottomNav
           activeNav={activeNav}
           navigate={navigate}

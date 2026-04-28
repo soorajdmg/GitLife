@@ -210,17 +210,7 @@ router.post('/google/callback', async (req, res) => {
     });
   } catch (error) {
     console.error('Google callback error:', error);
-    const cid = process.env.GOOGLE_CLIENT_ID || '';
-    const csec = process.env.GOOGLE_CLIENT_SECRET || '';
-    res.status(401).json({
-      error: 'Google authentication failed',
-      detail: error?.message,
-      debug: {
-        clientId: cid ? `${cid.slice(0, 12)}...${cid.slice(-6)}` : 'MISSING',
-        clientSecret: csec ? `${csec.slice(0, 8)}...${csec.slice(-4)}` : 'MISSING',
-        redirectUri: req.body?.redirectUri || 'none sent',
-      }
-    });
+    res.status(401).json({ error: 'Google authentication failed' });
   }
 });
 

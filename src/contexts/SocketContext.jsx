@@ -39,10 +39,10 @@ export function SocketProvider({ children }) {
     if (!token) return;
     const socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
+      upgrade: false,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
-      retries: 3,
     });
 
     socketRef.current = socket;

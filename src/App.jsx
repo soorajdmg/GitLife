@@ -519,7 +519,7 @@ export default function App() {
   }, [socket, user?.id, pathname]);
 
   // Feed data
-  const { data: feedRaw, isLoading: feedQueryLoading } = useQuery({
+  const { data: feedRaw, isLoading: feedQueryLoading, isError: feedQueryError } = useQuery({
     queryKey: QUERY_KEYS.feed,
     queryFn: () => api.getFeed(),
     staleTime: 30_000,
@@ -542,8 +542,10 @@ export default function App() {
       });
       setFeedLoading(false);
       setFeedSeeded(true);
+    } else if (!feedQueryLoading && feedQueryError) {
+      setFeedLoading(false);
     }
-  }, [feedRaw, stashedIdsRaw, feedQueryLoading]);
+  }, [feedRaw, stashedIdsRaw, feedQueryLoading, feedQueryError]);
 
   // Following (sidebar)
   const { data: followingData = [] } = useQuery({

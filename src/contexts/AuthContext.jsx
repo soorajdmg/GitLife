@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../config/api';
+import { queryClient } from '../config/queryClient';
 
 const AuthContext = createContext();
 
@@ -41,6 +42,7 @@ export function AuthProvider({ children }) {
       setError(null);
       const response = await api.login(identifier, password);
       localStorage.setItem('token', response.token);
+      queryClient.clear();
       setUser(response.user);
       return response;
     } catch (err) {
@@ -54,6 +56,7 @@ export function AuthProvider({ children }) {
       setError(null);
       const response = await api.register(email, fullName, username, password);
       localStorage.setItem('token', response.token);
+      queryClient.clear();
       setUser(response.user);
       return response;
     } catch (err) {
@@ -71,6 +74,7 @@ export function AuthProvider({ children }) {
         return response;
       }
       localStorage.setItem('token', response.token);
+      queryClient.clear();
       setUser(response.user);
       return response;
     } catch (err) {
@@ -84,6 +88,7 @@ export function AuthProvider({ children }) {
       setError(null);
       const response = await api.googleRegister({ email, fullName, username, password, avatarUrl, googleId });
       localStorage.setItem('token', response.token);
+      queryClient.clear();
       setUser(response.user);
       return response;
     } catch (err) {

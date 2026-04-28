@@ -77,6 +77,9 @@ const io = new SocketServer(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  transports: ['websocket'],
+  pingInterval: 25000,
+  pingTimeout: 20000,
 });
 
 // Make io accessible in route handlers via req.app.get('io')

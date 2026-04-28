@@ -22,12 +22,6 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
 
 #root { width: 100%; height: 100%; }
 
-/* ─── Mobile chat pane: fixed overlay that shrinks when keyboard opens ─── */
-.mobile-chat-pane {
-  height: 100vh;       /* fallback for iOS < 15.4 */
-  height: 100dvh;      /* shrinks when virtual keyboard is open */
-}
-
 /* ─── Responsive utilities ─── */
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }

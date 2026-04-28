@@ -748,7 +748,7 @@ export default function MessagesView({ onProfile, isMobile }) {
       </div>
 
       {/* ── Chat area ─────────────────────────────────────────────────────── */}
-      <div className={isMobile && mobilePane === 'chat' ? 'mobile-chat-pane' : undefined} style={isMobile && mobilePane === 'chat' ? { position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)', zIndex: 50 } : { flex: 1, display: showChat ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)', minWidth: 0 }}>
+      <div ref={isMobile && mobilePane === 'chat' ? chatPaneRef : undefined} style={isMobile && mobilePane === 'chat' ? { position: 'fixed', left: 0, right: 0, top: 0, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)', zIndex: 50 } : { flex: 1, display: showChat ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', background: 'oklch(98.5% 0.003 80)', minWidth: 0 }}>
         {!activeConvId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'oklch(60% 0.01 260)' }}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Your Messages</div>

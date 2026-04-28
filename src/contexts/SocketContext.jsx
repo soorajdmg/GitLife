@@ -59,6 +59,7 @@ export function SocketProvider({ children }) {
     });
 
     socket.on('new_message', (payload) => {
+      console.log('[socket] new_message received', payload?.message?.senderId, 'handlers:', listenersRef.current.new_message?.length);
       (listenersRef.current.new_message || []).forEach(h => h(payload));
     });
 

@@ -342,7 +342,7 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobi
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function MessagesView({ onProfile, isMobile }) {
+export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }) {
   const [searchParams] = useSearchParams();
   const initialUserId = searchParams.get('user') || null;
   const { user } = useAuth();
@@ -359,6 +359,10 @@ export default function MessagesView({ onProfile, isMobile }) {
   const [hasMore, setHasMore] = useState(false);
   // Mobile: track which pane is visible ('list' or 'chat')
   const [mobilePane, setMobilePane] = useState('list');
+  const switchPane = useCallback((pane) => {
+    setMobilePane(pane);
+    onMobilePaneChange?.(pane);
+  }, [onMobilePaneChange]);
 
   // ── iOS Safari: use visualViewport to set actual height when keyboard opens ─
   const chatPaneRef = useRef(null);
@@ -422,7 +426,7 @@ export default function MessagesView({ onProfile, isMobile }) {
     const existing = conversations.find(c => c.otherUser?.id === initialUserId);
     if (existing) {
       setActiveConvId(existing.id);
-      setMobilePane('chat');
+      switchPane('chat');
     } else {
       api.getOrCreateConversation(initialUserId).then(({ conversation }) => {
         setConversations(prev => {
@@ -430,7 +434,7 @@ export default function MessagesView({ onProfile, isMobile }) {
           return [conversation, ...prev];
         });
         setActiveConvId(conversation.id);
-        setMobilePane('chat');
+        switchPane('chat');
         socket?.joinConversation(conversation.id, initialUserId);
       }).catch(console.error);
     }
@@ -463,12 +467,14 @@ export default function MessagesView({ onProfile, isMobile }) {
     if (!socket) return;
 
     const offMsg = socket.on('new_message', ({ conversationId, message }) => {
+      console.log('[new_message]', { conversationId, activeConvId, senderId: message.senderId, myId: user?.id });
       // Skip messages we sent — already handled optimistically in send()
       if (message.senderId === user?.id) return;
 
       // If this conversation isn't in our list yet (first message from someone),
       // refresh the conversation list to pick it up
       if (!conversationsRef.current.find(c => c.id === conversationId)) {
+        console.log('[new_message] unknown conv, refreshing list');
         api.getConversations().then(({ conversations: fresh }) => {
           setConversations(fresh);
         }).catch(() => {});
@@ -476,6 +482,7 @@ export default function MessagesView({ onProfile, isMobile }) {
       }
 
       if (conversationId === activeConvId) {
+        console.log('[new_message] adding to active chat');
         setMessages(prev => {
           // Deduplicate — ignore if we already have this message id
           if (prev.some(m => m.id === message.id)) return prev;
@@ -483,6 +490,7 @@ export default function MessagesView({ onProfile, isMobile }) {
         });
         socket.emitMarkRead(conversationId);
       } else {
+        console.log('[new_message] inactive conv, bumping unread');
         // Bump unread count
         setConversations(prev => prev.map(c => {
           if (c.id !== conversationId) return c;
@@ -648,7 +656,7 @@ export default function MessagesView({ onProfile, isMobile }) {
         return [conversation, ...prev];
       });
       setActiveConvId(conversation.id);
-      setMobilePane('chat');
+      switchPane('chat');
       socket?.joinConversation(conversation.id, targetUser.id);
     } catch (err) {
       console.error('Failed to start conversation', err);
@@ -738,7 +746,7 @@ export default function MessagesView({ onProfile, isMobile }) {
               cv={cv}
               isActive={cv.id === activeConvId}
               isOnline={!!socket?.onlineUsers?.[cv.otherUser?.id]}
-              onSelect={() => { setActiveConvId(cv.id); setMobilePane('chat'); }}
+              onSelect={() => { setActiveConvId(cv.id); switchPane('chat'); }}
               onDelete={handleDeleteConv}
               onProfile={onProfile}
               isMobile={isMobile}
@@ -765,7 +773,7 @@ export default function MessagesView({ onProfile, isMobile }) {
               {/* Back button on mobile */}
               {isMobile && (
                 <button
-                  onClick={() => setMobilePane('list')}
+                  onClick={() => switchPane('list')}
                   style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px 4px 0', display: 'flex', alignItems: 'center', color: 'oklch(42% 0.2 260)', flexShrink: 0 }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="12 4 6 10 12 16" />

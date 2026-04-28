@@ -359,6 +359,8 @@ export default function MessagesView({ onProfile, isMobile }) {
   const [hasMore, setHasMore] = useState(false);
   // Mobile: track which pane is visible ('list' or 'chat')
   const [mobilePane, setMobilePane] = useState('list');
+  const [debugLines, setDebugLines] = useState([]);
+  const dbg = (msg) => { console.log(msg); setDebugLines(prev => [...prev.slice(-8), msg]); };
 
   const bottomRef = useRef(null);
   const typingTimerRef = useRef(null);
@@ -496,10 +498,10 @@ export default function MessagesView({ onProfile, isMobile }) {
   const send = useCallback(async () => {
     const text = (inputRef.current?.value ?? inputValueRef.current).trim();
     const convId = activeConvIdRef.current;
-    console.log('[send] called — text:', JSON.stringify(text), 'convId:', convId, 'sending:', sendingRef.current, 'socket:', !!socket, 'user:', !!user);
-    if (!text) { console.log('[send] bailed: no text'); return; }
-    if (!convId) { console.log('[send] bailed: no convId'); return; }
-    if (sendingRef.current) { console.log('[send] bailed: already sending'); return; }
+    dbg(`send: txt="${text}" conv=${convId} snd=${sendingRef.current} sock=${!!socket} usr=${!!user}`);
+    if (!text) { dbg('BAIL: no text'); return; }
+    if (!convId) { dbg('BAIL: no convId'); return; }
+    if (sendingRef.current) { dbg('BAIL: already sending'); return; }
     inputValueRef.current = '';
     if (inputRef.current) inputRef.current.value = '';
     setInput('');
@@ -526,14 +528,14 @@ export default function MessagesView({ onProfile, isMobile }) {
     setMessages(prev => [...prev, optimistic]);
 
     try {
-      console.log('[send] emitting to socket...');
+      dbg('emitting to socket...');
       const res = await socket?.sendMessage({ conversationId: convId, text });
-      console.log('[send] socket response:', res);
+      dbg(`socket res: ${JSON.stringify(res)?.slice(0,60)}`);
       if (res?.message) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
       }
     } catch (err) {
-      console.log('[send] socket error:', err);
+      dbg(`socket ERR: ${err?.message}`);
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
       inputValueRef.current = text;
       setInput(text);
@@ -794,8 +796,8 @@ export default function MessagesView({ onProfile, isMobile }) {
               </div>
               <button
                 type="button"
-                onTouchEnd={e => { console.log('[button] onTouchEnd'); e.preventDefault(); send(); }}
-                onClick={() => { console.log('[button] onClick'); send(); }}
+                onTouchEnd={e => { dbg('onTouchEnd'); e.preventDefault(); send(); }}
+                onClick={() => { dbg('onClick'); send(); }}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
                   background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',
@@ -816,6 +818,19 @@ export default function MessagesView({ onProfile, isMobile }) {
           </>
         )}
       </div>
+
+      {/* DEBUG PANEL — remove before release */}
+      {debugLines.length > 0 && (
+        <div onClick={() => setDebugLines([])} style={{
+          position: 'fixed', top: 60, left: 8, right: 8, zIndex: 9999,
+          background: 'rgba(0,0,0,0.85)', borderRadius: 8, padding: '8px 10px',
+          fontFamily: 'monospace', fontSize: 11, color: '#0f0', lineHeight: 1.5,
+          pointerEvents: 'all',
+        }}>
+          {debugLines.map((l, i) => <div key={i}>{l}</div>)}
+          <div style={{ color: '#888', marginTop: 4 }}>tap to clear</div>
+        </div>
+      )}
 
       <style>{`
         @keyframes typing-dot {

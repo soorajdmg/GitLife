@@ -358,17 +358,17 @@ function formatDate(ts) {
 
 /* ─── ACTIVITY GRAPH ─── */
 function buildActivityData(commits) {
-  // Build 20 weeks of data ending today
+  // Build 20 weeks of data. The last column always contains today.
   const NUM_WEEKS = 20;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  // Start = 20 weeks ago, aligned to Monday
-  const start = new Date(today);
-  start.setDate(start.getDate() - (NUM_WEEKS * 7 - 1));
-  // Align start to Monday (day 1)
-  const dow = start.getDay(); // 0=Sun
-  const offset = dow === 0 ? -6 : 1 - dow;
-  start.setDate(start.getDate() + offset);
+  // Find the Sunday that ends the current week (today's week ends on Sunday)
+  const todayDow = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const end = new Date(today);
+  end.setDate(end.getDate() + (7 - todayDow) % 7); // advance to Sunday (stays today if already Sunday)
+  // Start = NUM_WEEKS weeks before the end Sunday, aligned to Monday
+  const start = new Date(end);
+  start.setDate(start.getDate() - NUM_WEEKS * 7 + 1); // Monday, NUM_WEEKS weeks ago
 
   // Count commits per day
   const dayCounts = {};

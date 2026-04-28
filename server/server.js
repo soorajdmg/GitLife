@@ -122,6 +122,9 @@ io.on('connection', async (socket) => {
   const { userId, username } = socket;
   addOnline(userId, socket.id);
 
+  // Each user has a personal room — always available regardless of conversations
+  socket.join(`user:${userId}`);
+
   // Auto-join all of the user's conversation rooms
   try {
     const convs = await Conversation.findByUser(userId);
@@ -134,11 +137,8 @@ io.on('connection', async (socket) => {
   socket.broadcast.emit('user_online', { userId });
 
   // ── Send message ──────────────────────────────────────────────────────────
-  socket.on('send_message', async ({ conversationId, text, sharedCommit }, ack) => {
+  socket.on('send_message', async ({ conversationId, text, sharedCommit, participants: clientParticipants }, ack) => {
     if (!text?.trim()) return ack?.({ error: 'Empty message' });
-    // Auth: socket already joined this room on connect — if they're not in the room they can't receive anyway.
-    // Verify membership via the rooms set (no DB call needed).
-    if (!socket.rooms.has(`conv:${conversationId}`)) return ack?.({ error: 'Forbidden' });
 
     const trimmed = text.trim();
     const now = new Date().toISOString();
@@ -154,19 +154,31 @@ io.on('connection', async (socket) => {
       createdAt: now,
     };
 
-    // Ack sender and broadcast to room immediately
+    // Ack sender immediately
     ack?.({ ok: true, message: optimisticMsg });
+
+    // Broadcast to conversation room AND each participant's personal room
+    // so the recipient gets it even if they haven't joined the conv room yet
     io.to(`conv:${conversationId}`).emit('new_message', { conversationId, message: optimisticMsg });
+    if (Array.isArray(clientParticipants)) {
+      clientParticipants.forEach(pid => {
+        if (pid !== userId) io.to(`user:${pid}`).emit('new_message', { conversationId, message: optimisticMsg });
+      });
+    }
 
     // Persist to DB in background
     (async () => {
       try {
         const message = await Message.create({ conversationId, senderId: userId, text: trimmed, sharedCommit: sharedCommit || null });
-        // Send the real saved message (with real id) to the sender only, so they can reconcile
         socket.emit('message_saved', { tempId: optimisticMsg.id, message });
-        // Update conversation metadata
         const conv = await Conversation.findById(conversationId);
-        if (conv) await Conversation.updateLastMessage(conversationId, userId, trimmed, conv.participants);
+        if (conv) {
+          await Conversation.updateLastMessage(conversationId, userId, trimmed, conv.participants);
+          // Also broadcast to participant personal rooms in case conv room missed it
+          conv.participants.forEach(pid => {
+            if (pid !== userId) io.to(`user:${pid}`).emit('new_message', { conversationId, message });
+          });
+        }
       } catch (err) {
         console.error('send_message persist error:', err);
         socket.emit('message_failed', { tempId: optimisticMsg.id });
@@ -198,6 +210,13 @@ io.on('connection', async (socket) => {
   // ── Join a newly created conversation room ────────────────────────────────
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conv:${conversationId}`);
+  });
+
+  // ── Server tells a user's socket to join a new conv room ─────────────────
+  socket.on('notify_join_conversation', ({ conversationId, otherUserId }) => {
+    socket.join(`conv:${conversationId}`);
+    // Tell the other user's socket to join too via their personal room
+    io.to(`user:${otherUserId}`).emit('join_conversation', conversationId);
   });
 
   // ── Query who is online ───────────────────────────────────────────────────

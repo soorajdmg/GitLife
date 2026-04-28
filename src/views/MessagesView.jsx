@@ -406,7 +406,7 @@ export default function MessagesView({ onProfile, isMobile }) {
         });
         setActiveConvId(conversation.id);
         setMobilePane('chat');
-        socket?.joinConversation(conversation.id);
+        socket?.joinConversation(conversation.id, initialUserId);
       }).catch(console.error);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -535,9 +535,12 @@ export default function MessagesView({ onProfile, isMobile }) {
     sendingRef.current = false;
     setSending(false);
 
+    // Include participant ids so server can broadcast to personal rooms (guarantees delivery)
+    const participants = activeConv?.participants || [user.id, otherUser?.id].filter(Boolean);
+
     // Fire-and-forget via socket — server acks instantly, reconciles via message_saved/message_failed events
     // Fall back to REST only if socket fails (disconnected etc.)
-    socket?.sendMessage({ conversationId: convId, text }).catch(async () => {
+    socket?.sendMessage({ conversationId: convId, text, participants }).catch(async () => {
       try {
         const res = await api.sendMessageREST(convId, text);
         if (res?.message) {
@@ -601,7 +604,7 @@ export default function MessagesView({ onProfile, isMobile }) {
       });
       setActiveConvId(conversation.id);
       setMobilePane('chat');
-      socket?.joinConversation(conversation.id);
+      socket?.joinConversation(conversation.id, targetUser.id);
     } catch (err) {
       console.error('Failed to start conversation', err);
     }
@@ -713,7 +716,7 @@ export default function MessagesView({ onProfile, isMobile }) {
         ) : (
           <>
             {/* Header */}
-            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12, ...(isMobile ? { position: 'sticky', top: 0, zIndex: 10 } : {}) }}>
+            <div style={{ flexShrink: 0, paddingTop: isMobile ? 'calc(10px + env(safe-area-inset-top, 0px))' : '14px', paddingBottom: isMobile ? '10px' : '14px', paddingLeft: isMobile ? '12px' : '20px', paddingRight: isMobile ? '12px' : '20px', borderBottom: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
               {/* Back button on mobile */}
               {isMobile && (
                 <button

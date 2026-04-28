@@ -90,6 +90,11 @@ export function SocketProvider({ children }) {
       (listenersRef.current.message_failed || []).forEach(h => h(payload));
     });
 
+    // Server pushes this when someone starts a new conversation with us
+    socket.on('join_conversation', (conversationId) => {
+      socket.emit('join_conversation', conversationId);
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -99,11 +104,11 @@ export function SocketProvider({ children }) {
 
   // ── Emit helpers ──────────────────────────────────────────────────────────
 
-  const sendMessage = useCallback(({ conversationId, text, sharedCommit }) => {
+  const sendMessage = useCallback(({ conversationId, text, sharedCommit, participants }) => {
     const tryEmit = () => new Promise((resolve, reject) => {
       if (!socketRef.current) return reject(new Error('No socket'));
       const timeout = setTimeout(() => reject(new Error('Send timed out')), 2000);
-      socketRef.current.emit('send_message', { conversationId, text, sharedCommit }, (res) => {
+      socketRef.current.emit('send_message', { conversationId, text, sharedCommit, participants }, (res) => {
         clearTimeout(timeout);
         if (res?.error) reject(new Error(res.error));
         else resolve(res);
@@ -140,8 +145,13 @@ export function SocketProvider({ children }) {
     socketRef.current?.emit('mark_read', { conversationId });
   }, []);
 
-  const joinConversation = useCallback((conversationId) => {
-    socketRef.current?.emit('join_conversation', conversationId);
+  const joinConversation = useCallback((conversationId, otherUserId) => {
+    if (otherUserId) {
+      // Notify server to join us + tell the other user to join too
+      socketRef.current?.emit('notify_join_conversation', { conversationId, otherUserId });
+    } else {
+      socketRef.current?.emit('join_conversation', conversationId);
+    }
   }, []);
 
   const queryOnlineUsers = useCallback((userIds) => {

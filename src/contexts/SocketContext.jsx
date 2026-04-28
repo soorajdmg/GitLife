@@ -92,7 +92,7 @@ export function SocketProvider({ children }) {
   // ── Emit helpers ──────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(({ conversationId, text, sharedCommit }) => {
-    return new Promise((resolve, reject) => {
+    const tryEmit = () => new Promise((resolve, reject) => {
       if (!socketRef.current) return reject(new Error('No socket'));
       const timeout = setTimeout(() => reject(new Error('Send timed out')), 8000);
       socketRef.current.emit('send_message', { conversationId, text, sharedCommit }, (res) => {
@@ -100,6 +100,23 @@ export function SocketProvider({ children }) {
         if (res?.error) reject(new Error(res.error));
         else resolve(res);
       });
+    });
+
+    // Wait for socket to be connected, then emit (handles brief disconnects on mobile)
+    return new Promise((resolve, reject) => {
+      const attempt = () => {
+        if (socketRef.current?.connected) {
+          tryEmit().then(resolve).catch(reject);
+        } else if (socketRef.current) {
+          // Not connected yet — wait for connect event then emit
+          socketRef.current.once('connect', () => tryEmit().then(resolve).catch(reject));
+          // Safety timeout if it never reconnects
+          setTimeout(() => reject(new Error('Socket failed to reconnect')), 10000);
+        } else {
+          reject(new Error('No socket'));
+        }
+      };
+      attempt();
     });
   }, []);
 

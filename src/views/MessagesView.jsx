@@ -498,7 +498,7 @@ export default function MessagesView({ onProfile, isMobile }) {
   const send = useCallback(async () => {
     const text = (inputRef.current?.value ?? inputValueRef.current).trim();
     const convId = activeConvIdRef.current;
-    dbg(`send: txt="${text}" conv=${convId} snd=${sendingRef.current} sock=${!!socket} usr=${!!user}`);
+    dbg(`send: txt="${text}" conv=${convId} snd=${sendingRef.current} sock=${!!socket} conn=${socket?.connected} usr=${!!user}`);
     if (!text) { dbg('BAIL: no text'); return; }
     if (!convId) { dbg('BAIL: no convId'); return; }
     if (sendingRef.current) { dbg('BAIL: already sending'); return; }

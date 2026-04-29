@@ -13,6 +13,7 @@ import MessagesView from './views/MessagesView';
 import NotificationsView from './views/NotificationsView';
 import SettingsView from './views/SettingsView';
 import NewCommitModal from './components/ui/NewCommitModal';
+import GraphPage from './pages/GraphPage';
 
 /* ─── MOBILE HOOK ─── */
 function useIsMobile() {
@@ -87,6 +88,17 @@ function NavIcon({ type, active, size = 22 }) {
           <circle cx="6" cy="12" r="1.5" fill={fill} stroke="none" />
         </svg>
       );
+    case 'graph':
+      return (
+        <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="3" r="1.8" fill={fill} stroke="none" />
+          <circle cx="3" cy="12" r="1.8" fill={fill} stroke="none" />
+          <circle cx="13" cy="12" r="1.8" fill={fill} stroke="none" />
+          <line x1="8" y1="4.8" x2="3.8" y2="10.2" />
+          <line x1="8" y1="4.8" x2="12.2" y2="10.2" />
+          <line x1="4.8" y1="12" x2="11.2" y2="12" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -99,6 +111,7 @@ const NAV_ICONS = {
   profile:  (a) => <NavIcon type="profile"  active={a} />,
   messages: (a) => <NavIcon type="messages" active={a} />,
   settings: (a) => <NavIcon type="settings" active={a} />,
+  graph:    (a) => <NavIcon type="graph"    active={a} />,
   branches: (a) => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={a ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="5" cy="3.5" r="1.5" /><circle cx="5" cy="12.5" r="1.5" /><circle cx="11" cy="6.5" r="1.5" />
@@ -117,11 +130,12 @@ const NAV = [
   { id: 'feed',     label: 'Feed' },
   { id: 'explore',  label: 'Explore' },
   { id: 'profile',  label: 'My Life' },
+  { id: 'graph',    label: 'Life Graph' },
   { id: 'messages', label: 'Messages' },
   { id: 'settings', label: 'Settings' },
 ];
 
-const VIEW_TITLE = { feed: 'Feed', explore: 'Explore', profile: 'My Life', messages: 'Messages', branches: 'Branches', settings: 'Settings', notifications: 'Notifications' };
+const VIEW_TITLE = { feed: 'Feed', explore: 'Explore', profile: 'My Life', graph: 'Life Graph', messages: 'Messages', branches: 'Branches', settings: 'Settings', notifications: 'Notifications' };
 
 /* ─── PROFILE ROUTE WRAPPER ─── */
 function ProfileViewRoute(props) {
@@ -462,6 +476,7 @@ export default function App() {
   // Derive active nav from URL
   const activeNav = pathname.startsWith('/explore') ? 'explore'
     : pathname.startsWith('/profile') ? 'profile'
+    : pathname.startsWith('/graph') ? 'graph'
     : pathname.startsWith('/messages') ? 'messages'
     : pathname.startsWith('/settings') ? 'settings'
     : 'feed';
@@ -637,11 +652,16 @@ export default function App() {
       if (data.isNewBranch) {
         api.createBranch({ name: data.branch, type: 'what-if' }).catch(() => {});
       }
+      // If causal links were added, create them now
+      if (data.influencedBy?.length > 0) {
+        api.updateDecisionLinks(saved.id, data.influencedBy, []).catch(() => {});
+      }
       const newPost = mapDecisionToCommit(saved);
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
       // Invalidate so profile/decisions queries re-fetch
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.decisions });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.branches });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.decisionGraph });
     } catch {
       const newPost = { id: `c_${Date.now()}`, userId: user?.id, branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi };
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
@@ -846,6 +866,7 @@ export default function App() {
             <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
             <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/graph" element={<GraphPage currentUser={user} />} />
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
             <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />

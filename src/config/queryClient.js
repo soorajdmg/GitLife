@@ -25,4 +25,6 @@ export const QUERY_KEYS = {
   unreadNotifCount: ['unreadNotifCount'],
   conversations: ['conversations'],
   messages: (convId) => ['messages', convId],
+  decisionGraph: ['decisionGraph'],
+  blameChain: (id) => ['blameChain', id],
 };

@@ -4,6 +4,8 @@ import BranchPill from './BranchPill';
 import Tag from './Tag';
 import EngagementBar from './EngagementBar';
 import CommentThread from './CommentThread';
+import BlameBadge from './BlameBadge';
+import { api } from '../../config/api';
 
 function userColor(userId) {
   const colors = [
@@ -40,11 +42,28 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const menuRef = useRef();
+  const [blameStatus, setBlameStatus] = useState(c.blameStatus || null);
+  const [blameFormOpen, setBlameFormOpen] = useState(false);
+  const [blameNote, setBlameNote] = useState(c.blameNote || '');
+  const [savingBlame, setSavingBlame] = useState(false);
 
   const handleCountChange = (delta) => setLocalCommentCount(p => Math.max(0, p + delta));
 
   const handleShare = () => {
     if (!isOwnPost && openMessage && c.userId) openMessage(c.userId);
+  };
+
+  const handleBlameStatus = async (status) => {
+    setSavingBlame(true);
+    try {
+      await api.setDecisionBlame(c.id, status, blameNote || null);
+      setBlameStatus(status);
+      setBlameFormOpen(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingBlame(false);
+    }
   };
 
   useEffect(() => {
@@ -63,6 +82,7 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
         border: `1px solid ${c.wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`,
         borderRadius: 14, padding: compact ? '14px 16px' : '18px 20px',
         marginBottom: 10, transition: 'box-shadow 0.15s', position: 'relative',
+        borderLeft: blameStatus === 'broken' ? '3px solid oklch(60% 0.18 30)' : undefined,
       }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; setHovered(false); }}
@@ -107,7 +127,39 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
               </svg>
             </button>
             {menuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 160 }}>
+                {/* Blame options */}
+                {!blameStatus && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setMenuOpen(false); setBlameFormOpen(true); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.18 30)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 30)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    ⚠ Mark as broken
+                  </button>
+                )}
+                {blameStatus === 'broken' && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus('resolved'); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(42% 0.18 155)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 155)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    ✓ Mark as resolved
+                  </button>
+                )}
+                {blameStatus && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus(null); setBlameNote(''); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(50% 0.01 260)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.005 260)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    ✕ Clear blame
+                  </button>
+                )}
+                <div style={{ margin: '4px 12px', borderTop: '1px solid oklch(94% 0.004 80)' }} />
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(c.id); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
@@ -148,14 +200,46 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
       )}
 
       {/* Tags row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: blameFormOpen ? 8 : 12, flexWrap: 'wrap' }}>
         <Tag cat={c.category} />
         {c.impact != null && (
           <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
             impact {c.impact}
           </span>
         )}
+        {blameStatus && <BlameBadge status={blameStatus} />}
       </div>
+
+      {/* Inline blame form */}
+      {blameFormOpen && (
+        <div style={{ marginBottom: 12, padding: '10px 12px', background: 'oklch(98% 0.008 30)', borderRadius: 8, border: '1px solid oklch(90% 0.05 30)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'oklch(45% 0.18 30)', marginBottom: 6 }}>⚠ What went wrong?</div>
+          <textarea
+            value={blameNote}
+            onChange={e => setBlameNote(e.target.value)}
+            placeholder="Optional: describe what this decision led to…"
+            rows={2}
+            style={{ width: '100%', padding: '7px 9px', border: '1px solid oklch(88% 0.05 30)', borderRadius: 6, fontSize: 12.5, resize: 'vertical', fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(22% 0.015 260)', boxSizing: 'border-box', outline: 'none', background: 'white' }}
+            onFocus={e => e.target.style.borderColor = 'oklch(62% 0.18 30)'}
+            onBlur={e => e.target.style.borderColor = 'oklch(88% 0.05 30)'}
+          />
+          <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
+            <button
+              disabled={savingBlame}
+              onClick={() => handleBlameStatus('broken')}
+              style={{ padding: '5px 14px', borderRadius: 6, border: 'none', background: 'oklch(60% 0.18 30)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {savingBlame ? 'Saving…' : 'Mark as broken'}
+            </button>
+            <button
+              onClick={() => setBlameFormOpen(false)}
+              style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid oklch(88% 0.008 260)', background: 'white', fontSize: 12, color: 'oklch(48% 0.01 260)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Engagement bar */}
       <EngagementBar

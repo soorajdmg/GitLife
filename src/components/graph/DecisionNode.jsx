@@ -1,0 +1,139 @@
+import { Handle, Position } from '@xyflow/react';
+import BlameBadge from '../ui/BlameBadge.jsx';
+
+const TYPE_COLOR = { feat: '#4ade80', fix: '#f87171', chore: '#a78bfa' };
+
+function typeColor(type) {
+  return TYPE_COLOR[type] || '#9ca3af';
+}
+
+// Node width scales with number of dependents (children)
+// 0 deps → 200px, 1-2 → 230px, 3-5 → 265px, 6+ → 300px
+function nodeWidth(dependentCount) {
+  const d = dependentCount || 0;
+  if (d === 0) return 200;
+  if (d <= 2)  return 230;
+  if (d <= 5)  return 265;
+  return 300;
+}
+
+// Font size scales slightly too
+function nodeFontSize(dependentCount) {
+  const d = dependentCount || 0;
+  if (d === 0) return 12.5;
+  if (d <= 2)  return 13;
+  if (d <= 5)  return 13.5;
+  return 14;
+}
+
+// Max chars before truncation scales with width
+function maxChars(dependentCount) {
+  const d = dependentCount || 0;
+  if (d === 0) return 70;
+  if (d <= 2)  return 85;
+  if (d <= 5)  return 100;
+  return 120;
+}
+
+export default function DecisionNode({ data, selected }) {
+  const depCount = data.dependentCount || 0;
+  const isLoadBearing = depCount >= 3;
+  const isBroken = data.blameStatus === 'broken';
+
+  // Connect-mode visual states (set by GraphPage)
+  const isConnectSource = data.isConnectSource;
+  const isConnectTarget = data.isConnectTarget;
+
+  const width = nodeWidth(depCount);
+  const fontSize = nodeFontSize(depCount);
+  const chars = maxChars(depCount);
+
+  const borderColor = isConnectSource
+    ? 'oklch(52% 0.2 260)'
+    : isConnectTarget
+    ? 'oklch(65% 0.15 155)'
+    : selected
+    ? 'oklch(52% 0.2 260)'
+    : isBroken
+    ? 'oklch(72% 0.14 30)'
+    : isLoadBearing
+    ? 'oklch(72% 0.18 290)'
+    : 'oklch(88% 0.008 260)';
+
+  const boxShadow = isConnectSource
+    ? '0 0 0 3px oklch(52% 0.2 260 / 0.4), 0 4px 16px oklch(25% 0.05 260 / 0.12)'
+    : isConnectTarget
+    ? '0 0 0 2px oklch(65% 0.15 155 / 0.35), 0 4px 16px oklch(25% 0.05 260 / 0.1)'
+    : isLoadBearing
+    ? '0 0 0 2px oklch(52% 0.18 290 / 0.3), 0 4px 20px oklch(25% 0.05 260 / 0.12)'
+    : selected
+    ? '0 0 0 2px oklch(52% 0.2 260 / 0.25), 0 4px 16px oklch(25% 0.05 260 / 0.1)'
+    : '0 2px 8px oklch(25% 0.05 260 / 0.08)';
+
+  const text = data.decision || '';
+  const truncated = text.length > chars ? text.slice(0, chars - 3) + '…' : text;
+  const branch = (data.branch_name || 'main').replace(/^what-if\//i, '⎇ ');
+
+  return (
+    <div style={{
+      background: isConnectTarget ? 'oklch(97% 0.012 155)' : 'white',
+      borderRadius: 12,
+      border: `1.5px solid ${borderColor}`,
+      boxShadow,
+      padding: isLoadBearing ? '12px 16px' : '10px 14px',
+      width,
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      position: 'relative',
+      borderLeft: isBroken ? '3px solid oklch(60% 0.18 30)' : undefined,
+      transition: 'border-color 0.15s, box-shadow 0.15s, width 0.2s, background 0.15s',
+      cursor: isConnectTarget ? 'pointer' : 'default',
+    }}>
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: 'oklch(68% 0.12 260)', width: 8, height: 8, border: '2px solid white' }}
+      />
+
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: typeColor(data.type), background: typeColor(data.type) + '22', padding: '1px 6px', borderRadius: 4 }}>
+          {data.type || 'feat'}
+        </span>
+        <span style={{ fontSize: 10, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", background: 'oklch(95% 0.005 260)', padding: '1px 6px', borderRadius: 4, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {branch}
+        </span>
+        {isLoadBearing && (
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'oklch(42% 0.18 290)', background: 'oklch(95% 0.06 290)', padding: '1px 5px', borderRadius: 4, border: '1px solid oklch(85% 0.1 290)' }}>
+            load-bearing
+          </span>
+        )}
+        {isConnectTarget && (
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'oklch(40% 0.18 155)', background: 'oklch(93% 0.06 155)', padding: '1px 5px', borderRadius: 4 }}>
+            click to link
+          </span>
+        )}
+      </div>
+
+      {/* Decision text */}
+      <div style={{ fontSize, fontWeight: isLoadBearing ? 600 : 500, color: 'oklch(20% 0.015 260)', lineHeight: 1.45, marginBottom: 6 }}>
+        {truncated}
+      </div>
+
+      {/* Footer row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        {data.blameStatus && <BlameBadge status={data.blameStatus} />}
+        {depCount > 0 && (
+          <span style={{ fontSize: 10, color: isLoadBearing ? 'oklch(42% 0.18 290)' : 'oklch(52% 0.01 260)', fontWeight: isLoadBearing ? 700 : 400, marginLeft: 'auto' }}>
+            {depCount} {depCount === 1 ? 'decision depends on this' : 'decisions depend on this'}
+          </span>
+        )}
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: 'oklch(68% 0.12 260)', width: 8, height: 8, border: '2px solid white' }}
+      />
+    </div>
+  );
+}

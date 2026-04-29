@@ -12,6 +12,17 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateToken);
 
+// Get all decisions for graph rendering (must be before /:id route)
+router.get('/graph', async (req, res) => {
+  try {
+    const decisions = await Decision.findForGraph(req.user.userId);
+    res.json(decisions);
+  } catch (error) {
+    console.error('Error fetching graph data:', error);
+    res.status(500).json({ error: 'Failed to fetch graph data' });
+  }
+});
+
 // Get total decision count (must be before /:id route)
 router.get('/count/total', async (req, res) => {
   try {
@@ -124,6 +135,48 @@ router.post('/:id/react', async (req, res) => {
   } catch (error) {
     console.error('Error toggling reaction:', error);
     res.status(500).json({ error: 'Failed to toggle reaction' });
+  }
+});
+
+// Get blame chain (ancestors) for a decision
+router.get('/:id/blame-chain', async (req, res) => {
+  try {
+    const chain = await Decision.getBlameChain(req.params.id, req.user.userId);
+    if (!chain) return res.status(404).json({ error: 'Decision not found' });
+    res.json(chain);
+  } catch (error) {
+    console.error('Error fetching blame chain:', error);
+    res.status(500).json({ error: 'Failed to fetch blame chain' });
+  }
+});
+
+// Add/remove causal links on a decision
+router.patch('/:id/links', async (req, res) => {
+  try {
+    const { add = [], remove = [] } = req.body;
+    const result = await Decision.updateLinks(req.params.id, req.user.userId, add, remove);
+    if (!result) return res.status(404).json({ error: 'Decision not found' });
+    res.json(result);
+  } catch (error) {
+    console.error('Error updating links:', error);
+    res.status(500).json({ error: 'Failed to update links' });
+  }
+});
+
+// Set blame status on a decision
+router.patch('/:id/blame', async (req, res) => {
+  try {
+    const { status, note } = req.body;
+    const validStatuses = ['broken', 'investigating', 'resolved', null];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid blame status' });
+    }
+    const result = await Decision.setBlameStatus(req.params.id, req.user.userId, status, note);
+    if (!result) return res.status(404).json({ error: 'Decision not found' });
+    res.json(result);
+  } catch (error) {
+    console.error('Error setting blame status:', error);
+    res.status(500).json({ error: 'Failed to set blame status' });
   }
 });
 

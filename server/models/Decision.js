@@ -26,6 +26,10 @@ export class Decision {
       },
       commentCount: 0,
       viewCount: 0,
+      influencedBy: decisionData.influencedBy || [],
+      blameStatus: null,
+      blameNote: null,
+      dependentCount: 0,
     };
 
     const result = await this.getCollection().insertOne(decision);
@@ -129,9 +133,121 @@ export class Decision {
     return (decision.viewCount || 0) + 1;
   }
 
+  static async findForGraph(userId) {
+    const decisions = await this.getCollection()
+      .find({ userId }, {
+        projection: {
+          decision: 1, branch_name: 1, type: 1, impact: 1, timestamp: 1,
+          blameStatus: 1, blameNote: 1, dependentCount: 1, influencedBy: 1,
+        }
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+    return decisions.map(d => ({
+      ...d,
+      id: d._id.toString(),
+      _id: undefined,
+      influencedBy: d.influencedBy || [],
+      dependentCount: d.dependentCount || 0,
+    }));
+  }
+
+  static async updateLinks(id, userId, toAdd = [], toRemove = []) {
+    const col = this.getCollection();
+    const oid = new ObjectId(id);
+
+    // Verify ownership
+    const decision = await col.findOne({ _id: oid, userId });
+    if (!decision) return null;
+
+    const existing = decision.influencedBy || [];
+
+    // Remove entries
+    let updated = existing.filter(e => !toRemove.includes(e.decisionId));
+
+    // Add entries (avoid duplicates)
+    for (const entry of toAdd) {
+      if (!updated.find(e => e.decisionId === entry.decisionId)) {
+        updated.push({ decisionId: entry.decisionId, note: entry.note || '' });
+      }
+    }
+
+    await col.updateOne({ _id: oid }, { $set: { influencedBy: updated } });
+
+    // Update dependentCount on referenced decisions
+    for (const entry of toAdd) {
+      try {
+        await col.updateOne(
+          { _id: new ObjectId(entry.decisionId) },
+          { $inc: { dependentCount: 1 } }
+        );
+      } catch (_) {}
+    }
+    for (const removedId of toRemove) {
+      try {
+        await col.updateOne(
+          { _id: new ObjectId(removedId) },
+          { $inc: { dependentCount: -1 } }
+        );
+      } catch (_) {}
+    }
+
+    const result = await col.findOne({ _id: oid });
+    return { ...result, id: result._id.toString(), _id: undefined };
+  }
+
+  static async setBlameStatus(id, userId, status, note = null) {
+    const col = this.getCollection();
+    const oid = new ObjectId(id);
+    const decision = await col.findOne({ _id: oid, userId });
+    if (!decision) return null;
+    await col.updateOne({ _id: oid }, {
+      $set: { blameStatus: status || null, blameNote: note || null }
+    });
+    return { id, blameStatus: status || null, blameNote: note || null };
+  }
+
+  static async getBlameChain(id, userId, maxDepth = 10) {
+    const col = this.getCollection();
+
+    const rootDoc = await col.findOne({ _id: new ObjectId(id), userId });
+    if (!rootDoc) return null;
+
+    const root = { ...rootDoc, id: rootDoc._id.toString(), _id: undefined };
+    const ancestors = [];
+    const visited = new Set([id]);
+    const queue = [...(root.influencedBy || []).map(e => e.decisionId)];
+    let depth = 0;
+
+    while (queue.length > 0 && depth < maxDepth) {
+      const nextQueue = [];
+      for (const decisionId of queue) {
+        if (visited.has(decisionId)) continue;
+        visited.add(decisionId);
+        try {
+          const doc = await col.findOne({ _id: new ObjectId(decisionId) });
+          if (!doc) continue;
+          const node = { ...doc, id: doc._id.toString(), _id: undefined };
+          ancestors.push(node);
+          for (const e of (node.influencedBy || [])) {
+            if (!visited.has(e.decisionId)) nextQueue.push(e.decisionId);
+          }
+        } catch (_) {}
+      }
+      queue.length = 0;
+      queue.push(...nextQueue);
+      depth++;
+    }
+
+    return { root, ancestors, depth };
+  }
+
   static async createIndexes() {
     // Create index on userId for faster queries
     await this.getCollection().createIndex({ userId: 1 });
     await this.getCollection().createIndex({ branch_name: 1, userId: 1 });
+    await this.getCollection().createIndex({ 'influencedBy.decisionId': 1 });
+    await this.getCollection().createIndex({ blameStatus: 1, userId: 1 });
+    await this.getCollection().createIndex({ dependentCount: -1, userId: 1 });
   }
 }

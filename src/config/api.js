@@ -315,6 +315,29 @@ class ApiClient {
     return this.request(`/decisions/${decisionId}/comments/${commentId}`, { method: 'DELETE' });
   }
 
+  // Graph / dependency methods
+  async getDecisionsForGraph() {
+    return this.request('/decisions/graph');
+  }
+
+  async updateDecisionLinks(id, toAdd = [], toRemove = []) {
+    return this.request(`/decisions/${id}/links`, {
+      method: 'PATCH',
+      body: JSON.stringify({ add: toAdd, remove: toRemove }),
+    });
+  }
+
+  async setDecisionBlame(id, status, note = null) {
+    return this.request(`/decisions/${id}/blame`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, note }),
+    });
+  }
+
+  async getBlameChain(id) {
+    return this.request(`/decisions/${id}/blame-chain`);
+  }
+
   // Notification methods
   async getNotifications(limit = 50) {
     return this.request(`/notifications?limit=${limit}`);

@@ -634,14 +634,17 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                           {fmt(u.followerCount)} followers
                         </div>
                       ) : null}
-                      <button onClick={() => toggleFollow(u.id)}
-                        style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: `1px solid ${isFollowed ? 'oklch(88% 0.008 260)' : 'oklch(52% 0.2 260)'}`, background: isFollowed ? 'white' : 'oklch(52% 0.2 260)', color: isFollowed ? 'oklch(44% 0.01 260)' : 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.14s', marginBottom: 6 }}>
-                        {isFollowed ? 'Following' : 'Follow'}
-                      </button>
-                      {onMessage && (
-                        <button onClick={() => onMessage(u.id)}
-                          style={{ width: '100%', padding: '5px 0', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(42% 0.2 260)', fontSize: 11.5, fontWeight: 500, cursor: 'pointer' }}>
-                          Message
+                      {isFollowed ? (
+                        onMessage && (
+                          <button onClick={() => onMessage(u.id)}
+                            style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(42% 0.2 260)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                            Message
+                          </button>
+                        )
+                      ) : (
+                        <button onClick={() => toggleFollow(u.id)}
+                          style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid oklch(52% 0.2 260)', background: 'oklch(52% 0.2 260)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.14s' }}>
+                          Follow
                         </button>
                       )}
                     </div>

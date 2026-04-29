@@ -529,7 +529,7 @@ function GitGraph({ commits, branches = [] }) {
   const COL = { main: 0, ...Object.fromEntries(otherBranches.map((b, i) => [b, i + 1])) };
   const mergedSet = new Set(branches.filter(b => b.merged).map(b => b.name));
   const COLORS = BRANCH_COLORS;
-  const CW = 22, RH = 70;
+  const CW = 22, RH = 90;
   const totalCols = 1 + otherBranches.length;
   const svgW = CW * Math.max(totalCols, 1) + 4;
 
@@ -559,8 +559,8 @@ function GitGraph({ commits, branches = [] }) {
         const hasBelowSame    = c.wi && !!nextSame;
 
         return (
-          <div key={c.id} style={{ display: 'flex', alignItems: 'stretch' }}>
-            <svg width={svgW} height={RH} style={{ flexShrink: 0, display: 'block' }}>
+          <div key={c.id} style={{ display: 'flex', alignItems: 'stretch', minHeight: RH }}>
+            <svg width={svgW} viewBox={`0 0 ${svgW} ${RH}`} preserveAspectRatio="xMidYMin slice" style={{ flexShrink: 0, display: 'block', width: svgW, height: '100%', minHeight: RH }}>
               {/* Main branch vertical line */}
               <line x1={mainX} y1={0} x2={mainX} y2={RH} stroke="oklch(52% 0.2 260)" strokeWidth={2} />
 
@@ -621,8 +621,8 @@ function GitGraph({ commits, branches = [] }) {
                 <circle cx={cx} cy={midY} r={6} fill={color} stroke="white" strokeWidth={2} />
               )}
             </svg>
-            <div style={{ flex: 1, height: RH, padding: `${(RH - 52) / 2}px 0 ${(RH - 52) / 2}px 14px`, borderBottom: i < commits.length - 1 ? '1px solid oklch(96% 0.004 80)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, overflow: 'hidden', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.message}</span>
+            <div style={{ flex: 1, padding: '12px 0 12px 14px', borderBottom: i < commits.length - 1 ? '1px solid oklch(96% 0.004 80)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)' }}>{c.message}</span>
               <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
                 <Tag cat={c.category} />

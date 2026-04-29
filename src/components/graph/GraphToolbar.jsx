@@ -8,7 +8,7 @@ const pill = (active) => ({
   boxShadow: active ? 'none' : 'inset 0 0 0 1px oklch(88% 0.008 260)',
 });
 
-export default function GraphToolbar({ mode, onModeChange, loadBearingOnly, onLoadBearingToggle }) {
+export default function GraphToolbar({ mode, onModeChange, loadBearingOnly, onLoadBearingToggle, onTidy }) {
   const { fitView } = useReactFlow();
 
   return (
@@ -35,6 +35,17 @@ export default function GraphToolbar({ mode, onModeChange, loadBearingOnly, onLo
         title="Show only load-bearing decisions (3+ dependents)"
       >
         ◈ Load-bearing
+      </button>
+
+      <div style={{ width: 1, height: 20, background: 'oklch(90% 0.005 260)' }} />
+
+      {/* Tidy layout */}
+      <button
+        style={{ ...pill(false), fontSize: 11.5 }}
+        onClick={onTidy}
+        title="Arrange connected nodes by causal depth"
+      >
+        ✦ Tidy up
       </button>
 
       <div style={{ width: 1, height: 20, background: 'oklch(90% 0.005 260)' }} />

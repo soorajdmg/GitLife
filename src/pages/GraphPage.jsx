@@ -19,6 +19,95 @@ const EDGE_TYPES = { decisionEdge: DecisionEdge };
 const COLUMN_GAP = 290;
 const ROW_GAP = 170;
 
+// Tidy layout: places nodes by DAG depth (topological levels) while keeping
+// branch-column grouping for unconnected nodes.
+function tidyLayout(decisions) {
+  const idMap = {};
+  decisions.forEach(d => { idMap[d.id] = d; });
+
+  // Build adjacency: children[id] = ids that list id in their influencedBy
+  const children = {};   // id → [ids that depend on it]
+  const parents  = {};   // id → [ids it was influenced by]
+  decisions.forEach(d => {
+    children[d.id] = children[d.id] || [];
+    parents[d.id]  = parents[d.id]  || [];
+    (d.influencedBy || []).forEach(link => {
+      children[link.decisionId] = children[link.decisionId] || [];
+      children[link.decisionId].push(d.id);
+      parents[d.id].push(link.decisionId);
+    });
+  });
+
+  // Find nodes that are part of any edge
+  const connected = new Set();
+  decisions.forEach(d => {
+    if ((d.influencedBy || []).length > 0) {
+      connected.add(d.id);
+      d.influencedBy.forEach(l => connected.add(l.decisionId));
+    }
+  });
+
+  // Kahn's algorithm → assign depth level to each connected node
+  const depth = {};
+  const inDeg  = {};
+  decisions.forEach(d => { inDeg[d.id] = (parents[d.id] || []).length; });
+
+  const queue = decisions.filter(d => connected.has(d.id) && inDeg[d.id] === 0).map(d => d.id);
+  queue.forEach(id => { depth[id] = 0; });
+
+  while (queue.length > 0) {
+    const id = queue.shift();
+    (children[id] || []).forEach(cid => {
+      depth[cid] = Math.max(depth[cid] ?? 0, (depth[id] ?? 0) + 1);
+      inDeg[cid]--;
+      if (inDeg[cid] === 0) queue.push(cid);
+    });
+  }
+
+  // Group connected nodes by level, then assign x within each level
+  const byLevel = {};
+  connected.forEach(id => {
+    const lvl = depth[id] ?? 0;
+    byLevel[lvl] = byLevel[lvl] || [];
+    byLevel[lvl].push(id);
+  });
+
+  const NODE_W = 260;  // approximate node width for spacing
+  const positions = {};
+
+  Object.entries(byLevel).forEach(([lvl, ids]) => {
+    const y = Number(lvl) * ROW_GAP;
+    const totalW = ids.length * NODE_W;
+    ids.forEach((id, i) => {
+      positions[id] = { x: i * NODE_W - totalW / 2 + NODE_W / 2, y };
+    });
+  });
+
+  // Unconnected nodes: keep branch-column layout below the DAG
+  const MAIN_BRANCH = 'main';
+  const branches = [...new Set(decisions.map(d => d.branch_name))].sort();
+  const otherBranches = branches.filter(b => b !== MAIN_BRANCH);
+  const branchCol = { [MAIN_BRANCH]: 0 };
+  otherBranches.forEach((b, i) => {
+    branchCol[b] = (i % 2 === 0 ? 1 : -1) * (Math.floor(i / 2) + 1);
+  });
+
+  const maxDAGY = Object.keys(byLevel).length > 0
+    ? (Math.max(...Object.keys(byLevel).map(Number)) + 2) * ROW_GAP
+    : 0;
+
+  const branchRowCounter = {};
+  decisions.forEach(d => {
+    if (connected.has(d.id)) return;
+    const col = branchCol[d.branch_name] ?? 0;
+    branchRowCounter[d.branch_name] = branchRowCounter[d.branch_name] || 0;
+    positions[d.id] = { x: col * COLUMN_GAP, y: maxDAGY + branchRowCounter[d.branch_name] * ROW_GAP };
+    branchRowCounter[d.branch_name]++;
+  });
+
+  return positions;
+}
+
 function buildLayout(decisions, savedPositions) {
   const byBranch = {};
   decisions.forEach(d => {
@@ -262,6 +351,18 @@ function GraphCanvas({ decisions, currentUser }) {
     savePosition(userId, node.id, node.position);
   }, [userId]);
 
+  const handleTidy = useCallback(() => {
+    const positions = tidyLayout(decisions);
+    setNodes(prev => prev.map(n => ({
+      ...n,
+      position: positions[n.id] ?? n.position,
+    })));
+    // Persist tidy positions
+    Object.entries(positions).forEach(([id, pos]) => savePosition(userId, id, pos));
+    // Fit view after a brief paint delay
+    setTimeout(() => fitView({ padding: 0.15, duration: 500 }), 60);
+  }, [decisions, userId, fitView]);
+
   // Handle node clicks — two modes: normal select vs connect-mode pick
   const handleNodeClick = useCallback((_, node) => {
     if (connectSourceId) {
@@ -394,6 +495,7 @@ function GraphCanvas({ decisions, currentUser }) {
           onModeChange={setMode}
           loadBearingOnly={loadBearingOnly}
           onLoadBearingToggle={() => setLoadBearingOnly(v => !v)}
+          onTidy={handleTidy}
         />
       </ReactFlow>
 

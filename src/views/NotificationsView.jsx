@@ -44,15 +44,19 @@ function notifMessage(n) {
   }
 }
 
+const PAGE_SIZE = 10;
+
 export default function NotificationsView() {
   const queryClient = useQueryClient();
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const { data: notifs = [], isLoading: loading } = useQuery({
     queryKey: QUERY_KEYS.notifications,
-    queryFn: () => api.getNotifications(),
+    queryFn: () => api.getNotifications(50),
     staleTime: 60_000,
   });
 
   const unreadCount = notifs.filter(n => !n.read).length;
+  const shown = notifs.slice(0, visible);
 
   const markAllRead = async () => {
     queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) =>
@@ -92,7 +96,7 @@ export default function NotificationsView() {
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'oklch(62% 0.01 260)', fontSize: 13 }}>No notifications yet</div>
         )}
 
-        {notifs.map(n => {
+        {shown.map(n => {
           const senderName = n.sender?.fullName || n.sender?.username || '?';
           const color = avatarColor(n.senderId);
           const ini = initials(senderName);
@@ -128,6 +132,15 @@ export default function NotificationsView() {
             </div>
           );
         })}
+
+        {visible < notifs.length && (
+          <button
+            onClick={() => setVisible(v => v + PAGE_SIZE)}
+            style={{ display: 'block', width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 500, color: 'oklch(42% 0.2 260)', background: 'none', border: '1px solid oklch(90% 0.006 260)', borderRadius: 10, cursor: 'pointer', marginTop: 4 }}
+          >
+            Load more
+          </button>
+        )}
       </div>
     </div>
   );

@@ -172,14 +172,50 @@ function notifDropdownMessage(n) {
   }
 }
 
-function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobile }) {
+/* ─── group flat notification list by type ─── */
+function groupNotifs(notifs) {
+  const order = ['follow', 'fork', 'merge', 'support', 'comment', 'reply'];
+  const map = {};
+  for (const n of notifs) {
+    if (!map[n.type]) map[n.type] = [];
+    map[n.type].push(n);
+  }
+  return order.filter(t => map[t]).map(type => {
+    const items = map[type];
+    const hasUnread = items.some(n => !n.read);
+    const latest = items.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+    return { type, items, hasUnread, latest, count: items.length };
+  });
+}
+
+function groupLabel(type, count, latestSenderName, username, onProfile, onClose, markRead) {
+  const name = latestSenderName || 'Someone';
+  const others = count - 1;
+  const tail = others === 1 ? ' and 1 other' : others > 1 ? ` and ${others} others` : '';
+  const actions = { follow: 'started following you', fork: 'forked your commit', merge: 'merged your commit', support: 'supported your commit', comment: 'commented on your commit', reply: 'replied to your comment' };
+  const action = actions[type] || 'interacted with you';
+  const nameEl = (onProfile && username)
+    ? <span
+        onClick={e => { e.stopPropagation(); markRead(); onClose(); onProfile(username); }}
+        style={{ fontWeight: 600, color: 'oklch(22% 0.015 260)', cursor: 'pointer' }}
+        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+      >{name}</span>
+    : <span style={{ fontWeight: 600 }}>{name}</span>;
+  return <>{nameEl}{tail} {action}</>;
+}
+
+function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
   const queryClient = useQueryClient();
   const { data: notifs = [], isLoading: loading } = useQuery({
     queryKey: QUERY_KEYS.notifications,
-    queryFn: () => api.getNotifications(20),
+    queryFn: () => api.getNotifications(100),
     staleTime: 60_000,
   });
   const ref = useRef();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -189,11 +225,11 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobil
 
   useEffect(() => {
     const handler = e => {
-      if (ref.current && !ref.current.contains(e.target) && !(triggerRef?.current && triggerRef.current.contains(e.target))) onClose();
+      if (ref.current && !ref.current.contains(e.target)) onCloseRef.current();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [onClose, triggerRef]);
+  }, []);
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
@@ -201,6 +237,16 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobil
     queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) => old.map(n => ({ ...n, read: true })));
     onNotifsLoaded?.(0);
     await api.markAllNotifsRead().catch(() => {});
+  };
+
+  const markGroupRead = async (ids) => {
+    queryClient.setQueryData(QUERY_KEYS.notifications, (old = []) => {
+      const idSet = new Set(ids);
+      const updated = old.map(n => idSet.has(n.id) ? { ...n, read: true } : n);
+      onNotifsLoaded?.(updated.filter(n => !n.read).length);
+      return updated;
+    });
+    await Promise.all(ids.map(id => api.markNotifRead(id).catch(() => {})));
   };
 
   const markOneRead = async (id) => {
@@ -212,8 +258,11 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobil
     await api.markNotifRead(id).catch(() => {});
   };
 
+  const groups = groupNotifs(notifs);
+  const recentTen = notifs.slice(0, 10);
+
   return (
-    <div ref={ref} style={{
+    <div ref={ref} onMouseDown={e => e.stopPropagation()} style={{
       position: 'absolute',
       top: 44,
       right: isMobile ? -8 : 0,
@@ -226,51 +275,129 @@ function NotifDropdown({ onClose, triggerRef, onNotifsLoaded, onProfile, isMobil
       zIndex: 200,
       overflow: 'hidden',
     }}>
+      {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px', borderBottom: '1px solid oklch(94% 0.004 80)' }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>Notifications</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {showAll && (
+            <button onClick={() => setShowAll(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'oklch(48% 0.01 260)' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="10 4 6 8 10 12" /></svg>
+            </button>
+          )}
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>{showAll ? 'Recent Notifications' : 'Notifications'}</div>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {unreadCount > 0 && <span style={{ fontSize: 11.5, color: 'oklch(42% 0.2 260)', fontWeight: 500 }}>{unreadCount} unread</span>}
           {unreadCount > 0 && <button onClick={markAllRead} style={{ fontSize: 11.5, fontWeight: 500, color: 'oklch(42% 0.2 260)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Mark all read</button>}
         </div>
       </div>
-      <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+
+      {/* grouped rows or flat recent-10 view */}
+      <div style={{ maxHeight: showAll ? 480 : 400, overflowY: 'auto' }}>
         {loading && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>Loading…</div>}
-        {!loading && notifs.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>No notifications yet</div>}
-        {notifs.map(n => {
+
+        {!loading && !showAll && groups.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>No notifications yet</div>}
+        {!loading && showAll && recentTen.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>No notifications yet</div>}
+
+        {/* Grouped view (default) */}
+        {!showAll && groups.map(({ type, items, hasUnread, latest, count }) => {
+          const senderName = latest.sender?.fullName || latest.sender?.username || '?';
+          const color = notifAvatarColor(latest.senderId);
+          const ini = notifInitials(senderName);
+          const unreadIds = items.filter(n => !n.read).map(n => n.id);
+          return (
+            <div key={type}
+              onClick={() => { if (unreadIds.length) markGroupRead(unreadIds); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 16px', background: hasUnread ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: unreadIds.length ? 'pointer' : 'default', transition: 'background 0.12s' }}
+              onMouseEnter={e => e.currentTarget.style.background = hasUnread ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
+              onMouseLeave={e => e.currentTarget.style.background = hasUnread ? 'oklch(96.5% 0.012 260)' : 'white'}>
+
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div
+                  style={{ cursor: onProfile && latest.sender?.username ? 'pointer' : 'default' }}
+                  onClick={e => { if (onProfile && latest.sender?.username) { e.stopPropagation(); if (unreadIds.length) markGroupRead(unreadIds); onClose(); onProfile(latest.sender.username); } }}
+                >
+                  {latest.sender?.avatarUrl
+                    ? <img src={latest.sender.avatarUrl} alt={senderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                    : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
+                  }
+                </div>
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[type] || 'oklch(93% 0.05 260)', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[type] || '●'}</div>
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, lineHeight: 1.4, color: 'oklch(44% 0.01 260)' }}>
+                  {groupLabel(type, count, senderName, latest.sender?.username, onProfile, onClose, () => { if (unreadIds.length) markGroupRead(unreadIds); })}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 2 }}>{formatRelativeTime(latest.createdAt)}</div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {count > 1 && (
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: NOTIF_TYPE_FG[type] || 'oklch(42% 0.2 260)', background: NOTIF_TYPE_BG[type] || 'oklch(93% 0.05 260)', borderRadius: 10, padding: '1px 7px' }}>{count}</span>
+                )}
+                {hasUnread && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(52% 0.2 260)' }} />}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Flat recent-10 view */}
+        {showAll && recentTen.map(n => {
           const senderName = n.sender?.fullName || n.sender?.username || '?';
           const color = notifAvatarColor(n.senderId);
           const ini = notifInitials(senderName);
           return (
-            <div key={n.id} onClick={() => markOneRead(n.id)}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: 'pointer', transition: 'background 0.12s' }}
+            <div key={n.id}
+              onClick={() => markOneRead(n.id)}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: 'pointer', transition: 'background 0.12s' }}
               onMouseEnter={e => e.currentTarget.style.background = !n.read ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
               onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'}>
-              <div
-                style={{ position: 'relative', flexShrink: 0, cursor: onProfile && n.senderId ? 'pointer' : 'default' }}
-                onClick={e => { if (onProfile && n.sender?.username) { e.stopPropagation(); markOneRead(n.id); onClose(); onProfile(n.sender.username); } }}
-              >
-                {n.sender?.avatarUrl
-                  ? <img src={n.sender.avatarUrl} alt={senderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
-                  : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
-                }
+
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div
+                  style={{ cursor: onProfile && n.sender?.username ? 'pointer' : 'default' }}
+                  onClick={e => { if (onProfile && n.sender?.username) { e.stopPropagation(); markOneRead(n.id); onClose(); onProfile(n.sender.username); } }}
+                >
+                  {n.sender?.avatarUrl
+                    ? <img src={n.sender.avatarUrl} alt={senderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                    : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
+                  }
+                </div>
                 <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[n.type] || 'oklch(93% 0.05 260)', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[n.type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[n.type] || '●'}</div>
               </div>
+
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, lineHeight: 1.4, marginBottom: (n.decisionText || n.commentText) ? 4 : 0, color: 'oklch(44% 0.01 260)' }}>
-                  {notifDropdownMessage(n)}
-                </div>
-                {(n.commentText || n.decisionText) && (
-                  <div style={{ fontSize: 11.5, color: 'oklch(48% 0.01 260)', background: 'oklch(96% 0.006 80)', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginBottom: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    "{n.commentText || n.decisionText}"
+                <div style={{ fontSize: 13, lineHeight: 1.4, color: 'oklch(44% 0.01 260)' }}>{notifDropdownMessage(n)}</div>
+                {n.commentText && (
+                  <div style={{ fontSize: 11.5, color: 'oklch(52% 0.01 260)', background: 'oklch(96% 0.006 80)', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginTop: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    "{n.commentText}"
                   </div>
                 )}
-                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 2 }}>{formatRelativeTime(n.createdAt)}</div>
+                {!n.commentText && n.decisionText && (
+                  <div style={{ fontSize: 11.5, color: 'oklch(52% 0.01 260)', background: 'oklch(96% 0.006 80)', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginTop: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    "{n.decisionText}"
+                  </div>
+                )}
+                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</div>
               </div>
-              {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(52% 0.2 260)', flexShrink: 0, marginTop: 5 }} />}
+
+              {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(52% 0.2 260)', flexShrink: 0, marginTop: 4 }} />}
             </div>
           );
         })}
       </div>
+
+      {/* footer */}
+      {!loading && notifs.length > 0 && !showAll && (
+        <div style={{ borderTop: '1px solid oklch(94% 0.004 80)', padding: '10px 16px', textAlign: 'center' }}>
+          <button
+            onClick={() => setShowAll(true)}
+            style={{ fontSize: 12.5, fontWeight: 500, color: 'oklch(42% 0.2 260)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            See all notifications
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -465,7 +592,6 @@ export default function App() {
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const [sidebarFollowing, setSidebarFollowing] = useState([]);
   const [stashedIds, setStashedIds] = useState([]);
-  const bellRef = useRef();
   const unreadConvIdsRef = useRef(new Set());
   const settingsSaveRef = useRef(null); // set by SettingsView
   const [settingsHasChanges, setSettingsHasChanges] = useState(false);
@@ -490,6 +616,9 @@ export default function App() {
     if (username) navigate(`/${username}`);
     else navigate('/profile');
   };
+
+  // Close notif dropdown on navigation
+  useEffect(() => { setNotifOpen(false); }, [pathname]);
 
   // Unread notif count
   const { data: unreadNotifData } = useQuery({
@@ -673,14 +802,14 @@ export default function App() {
   /* ── Bell icon (shared) ── */
   const bellIcon = (
     <div style={{ position: 'relative' }}>
-      <div ref={bellRef} onClick={() => setNotifOpen(p => !p)}
+      <div onMouseDown={e => { e.stopPropagation(); setNotifOpen(p => !p); }}
         style={{ width: 32, height: 32, borderRadius: 8, background: notifOpen ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: notifOpen ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z" /><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" /></svg>
       </div>
       {unreadNotifCount > 0 && !notifOpen && (
         <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
       )}
-      {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} triggerRef={bellRef} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} isMobile={isMobile} />}
+      {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} isMobile={isMobile} />}
     </div>
   );
 
@@ -868,6 +997,7 @@ export default function App() {
             <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/graph" element={<GraphPage currentUser={user} />} />
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
+            <Route path="/notifications" element={<NotificationsView />} />
             <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
           </Routes>

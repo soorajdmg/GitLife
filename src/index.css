@@ -35,6 +35,12 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
   ::-webkit-scrollbar { width: 3px; height: 3px; }
 }
 
+
+/* Feed category pills — sticky on desktop, scrolls on mobile */
+@media (min-width: 769px) {
+  .feed-filter-bar { position: sticky; top: 0; z-index: 10; }
+}
+
 /* ─── Large screen CSS custom properties ─── */
 :root {
   --sidebar-width: 230px;

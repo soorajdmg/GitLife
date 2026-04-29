@@ -61,20 +61,19 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Filter bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px clamp(16px, 2.5vw, 40px)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['All', ...CATEGORIES].map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              style={{ padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, border: `1px solid ${filter === f ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.008 260)'}`, background: filter === f ? 'oklch(52% 0.2 260)' : 'white', color: filter === f ? 'white' : 'oklch(48% 0.01 260)', transition: 'all 0.12s', cursor: 'pointer' }}>
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Feed */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Filter bar — sticky on desktop, scrolls with content on mobile */}
+        <div className="feed-filter-bar" style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px clamp(16px, 2.5vw, 40px)' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['All', ...CATEGORIES].map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                style={{ padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, border: `1px solid ${filter === f ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.008 260)'}`, background: filter === f ? 'oklch(52% 0.2 260)' : 'white', color: filter === f ? 'white' : 'oklch(48% 0.01 260)', transition: 'all 0.12s', cursor: 'pointer' }}>
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '20px 16px 80px' }}>
           {loading ? (
             [1, 2, 3].map(i => (

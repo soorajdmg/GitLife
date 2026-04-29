@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/gitlife';
 import CommitCard from '../components/ui/CommitCard';
 
@@ -42,6 +43,10 @@ function mapToCard(d) {
 export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onDelete, onNew, compact, loading, currentUser, openMessage, onProfile, hideFab }) {
   const [filter, setFilter] = useState('All');
   const seenRef = useRef(new Set());
+  const [searchParams] = useSearchParams();
+  const targetPostId = searchParams.get('post') || null;
+  const [highlightId, setHighlightId] = useState(targetPostId);
+  const scrolledRef = useRef(false);
 
   const following = (feedData.following || []).map(mapToCard);
   const trending = (feedData.trending || []).map(mapToCard);
@@ -51,6 +56,18 @@ export default function FeedView({ feedData = { following: [], trending: [], has
     following.forEach(c => seenRef.current.add(c.id));
     trending.forEach(c => seenRef.current.add(c.id));
   }, [following.length, trending.length]);
+
+  // Scroll to + highlight the target post once data is loaded
+  useEffect(() => {
+    if (!targetPostId || loading || scrolledRef.current) return;
+    const el = document.getElementById(`post-${targetPostId}`);
+    if (!el) return;
+    scrolledRef.current = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Clear highlight after 2s
+    const t = setTimeout(() => setHighlightId(null), 2000);
+    return () => clearTimeout(t);
+  }, [targetPostId, loading, following.length, trending.length]);
 
   const applyFilter = list => filter === 'All' ? list : list.filter(c => c.category === filter);
   const shownFollowing = applyFilter(following);
@@ -92,7 +109,9 @@ export default function FeedView({ feedData = { following: [], trending: [], has
             <>
               {/* Following posts */}
               {shownFollowing.map(c => (
-                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
+                <div key={c.id} id={`post-${c.id}`} style={{ borderRadius: 14, transition: 'box-shadow 0.4s', boxShadow: highlightId === c.id ? '0 0 0 2px oklch(52% 0.2 260), 0 4px 24px oklch(52% 0.2 260 / 0.18)' : 'none' }}>
+                  <CommitCard c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
+                </div>
               ))}
 
               {/* Divider: All caught up / Trending */}
@@ -112,7 +131,9 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
               {/* Trending posts */}
               {shownTrending.map(c => (
-                <CommitCard key={c.id} c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
+                <div key={c.id} id={`post-${c.id}`} style={{ borderRadius: 14, transition: 'box-shadow 0.4s', boxShadow: highlightId === c.id ? '0 0 0 2px oklch(52% 0.2 260), 0 4px 24px oklch(52% 0.2 260 / 0.18)' : 'none' }}>
+                  <CommitCard c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
+                </div>
               ))}
 
               {/* No following + trending exists: label it */}

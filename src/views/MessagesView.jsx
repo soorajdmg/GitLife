@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -179,7 +179,7 @@ function NewChatModal({ onClose, onStart, currentUserId }) {
 
 // ─── Message bubble group ─────────────────────────────────────────────────────
 
-function MessageGroup({ group, isMe, readByOther, isMobile }) {
+function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick }) {
   return (
     <div style={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: 6 }}>
       {!isMe && (
@@ -189,9 +189,14 @@ function MessageGroup({ group, isMe, readByOther, isMobile }) {
         {group.messages.map((msg, mi) => (
           <div key={msg.id}>
             {msg.sharedCommit && (
-              <div style={{ background: 'white', border: '1px solid oklch(88% 0.008 260)', borderRadius: 10, padding: '10px 12px', marginBottom: 4 }}>
-                <div style={{ fontSize: 10, color: 'oklch(58% 0.01 260)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span>⎇</span> Shared commit
+              <div
+                onClick={() => onCommitClick?.(msg.sharedCommit.id)}
+                style={{ background: 'white', border: '1px solid oklch(88% 0.008 260)', borderRadius: 10, padding: '10px 12px', marginBottom: 4, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 260)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'white'}
+              >
+                <div style={{ fontSize: 10, color: 'oklch(52% 0.2 260)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>⎇</span> Shared commit · <span style={{ fontWeight: 400, color: 'oklch(58% 0.01 260)' }}>tap to view</span>
                 </div>
                 <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 4, color: 'oklch(18% 0.015 260)' }}>{msg.sharedCommit.message}</div>
                 <BranchPill name={msg.sharedCommit.branch} wi={false} merged={false} />
@@ -344,6 +349,7 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobi
 
 export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialUserId = searchParams.get('user') || null;
   const initialCommitId = searchParams.get('commitId') || null;
   const initialCommitMsg = searchParams.get('commitMsg') || null;
@@ -832,7 +838,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
                 const lastMsg = group.messages[group.messages.length - 1];
                 const readByOther = isMe && lastMsg?.readBy?.includes(otherUser?.id);
                 return (
-                  <MessageGroup key={gi} group={group} isMe={isMe} readByOther={readByOther} isMobile={isMobile} />
+                  <MessageGroup key={gi} group={group} isMe={isMe} readByOther={readByOther} isMobile={isMobile} onCommitClick={id => navigate(`/feed?post=${id}`)} />
                 );
               })}
 

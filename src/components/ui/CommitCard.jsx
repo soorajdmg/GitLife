@@ -7,6 +7,118 @@ import CommentThread from './CommentThread';
 import BlameBadge from './BlameBadge';
 import { api } from '../../config/api';
 
+function SendCommitDMModal({ commit, currentUserId, onClose, onSend }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    api.searchUsers('', 12).then(data => {
+      const arr = Array.isArray(data) ? data : (data.users || []);
+      setResults(arr.filter(u => u.id !== currentUserId));
+    }).catch(() => {});
+  }, [currentUserId]);
+
+  useEffect(() => {
+    clearTimeout(timerRef.current);
+    if (!query.trim()) {
+      api.searchUsers('', 12).then(data => {
+        const arr = Array.isArray(data) ? data : (data.users || []);
+        setResults(arr.filter(u => u.id !== currentUserId));
+      }).catch(() => setResults([]));
+      return;
+    }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await api.searchUsers(query, 10);
+        const arr = Array.isArray(data) ? data : (data.users || []);
+        setResults(arr.filter(u => u.id !== currentUserId));
+      } catch { setResults([]); }
+      setLoading(false);
+    }, 280);
+    return () => clearTimeout(timerRef.current);
+  }, [query, currentUserId]);
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'oklch(20% 0.03 260 / 0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}
+    >
+      <div style={{ background: 'white', borderRadius: 16, width: 400, maxHeight: 520, display: 'flex', flexDirection: 'column', boxShadow: '0 8px 48px oklch(25% 0.05 260 / 0.18)', border: '1px solid oklch(91% 0.006 80)' }}>
+        {/* Header */}
+        <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid oklch(93% 0.004 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>Send commit in DM</div>
+          <button onClick={onClose} style={{ border: 'none', background: 'oklch(95% 0.006 80)', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(48% 0.01 260)', fontSize: 14 }}>✕</button>
+        </div>
+
+        {/* Commit preview */}
+        <div style={{ padding: '10px 18px', borderBottom: '1px solid oklch(94% 0.004 80)', background: 'oklch(97.5% 0.01 260)' }}>
+          <div style={{ fontSize: 10, color: 'oklch(52% 0.2 260)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>⎇</span> Sharing commit
+          </div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'oklch(18% 0.015 260)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{commit.message}</div>
+          <BranchPill name={commit.branch} wi={false} merged={false} />
+        </div>
+
+        {/* Search */}
+        <div style={{ padding: '10px 18px', borderBottom: '1px solid oklch(94% 0.004 80)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'oklch(97.5% 0.006 260)', border: '1px solid oklch(90% 0.008 260)', borderRadius: 10, padding: '8px 12px' }}
+            onFocusCapture={e => e.currentTarget.style.border = '1px solid oklch(72% 0.12 260)'}
+            onBlurCapture={e => e.currentTarget.style.border = '1px solid oklch(90% 0.008 260)'}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="oklch(58% 0.01 260)" strokeWidth="1.6" strokeLinecap="round"><circle cx="6" cy="6" r="4" /><line x1="9.5" y1="9.5" x2="12.5" y2="12.5" /></svg>
+            <input
+              ref={inputRef}
+              autoFocus
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search by name or @username…"
+              style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)' }}
+            />
+            {query && <button onClick={() => setQuery('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: 'oklch(60% 0.01 260)', fontSize: 13 }}>✕</button>}
+          </div>
+        </div>
+
+        {/* Results */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {!query.trim() && results.length > 0 && (
+            <div style={{ padding: '8px 18px 4px', fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)' }}>Suggested</div>
+          )}
+          {loading && <div style={{ padding: '20px 18px', fontSize: 13, color: 'oklch(60% 0.01 260)', textAlign: 'center' }}>Searching…</div>}
+          {!loading && results.length === 0 && query.trim() && (
+            <div style={{ padding: '28px 18px', textAlign: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'oklch(35% 0.01 260)', marginBottom: 4 }}>No users found</div>
+              <div style={{ fontSize: 12, color: 'oklch(60% 0.01 260)' }}>Try a different name or username</div>
+            </div>
+          )}
+          {!loading && results.map(u => {
+            const ini = (u.fullName || u.username || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <div
+                key={u.id}
+                onClick={() => onSend(u)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: '1px solid oklch(96.5% 0.003 80)', transition: 'background 0.1s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'oklch(96.5% 0.01 260)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'white'}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0, overflow: 'hidden' }}>
+                  {u.avatarUrl ? <img src={u.avatarUrl} alt={ini} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : ini}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.username}</div>
+                  <div style={{ fontSize: 11.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{u.username}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function renderMentions(text, onProfile) {
   if (!text || !onProfile) return text;
   const parts = text.split(/(@[\w.]+)/g);
@@ -62,6 +174,7 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
   const [localCommentCount, setLocalCommentCount] = useState(c.commentCount ?? 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [dmModalOpen, setDmModalOpen] = useState(false);
   const menuRef = useRef();
   const [blameStatus, setBlameStatus] = useState(c.blameStatus || null);
   const [blameFormOpen, setBlameFormOpen] = useState(false);
@@ -71,9 +184,12 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
   const handleCountChange = (delta) => setLocalCommentCount(p => Math.max(0, p + delta));
 
   const handleShare = () => {
-    if (!isOwnPost && openMessage && c.userId) {
-      openMessage(c.userId, { id: c.id, message: c.message, branch: c.branch });
-    }
+    if (!isOwnPost && openMessage) setDmModalOpen(true);
+  };
+
+  const handleDMSend = (targetUser) => {
+    setDmModalOpen(false);
+    openMessage(targetUser.id, { id: c.id, message: c.message, branch: c.branch });
   };
 
   const handleBlameStatus = async (status) => {
@@ -288,6 +404,16 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
           initialCount={localCommentCount}
           onCountChange={handleCountChange}
           onProfile={onProfile}
+        />
+      )}
+
+      {/* DM recipient picker */}
+      {dmModalOpen && (
+        <SendCommitDMModal
+          commit={{ id: c.id, message: c.message, branch: c.branch }}
+          currentUserId={currentUser?.id || currentUser?._id}
+          onClose={() => setDmModalOpen(false)}
+          onSend={handleDMSend}
         />
       )}
     </div>

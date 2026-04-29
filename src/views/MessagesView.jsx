@@ -345,6 +345,9 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobi
 export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }) {
   const [searchParams] = useSearchParams();
   const initialUserId = searchParams.get('user') || null;
+  const initialCommitId = searchParams.get('commitId') || null;
+  const initialCommitMsg = searchParams.get('commitMsg') || null;
+  const initialCommitBranch = searchParams.get('commitBranch') || null;
   const { user } = useAuth();
   const socket = useSocket();
 
@@ -357,6 +360,10 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasMore, setHasMore] = useState(false);
+  // Commit shared via "Send in DM" — pre-populated from URL params
+  const [pendingCommit, setPendingCommit] = useState(
+    initialCommitId ? { id: initialCommitId, message: initialCommitMsg, branch: initialCommitBranch } : null
+  );
   // Mobile: track which pane is visible ('list' or 'chat')
   const [mobilePane, setMobilePane] = useState('list');
   const switchPane = useCallback((pane) => {
@@ -555,13 +562,18 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
   const activeConvIdRef = useRef(activeConvId);
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
 
+  const pendingCommitRef = useRef(pendingCommit);
+  useEffect(() => { pendingCommitRef.current = pendingCommit; }, [pendingCommit]);
+
   const send = useCallback(async () => {
     const text = (inputRef.current?.value ?? inputValueRef.current).trim();
     const convId = activeConvIdRef.current;
-    if (!text || !convId || sendingRef.current) return;
+    const sharedCommit = pendingCommitRef.current || undefined;
+    if ((!text && !sharedCommit) || !convId || sendingRef.current) return;
     inputValueRef.current = '';
     if (inputRef.current) inputRef.current.value = '';
     setInput('');
+    setPendingCommit(null);
     sendingRef.current = true;
     setSending(true);
 
@@ -578,6 +590,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
       conversationId: convId,
       senderId: user.id,
       text,
+      sharedCommit: sharedCommit || null,
       readBy: [user.id],
       createdAt: new Date().toISOString(),
       _optimistic: true,
@@ -593,9 +606,9 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
 
     // Fire-and-forget via socket — server acks instantly, reconciles via message_saved/message_failed events
     // Fall back to REST only if socket fails (disconnected etc.)
-    socket?.sendMessage({ conversationId: convId, text, participants }).catch(async () => {
+    socket?.sendMessage({ conversationId: convId, text, sharedCommit, participants }).catch(async () => {
       try {
-        const res = await api.sendMessageREST(convId, text);
+        const res = await api.sendMessageREST(convId, text, sharedCommit);
         if (res?.message) {
           setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));
         }
@@ -844,7 +857,25 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
             </div>
 
             {/* Input */}
-            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', paddingBottom: isMobile ? 'max(10px, env(safe-area-inset-bottom, 10px))' : '14px', borderTop: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ flexShrink: 0, padding: isMobile ? '10px 12px' : '14px 20px', paddingBottom: isMobile ? 'max(10px, env(safe-area-inset-bottom, 10px))' : '14px', borderTop: '1px solid oklch(91% 0.006 80)', background: 'white', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Pending shared commit preview */}
+              {pendingCommit && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', background: 'oklch(97% 0.012 260)', border: '1px solid oklch(88% 0.015 260)', borderRadius: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 10, color: 'oklch(52% 0.2 260)', fontWeight: 600, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>⎇</span> Sharing commit
+                    </div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{pendingCommit.message}</div>
+                    <BranchPill name={pendingCommit.branch} wi={false} merged={false} />
+                  </div>
+                  <button
+                    onClick={() => setPendingCommit(null)}
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, color: 'oklch(55% 0.01 260)', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
+                    ✕
+                  </button>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <div style={{ flex: 1, border: '1px solid oklch(88% 0.008 260)', borderRadius: 22, padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'oklch(98.5% 0.005 80)' }}>
                 <input
                   ref={inputRef}
@@ -862,9 +893,9 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
                 onClick={send}
                 style={{
                   width: 38, height: 38, borderRadius: '50%', border: 'none',
-                  background: input.trim() ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',
+                  background: (input.trim() || pendingCommit) ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.005 260)',
                   color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: input.trim() ? 'pointer' : 'default', flexShrink: 0,
+                  cursor: (input.trim() || pendingCommit) ? 'pointer' : 'default', flexShrink: 0,
                   transition: 'background 0.15s',
                   WebkitTapHighlightColor: 'transparent',
                   touchAction: 'manipulation',
@@ -876,6 +907,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
                   <polyline points="4 7 8 3 12 7" />
                 </svg>
               </button>
+              </div>
             </div>
           </>
         )}

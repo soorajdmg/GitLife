@@ -71,7 +71,9 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
   const handleCountChange = (delta) => setLocalCommentCount(p => Math.max(0, p + delta));
 
   const handleShare = () => {
-    if (!isOwnPost && openMessage && c.userId) openMessage(c.userId);
+    if (!isOwnPost && openMessage && c.userId) {
+      openMessage(c.userId, { id: c.id, message: c.message, branch: c.branch });
+    }
   };
 
   const handleBlameStatus = async (status) => {

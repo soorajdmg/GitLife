@@ -607,10 +607,16 @@ export default function App() {
     : pathname.startsWith('/settings') ? 'settings'
     : 'feed';
 
-  const openMessage = (userId) => {
+  const openMessage = (userId, sharedCommit) => {
     unreadConvIdsRef.current.clear();
     setUnreadMsgCount(0);
-    navigate(`/messages?user=${userId}`);
+    const params = new URLSearchParams({ user: userId });
+    if (sharedCommit?.id) {
+      params.set('commitId', sharedCommit.id);
+      params.set('commitMsg', sharedCommit.message || '');
+      params.set('commitBranch', sharedCommit.branch || '');
+    }
+    navigate(`/messages?${params.toString()}`);
   };
   const openProfile = (username) => {
     if (username) navigate(`/${username}`);

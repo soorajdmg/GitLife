@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../config/api';
 import { QUERY_KEYS } from '../../config/queryClient';
 import Avatar from './Avatar';
+import { useAuth } from '../../contexts/AuthContext';
 
 function renderMentions(text, onProfile) {
   if (!text || !onProfile) return text;
@@ -173,6 +174,7 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isR
 
 export default function CommentThread({ decisionId, currentUserId, initialCount = 0, onCountChange, onProfile }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: comments = [], isLoading: loading, isError } = useQuery({
     queryKey: QUERY_KEYS.comments(decisionId),
     queryFn: () => api.getComments(decisionId),
@@ -183,7 +185,15 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
   const handlePost = async (text) => {
     try {
       const comment = await api.postComment(decisionId, text);
-      const withReplies = { ...comment, replies: [] };
+      const withReplies = {
+        ...comment,
+        replies: [],
+        author: comment.author || {
+          username: user?.username,
+          fullName: user?.fullName,
+          avatarUrl: user?.avatarUrl,
+        },
+      };
       queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) => [...old, withReplies]);
       onCountChange?.(1);
     } catch {
@@ -194,8 +204,16 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
   const handleReply = async (parentCommentId, text) => {
     try {
       const reply = await api.postComment(decisionId, text, parentCommentId);
+      const replyWithAuthor = {
+        ...reply,
+        author: reply.author || {
+          username: user?.username,
+          fullName: user?.fullName,
+          avatarUrl: user?.avatarUrl,
+        },
+      };
       queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) =>
-        old.map(c => c.id === parentCommentId ? { ...c, replies: [...(c.replies || []), reply] } : c)
+        old.map(c => c.id === parentCommentId ? { ...c, replies: [...(c.replies || []), replyWithAuthor] } : c)
       );
       onCountChange?.(1);
     } catch {}

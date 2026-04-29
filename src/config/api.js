@@ -269,10 +269,10 @@ class ApiClient {
     return this.request(`/messages/conversations/${conversationId}/messages?${params}`);
   }
 
-  async sendMessageREST(conversationId, text) {
+  async sendMessageREST(conversationId, text, sharedCommit) {
     return this.request(`/messages/conversations/${conversationId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, ...(sharedCommit ? { sharedCommit } : {}) }),
     });
   }
 

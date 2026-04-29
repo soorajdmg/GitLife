@@ -139,17 +139,30 @@ export class Decision {
         projection: {
           decision: 1, branch_name: 1, type: 1, impact: 1, timestamp: 1,
           blameStatus: 1, blameNote: 1, dependentCount: 1, influencedBy: 1,
+          createdAt: 1,
         }
       })
-      .sort({ timestamp: 1 })
+      .sort({ createdAt: 1, _id: 1 })
       .toArray();
-    return decisions.map(d => ({
-      ...d,
-      id: d._id.toString(),
-      _id: undefined,
-      influencedBy: d.influencedBy || [],
-      dependentCount: d.dependentCount || 0,
-    }));
+    return decisions.map(d => {
+      // Sanitize influencedBy — ensure it's always a valid array of objects
+      const rawLinks = Array.isArray(d.influencedBy) ? d.influencedBy : [];
+      const influencedBy = rawLinks.filter(
+        e => e && typeof e === 'object' && typeof e.decisionId === 'string' && e.decisionId.length > 0
+      );
+      return {
+        id: d._id.toString(),
+        decision: d.decision || '',
+        branch_name: d.branch_name || 'main',
+        type: d.type || null,
+        impact: d.impact ?? null,
+        timestamp: d.timestamp || d.createdAt || null,
+        blameStatus: d.blameStatus || null,
+        blameNote: d.blameNote || null,
+        dependentCount: d.dependentCount || 0,
+        influencedBy,
+      };
+    });
   }
 
   static async updateLinks(id, userId, toAdd = [], toRemove = []) {

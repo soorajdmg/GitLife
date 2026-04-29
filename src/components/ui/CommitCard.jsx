@@ -7,6 +7,27 @@ import CommentThread from './CommentThread';
 import BlameBadge from './BlameBadge';
 import { api } from '../../config/api';
 
+function renderMentions(text, onProfile) {
+  if (!text || !onProfile) return text;
+  const parts = text.split(/(@[\w.]+)/g);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) => {
+    if (/^@[\w.]+$/.test(part)) {
+      const username = part.slice(1);
+      return (
+        <span
+          key={i}
+          onClick={e => { e.stopPropagation(); onProfile(username); }}
+          style={{ color: 'oklch(42% 0.2 260)', fontWeight: 500, cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+        >{part}</span>
+      );
+    }
+    return part;
+  });
+}
+
 function userColor(userId) {
   const colors = [
     'oklch(52% 0.2 260)', 'oklch(56% 0.2 330)', 'oklch(50% 0.18 155)',
@@ -186,7 +207,7 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
       </div>
 
       {c.body && (bodyOpen || c.body.length < 90) && (
-        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{c.body}</div>
+        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{renderMentions(c.body, onProfile)}</div>
       )}
       {c.body && c.body.length >= 90 && !bodyOpen && (
         <div style={{ fontSize: 12, color: 'oklch(52% 0.2 260)', marginBottom: 8, marginTop: -2, cursor: 'pointer' }} onClick={() => setBodyOpen(true)}>Read more</div>

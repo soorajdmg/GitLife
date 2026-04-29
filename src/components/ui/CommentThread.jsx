@@ -4,6 +4,27 @@ import { api } from '../../config/api';
 import { QUERY_KEYS } from '../../config/queryClient';
 import Avatar from './Avatar';
 
+function renderMentions(text, onProfile) {
+  if (!text || !onProfile) return text;
+  const parts = text.split(/(@[\w.]+)/g);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) => {
+    if (/^@[\w.]+$/.test(part)) {
+      const username = part.slice(1);
+      return (
+        <span
+          key={i}
+          onClick={e => { e.stopPropagation(); onProfile(username); }}
+          style={{ color: 'oklch(42% 0.2 260)', fontWeight: 500, cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+        >{part}</span>
+      );
+    }
+    return part;
+  });
+}
+
 function formatTime(ts) {
   if (!ts) return '';
   const diff = Date.now() - new Date(ts).getTime();
@@ -97,7 +118,7 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isR
             >{authorName}</span>
             <span style={{ fontSize: 11, color: 'oklch(58% 0.01 260)' }}>{formatTime(comment.createdAt)}</span>
           </div>
-          <div style={{ fontSize: 13, color: 'oklch(28% 0.012 260)', lineHeight: 1.55, wordBreak: 'break-word' }}>{comment.text}</div>
+          <div style={{ fontSize: 13, color: 'oklch(28% 0.012 260)', lineHeight: 1.55, wordBreak: 'break-word' }}>{renderMentions(comment.text, onProfile)}</div>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 4, paddingLeft: 4 }}>
           {!isReply && (

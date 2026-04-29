@@ -332,13 +332,53 @@ function GraphCanvas({ decisions, currentUser }) {
   const [mode, setMode] = useState('graph');
   const [loadBearingOnly, setLoadBearingOnly] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [isMobile] = useState(() => window.innerWidth < 640);
 
   // Click-based connect mode
   const [connectSourceId, setConnectSourceId] = useState(null);   // node we're linking FROM (the "influenced" decision)
   const [pendingLink, setPendingLink] = useState(null);            // { source: node, target: node }
   const [savingLink, setSavingLink] = useState(false);
 
-  const { fitView } = useReactFlow();
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchJumpIndex, setSearchJumpIndex] = useState(0);
+
+  const { fitView, fitBounds } = useReactFlow();
+
+  // Search helpers
+  const searchTerm = searchQuery.trim().toLowerCase();
+  const matchedNodeIds = searchTerm
+    ? new Set(
+        nodes
+          .filter(n => {
+            const d = n.data;
+            return (
+              (d.decision || '').toLowerCase().includes(searchTerm) ||
+              (d.branch_name || '').toLowerCase().includes(searchTerm) ||
+              (d.type || '').toLowerCase().includes(searchTerm)
+            );
+          })
+          .map(n => n.id)
+      )
+    : null;
+
+  const handleSearchJump = useCallback(() => {
+    if (!matchedNodeIds || matchedNodeIds.size === 0) return;
+    const matched = nodes.filter(n => matchedNodeIds.has(n.id));
+    const idx = searchJumpIndex % matched.length;
+    const target = matched[idx];
+    setSearchJumpIndex(idx + 1);
+    // Approximate node bounds for centering
+    const w = 260; const h = 100;
+    fitBounds(
+      { x: target.position.x, y: target.position.y, width: w, height: h },
+      { duration: 400, padding: 0.5 }
+    );
+    setSelectedNodeId(target.id);
+  }, [matchedNodeIds, nodes, searchJumpIndex, fitBounds]);
+
+  // Reset jump index when query changes
+  useEffect(() => { setSearchJumpIndex(0); }, [searchQuery]);
 
   // Sync nodes/edges when data reloads
   useEffect(() => {
@@ -418,7 +458,7 @@ function GraphCanvas({ decisions, currentUser }) {
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
   const connectSourceNode = connectSourceId ? nodes.find(n => n.id === connectSourceId) : null;
 
-  // Visual: mark connecting nodes
+  // Visual: mark connecting nodes + search highlights
   const displayNodes = nodes.map(n => ({
     ...n,
     data: {
@@ -426,6 +466,8 @@ function GraphCanvas({ decisions, currentUser }) {
       isConnectSource: n.id === connectSourceId,
       isConnectTarget: connectSourceId && n.id !== connectSourceId,
       isSelected: n.id === selectedNodeId,
+      isSearchMatch: matchedNodeIds ? matchedNodeIds.has(n.id) : false,
+      isSearchDimmed: matchedNodeIds ? !matchedNodeIds.has(n.id) : false,
     },
   }));
 
@@ -485,17 +527,44 @@ function GraphCanvas({ decisions, currentUser }) {
         style={{ background: 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s' }}
       >
         <Background color="oklch(86% 0.004 260)" gap={24} size={1} />
-        <Controls style={{ bottom: 56, left: 16 }} />
-        <MiniMap
-          nodeColor={n => n.data?.blameStatus === 'broken' ? 'oklch(60% 0.18 30)' : n.data?.dependentCount >= 3 ? 'oklch(52% 0.18 290)' : 'oklch(68% 0.12 260)'}
-          style={{ bottom: 12, right: selectedNodeId ? 356 : 12, transition: 'right 0.2s' }}
-        />
+        <Controls style={{ bottom: 116, left: 16 }} />
+        {/* Legend card */}
+        <div style={{
+          position: 'absolute', bottom: 12, left: 16, zIndex: 5,
+          background: 'white', borderRadius: 8, padding: '8px 12px',
+          boxShadow: '0 2px 10px oklch(25% 0.05 260 / 0.1)',
+          border: '1px solid oklch(92% 0.005 260)',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          display: 'flex', flexDirection: 'column', gap: 6,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'oklch(62% 0.01 260)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Legend</div>
+          {[
+            { color: 'oklch(60% 0.18 30)',  label: 'Broken' },
+            { color: 'oklch(52% 0.18 290)', label: 'Load-bearing' },
+            { color: 'oklch(68% 0.12 260)', label: 'Default' },
+          ].map(({ color, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'oklch(38% 0.01 260)' }}>
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />
+              {label}
+            </div>
+          ))}
+        </div>
+        {!isMobile && (
+          <MiniMap
+            nodeColor={n => n.data?.blameStatus === 'broken' ? 'oklch(60% 0.18 30)' : n.data?.dependentCount >= 3 ? 'oklch(52% 0.18 290)' : 'oklch(68% 0.12 260)'}
+            style={{ bottom: 12, right: selectedNodeId ? 356 : 12, transition: 'right 0.2s' }}
+          />
+        )}
         <GraphToolbar
           mode={mode}
           onModeChange={setMode}
           loadBearingOnly={loadBearingOnly}
           onLoadBearingToggle={() => setLoadBearingOnly(v => !v)}
           onTidy={handleTidy}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSearchJump={handleSearchJump}
         />
       </ReactFlow>
 

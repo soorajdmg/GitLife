@@ -41,7 +41,7 @@ function mapToCard(d) {
     viewCount: d.viewCount ?? 0,
     commentCount: d.commentCount ?? 0,
     rx: { fork: d.reactions?.fork?.count ?? 0, merge: d.reactions?.merge?.count ?? 0, support: d.reactions?.support?.count ?? 0 },
-    ur: { fork: false, merge: false, support: false },
+    ur: { fork: d.userReactions?.fork ?? false, merge: d.userReactions?.merge ?? false, support: d.userReactions?.support ?? false },
     stashed: false,
     wi: (d.branch_name || d.branch) !== 'main',
   };
@@ -133,6 +133,33 @@ export default function Profile() {
       addToast({ message: 'Post deleted', type: 'success' });
     } catch {
       addToast({ message: 'Failed to delete post', type: 'error' });
+    }
+  };
+
+  const handleReact = async (id, type) => {
+    setDecisions(prev => prev.map(d => {
+      const dId = d.id || d._id;
+      if (dId !== id) return d;
+      const wasActive = d.userReactions?.[type] ?? false;
+      return {
+        ...d,
+        reactions: { ...d.reactions, [type]: { count: (d.reactions?.[type]?.count ?? 0) + (wasActive ? -1 : 1) } },
+        userReactions: { ...(d.userReactions || {}), [type]: !wasActive },
+      };
+    }));
+    try {
+      const result = await api.reactToDecision(id, type);
+      setDecisions(prev => prev.map(d => {
+        const dId = d.id || d._id;
+        if (dId !== id) return d;
+        return {
+          ...d,
+          reactions: { ...d.reactions, [type]: { count: result.count } },
+          userReactions: { ...(d.userReactions || {}), [type]: result.reacted },
+        };
+      }));
+    } catch {
+      addToast({ message: 'Failed to react', type: 'error' });
     }
   };
 
@@ -280,6 +307,7 @@ export default function Profile() {
                 c={mapToCard(d)}
                 currentUser={user}
                 onDelete={handleDeletePost}
+                onReact={handleReact}
                 compact={false}
               />
             ))}

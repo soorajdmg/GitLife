@@ -44,11 +44,17 @@ export default function DecisionNode({ data, selected }) {
   const isConnectSource = data.isConnectSource;
   const isConnectTarget = data.isConnectTarget;
 
+  // Search visual states
+  const isSearchMatch = data.isSearchMatch;
+  const isSearchDimmed = data.isSearchDimmed;
+
   const width = nodeWidth(depCount);
   const fontSize = nodeFontSize(depCount);
   const chars = maxChars(depCount);
 
-  const borderColor = isConnectSource
+  const borderColor = isSearchMatch
+    ? 'oklch(68% 0.22 55)'
+    : isConnectSource
     ? 'oklch(52% 0.2 260)'
     : isConnectTarget
     ? 'oklch(65% 0.15 155)'
@@ -60,7 +66,9 @@ export default function DecisionNode({ data, selected }) {
     ? 'oklch(72% 0.18 290)'
     : 'oklch(88% 0.008 260)';
 
-  const boxShadow = isConnectSource
+  const boxShadow = isSearchMatch
+    ? '0 0 0 3px oklch(68% 0.22 55 / 0.45), 0 4px 20px oklch(68% 0.22 55 / 0.2)'
+    : isConnectSource
     ? '0 0 0 3px oklch(52% 0.2 260 / 0.4), 0 4px 16px oklch(25% 0.05 260 / 0.12)'
     : isConnectTarget
     ? '0 0 0 2px oklch(65% 0.15 155 / 0.35), 0 4px 16px oklch(25% 0.05 260 / 0.1)'
@@ -74,9 +82,15 @@ export default function DecisionNode({ data, selected }) {
   const truncated = text.length > chars ? text.slice(0, chars - 3) + '…' : text;
   const branch = (data.branch_name || 'main').replace(/^what-if\//i, '⎇ ');
 
+  const bgColor = isSearchMatch
+    ? 'oklch(98% 0.018 55)'
+    : isConnectTarget
+    ? 'oklch(97% 0.012 155)'
+    : 'white';
+
   return (
     <div style={{
-      background: isConnectTarget ? 'oklch(97% 0.012 155)' : 'white',
+      background: bgColor,
       borderRadius: 12,
       border: `1.5px solid ${borderColor}`,
       boxShadow,
@@ -85,8 +99,9 @@ export default function DecisionNode({ data, selected }) {
       fontFamily: "'Plus Jakarta Sans', sans-serif",
       position: 'relative',
       borderLeft: isBroken ? '3px solid oklch(60% 0.18 30)' : undefined,
-      transition: 'border-color 0.15s, box-shadow 0.15s, width 0.2s, background 0.15s',
+      transition: 'border-color 0.15s, box-shadow 0.15s, width 0.2s, background 0.15s, opacity 0.15s',
       cursor: isConnectTarget ? 'pointer' : 'default',
+      opacity: isSearchDimmed ? 0.3 : 1,
     }}>
       <Handle
         type="target"

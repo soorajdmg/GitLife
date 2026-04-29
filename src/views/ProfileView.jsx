@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DAY_LABELS, CELL_COLORS } from '../data/gitlife';
 import { api } from '../config/api';
@@ -751,6 +752,7 @@ function HorizTimeline({ commits }) {
 export default function ProfileView({ viz, username, onProfile, onMessage, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const isOwnProfile = !username || username === user?.username;
   const [activeBranch, setActiveBranch] = useState('all');
   const [followLoading, setFollowLoading] = useState(false);
@@ -1089,6 +1091,30 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
         </div>
 
         <div style={{ padding: '14px 12px 80px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* ── Life Graph shortcut (own profile only) ── */}
+          {isOwnProfile && (
+            <button
+              onClick={() => navigate('/graph')}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '13px 16px', borderRadius: 14,
+                background: 'oklch(52% 0.2 260)', border: 'none',
+                color: 'white', cursor: 'pointer', width: '100%',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="4" cy="16" r="2" /><circle cx="10" cy="4" r="2" /><circle cx="16" cy="10" r="2" />
+                  <line x1="5.4" y1="14" x2="8.6" y2="6" /><line x1="11.4" y1="5.4" x2="14.6" y2="8.6" />
+                </svg>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>Life Graph</span>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 4l4 4-4 4" />
+              </svg>
+            </button>
+          )}
 
           {/* ── 1. Commit Activity ── */}
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px 14px 18px', overflow: 'hidden' }}>

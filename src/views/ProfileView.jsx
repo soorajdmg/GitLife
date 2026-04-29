@@ -524,11 +524,14 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
 /* ─── GIT GRAPH ─── */
 function GitGraph({ commits, branches = [] }) {
   const branchNames = [...new Set(commits.map(c => c.branch))];
-  const COL = Object.fromEntries(branchNames.map((b, i) => [b, b === 'main' ? 0 : i]));
+  // main always gets col 0; other branches get cols 1, 2, 3... in order of appearance
+  const otherBranches = branchNames.filter(b => b !== 'main');
+  const COL = { main: 0, ...Object.fromEntries(otherBranches.map((b, i) => [b, i + 1])) };
   const mergedSet = new Set(branches.filter(b => b.merged).map(b => b.name));
   const COLORS = BRANCH_COLORS;
   const CW = 22, RH = 70;
-  const svgW = CW * Math.max(branchNames.length, 1) + 4;
+  const totalCols = 1 + otherBranches.length;
+  const svgW = CW * Math.max(totalCols, 1) + 4;
 
   // For each what-if branch, compute which row indices it spans (first to last occurrence)
   // so rows in between (main commits) can draw the pass-through dashed line.
@@ -618,8 +621,8 @@ function GitGraph({ commits, branches = [] }) {
                 <circle cx={cx} cy={midY} r={6} fill={color} stroke="white" strokeWidth={2} />
               )}
             </svg>
-            <div style={{ flex: 1, padding: `${(RH - 52) / 2}px 0 ${(RH - 52) / 2}px 14px`, borderBottom: i < commits.length - 1 ? '1px solid oklch(96% 0.004 80)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)' }}>{c.message}</span>
+            <div style={{ flex: 1, height: RH, padding: `${(RH - 52) / 2}px 0 ${(RH - 52) / 2}px 14px`, borderBottom: i < commits.length - 1 ? '1px solid oklch(96% 0.004 80)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, overflow: 'hidden', boxSizing: 'border-box' }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.message}</span>
               <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
                 <Tag cat={c.category} />

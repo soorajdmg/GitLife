@@ -47,6 +47,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
   const targetPostId = searchParams.get('post') || null;
   const [highlightId, setHighlightId] = useState(targetPostId);
   const scrolledRef = useRef(false);
+  const scrollContainerRef = useRef(null);
 
   const following = (feedData.following || []).map(mapToCard);
   const trending = (feedData.trending || []).map(mapToCard);
@@ -60,13 +61,31 @@ export default function FeedView({ feedData = { following: [], trending: [], has
   // Scroll to + highlight the target post once data is loaded
   useEffect(() => {
     if (!targetPostId || loading || scrolledRef.current) return;
+    if (following.length === 0 && trending.length === 0) return;
+
+    const container = scrollContainerRef.current;
     const el = document.getElementById(`post-${targetPostId}`);
-    if (!el) return;
+    if (!el || !container) return;
+
     scrolledRef.current = true;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // Clear highlight after 2s
-    const t = setTimeout(() => setHighlightId(null), 2000);
-    return () => clearTimeout(t);
+
+    // Use offsetTop relative to the scroll container for reliable positioning
+    const doScroll = () => {
+      const target = document.getElementById(`post-${targetPostId}`);
+      if (!target || !scrollContainerRef.current) return;
+      const containerRect = scrollContainerRef.current.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const offset = targetRect.top - containerRect.top + scrollContainerRef.current.scrollTop;
+      // Center the post in the viewport
+      const center = offset - (scrollContainerRef.current.clientHeight / 2) + (targetRect.height / 2);
+      scrollContainerRef.current.scrollTo({ top: Math.max(0, center), behavior: 'smooth' });
+    };
+
+    // Two-pass: immediate + after next paint to handle images/dynamic content affecting height
+    doScroll();
+    const t = setTimeout(doScroll, 200);
+    const t2 = setTimeout(() => setHighlightId(null), 2500);
+    return () => { clearTimeout(t); clearTimeout(t2); };
   }, [targetPostId, loading, following.length, trending.length]);
 
   const applyFilter = list => filter === 'All' ? list : list.filter(c => c.category === filter);
@@ -79,7 +98,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Feed */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto' }}>
         {/* Filter bar — sticky on desktop, scrolls with content on mobile */}
         <div className="feed-filter-bar" style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px clamp(16px, 2.5vw, 40px)' }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

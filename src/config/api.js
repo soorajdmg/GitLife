@@ -315,6 +315,10 @@ class ApiClient {
     return this.request(`/decisions/${decisionId}/comments/${commentId}`, { method: 'DELETE' });
   }
 
+  async likeComment(decisionId, commentId) {
+    return this.request(`/decisions/${decisionId}/comments/${commentId}/like`, { method: 'POST' });
+  }
+
   // Graph / dependency methods
   async getDecisionsForGraph() {
     return this.request('/decisions/graph');

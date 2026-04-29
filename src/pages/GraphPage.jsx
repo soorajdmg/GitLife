@@ -387,6 +387,14 @@ function GraphCanvas({ decisions, currentUser }) {
     setEdges(buildEdges(decisions));
   }, [decisions]);
 
+  // On mobile, the container dimensions may not be ready at first render.
+  // Re-run fitView after layout settles to ensure edges connect correctly.
+  useEffect(() => {
+    if (!isMobile) return;
+    const t = setTimeout(() => fitView({ padding: 0.15, duration: 0 }), 150);
+    return () => clearTimeout(t);
+  }, [isMobile, fitView]);
+
   const onNodeDragStop = useCallback((_, node) => {
     savePosition(userId, node.id, node.position);
   }, [userId]);
@@ -500,11 +508,23 @@ function GraphCanvas({ decisions, currentUser }) {
   const hasEdges = edges.length > 0;
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, position: 'relative' }}>
       {/* Connect mode banner */}
       {connectSourceId && (
         <ConnectBanner sourceNode={connectSourceNode} onCancel={() => setConnectSourceId(null)} />
       )}
+
+      {/* Arrow marker defs — must live in the document so url(#...) resolves */}
+      <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+        <defs>
+          <marker id="arrow-normal" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="oklch(72% 0.01 260)" />
+          </marker>
+          <marker id="arrow-broken" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="oklch(60% 0.18 30)" />
+          </marker>
+        </defs>
+      </svg>
 
       <ReactFlow
         nodes={visibleNodes}
@@ -524,7 +544,8 @@ function GraphCanvas({ decisions, currentUser }) {
         fitView
         fitViewOptions={{ padding: 0.15 }}
         deleteKeyCode={null}
-        style={{ background: 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s' }}
+        panOnScroll={false}
+        style={{ background: 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s', flex: 1, height: '100%' }}
       >
         <Background color="oklch(86% 0.004 260)" gap={24} size={1} />
         <Controls style={{ bottom: 116, left: 16 }} />
@@ -654,7 +675,7 @@ export default function GraphPage({ currentUser }) {
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
       <ReactFlowProvider>
         <GraphCanvas decisions={decisions} currentUser={currentUser} />
       </ReactFlowProvider>

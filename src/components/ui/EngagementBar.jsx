@@ -92,8 +92,9 @@ export default function EngagementBar({
           style={{ ...btnBase, border: '1px solid oklch(90% 0.006 260)', color: 'oklch(50% 0.01 260)', background: 'white' }}
           title="Replies"
         >
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H8L5 11V10H3.5C2.7 10 2 9.3 2 8.5v-5z" />
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 3.5C2 2.7 2.7 2 3.5 2h9C13.3 2 14 2.7 14 3.5v6c0 .8-.7 1.5-1.5 1.5H9l-3 2.5V11H3.5C2.7 11 2 10.3 2 9.5v-6z" />
+            <line x1="5" y1="5.5" x2="11" y2="5.5" /><line x1="5" y1="8" x2="8.5" y2="8" />
           </svg>
           {commentCount > 0 ? `${fmt(commentCount)} ${commentCount === 1 ? 'reply' : 'replies'}` : 'Reply'}
         </button>

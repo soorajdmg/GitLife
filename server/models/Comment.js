@@ -28,7 +28,7 @@ export class Comment {
 
   // Get all comments for a decision, joined with author info
   // Returns top-level comments with their replies nested
-  static async findByDecision(decisionId, { limit = 50 } = {}) {
+  static async findByDecision(decisionId, { limit = 50, currentUserId = null } = {}) {
     const db = getDB();
     const comments = await db.collection('comments').aggregate([
       { $match: { decisionId } },
@@ -48,13 +48,18 @@ export class Comment {
       {
         $addFields: {
           id: { $toString: '$_id' },
-          author: { $arrayElemAt: ['$author', 0] }
+          author: { $arrayElemAt: ['$author', 0] },
+          likeCount: { $size: { $ifNull: ['$likes', []] } },
+          likedByMe: currentUserId
+            ? { $in: [currentUserId, { $ifNull: ['$likes', []] }] }
+            : false,
         }
       },
       {
         $project: {
           _id: 0, id: 1, decisionId: 1, authorId: 1, parentCommentId: 1,
           text: 1, createdAt: 1, updatedAt: 1,
+          likeCount: 1, likedByMe: 1,
           'author.username': 1, 'author.fullName': 1, 'author.avatarUrl': 1
         }
       }
@@ -95,6 +100,28 @@ export class Comment {
     );
 
     return true;
+  }
+
+  // Toggle like: adds userId to likes array if not present, removes if present
+  static async toggleLike(commentId, userId) {
+    const col = this.getCollection();
+    const comment = await col.findOne({ _id: new ObjectId(commentId) });
+    if (!comment) return null;
+
+    const likes = comment.likes || [];
+    const alreadyLiked = likes.includes(userId);
+
+    await col.updateOne(
+      { _id: new ObjectId(commentId) },
+      alreadyLiked
+        ? { $pull: { likes: userId } }
+        : { $addToSet: { likes: userId } }
+    );
+
+    return {
+      liked: !alreadyLiked,
+      likeCount: alreadyLiked ? likes.length - 1 : likes.length + 1,
+    };
   }
 
   static async createIndexes() {

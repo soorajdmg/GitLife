@@ -82,14 +82,16 @@ function CommentInput({ onSubmit, placeholder = 'Write a reply...', autoFocus = 
           cursor: text.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.12s',
         }}
       >
-        {submitting ? '...' : '↵'}
+        {submitting ? '…' : 'Post'}
       </button>
     </div>
   );
 }
 
-function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isReply = false }) {
+function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, onLike, isReply = false }) {
   const [replyOpen, setReplyOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const authorName = comment.author?.fullName || comment.author?.username || 'User';
   const authorHandle = comment.author?.username ? `@${comment.author.username}` : '';
@@ -102,6 +104,18 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isR
   };
 
   const isOwn = comment.authorId === currentUserId;
+  const likeCount = comment.likeCount || 0;
+  const liked = comment.likedByMe || false;
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
 
   return (
     <div style={{ display: 'flex', gap: 9, marginBottom: isReply ? 8 : 12 }}>
@@ -121,22 +135,51 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isR
           </div>
           <div style={{ fontSize: 13, color: 'oklch(28% 0.012 260)', lineHeight: 1.55, wordBreak: 'break-word' }}>{renderMentions(comment.text, onProfile)}</div>
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 4, paddingLeft: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingLeft: 4 }}>
+          {/* Like button */}
+          <button
+            onClick={() => onLike && onLike(comment.id)}
+            style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: liked ? 'oklch(52% 0.2 260)' : 'oklch(55% 0.01 260)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 500, transition: 'color 0.12s' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 13.7C7.4 13.3 1 9.2 1 5.5 1 3.6 2.6 2 4.5 2c1 0 2 .5 2.7 1.3L8 4.2l.8-.9C9.5 2.5 10.5 2 11.5 2 13.4 2 15 3.6 15 5.5c0 3.7-6.4 7.8-7 8.2z"/>
+            </svg>
+            {likeCount > 0 && <span>{likeCount}</span>}
+          </button>
           {!isReply && (
             <button
               onClick={() => setReplyOpen(p => !p)}
               style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 500 }}
             >
-              ↲ Reply
+              Reply
             </button>
           )}
+          {/* Three-dots menu (only for own comments) */}
           {isOwn && (
-            <button
-              onClick={() => onDelete(comment.id)}
-              style={{ fontSize: 11, color: 'oklch(58% 0.15 25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 500 }}
-            >
-              Delete
-            </button>
+            <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
+              <button
+                onClick={() => setMenuOpen(p => !p)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'oklch(60% 0.01 260)', padding: 0 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'oklch(93% 0.005 80)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/>
+                </svg>
+              </button>
+              {menuOpen && (
+                <div style={{ position: 'absolute', right: 0, top: 26, background: 'white', border: '1px solid oklch(90% 0.006 80)', borderRadius: 8, boxShadow: '0 4px 16px oklch(0% 0 0 / 0.1)', zIndex: 100, minWidth: 110, overflow: 'hidden' }}>
+                  <button
+                    onClick={() => { setMenuOpen(false); onDelete(comment.id); }}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: 12.5, color: 'oklch(50% 0.18 25)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.005 25)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
         {replyOpen && (
@@ -162,6 +205,7 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, isR
                 onDelete={onDelete}
                 onReply={() => {}}
                 onProfile={onProfile}
+                onLike={onLike}
                 isReply
               />
             ))}
@@ -219,6 +263,51 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
     } catch {}
   };
 
+  const handleLike = async (commentId) => {
+    // Optimistic update
+    queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) =>
+      old.map(c => {
+        if (c.id === commentId) {
+          const liked = !c.likedByMe;
+          return { ...c, likedByMe: liked, likeCount: (c.likeCount || 0) + (liked ? 1 : -1) };
+        }
+        return {
+          ...c,
+          replies: (c.replies || []).map(r => {
+            if (r.id === commentId) {
+              const liked = !r.likedByMe;
+              return { ...r, likedByMe: liked, likeCount: (r.likeCount || 0) + (liked ? 1 : -1) };
+            }
+            return r;
+          }),
+        };
+      })
+    );
+    try {
+      await api.likeComment(decisionId, commentId);
+    } catch {
+      // Revert on failure
+      queryClient.setQueryData(QUERY_KEYS.comments(decisionId), (old = []) =>
+        old.map(c => {
+          if (c.id === commentId) {
+            const liked = !c.likedByMe;
+            return { ...c, likedByMe: liked, likeCount: (c.likeCount || 0) + (liked ? 1 : -1) };
+          }
+          return {
+            ...c,
+            replies: (c.replies || []).map(r => {
+              if (r.id === commentId) {
+                const liked = !r.likedByMe;
+                return { ...r, likedByMe: liked, likeCount: (r.likeCount || 0) + (liked ? 1 : -1) };
+              }
+              return r;
+            }),
+          };
+        })
+      );
+    }
+  };
+
   const handleDelete = async (commentId) => {
     try {
       await api.deleteComment(decisionId, commentId);
@@ -260,6 +349,7 @@ export default function CommentThread({ decisionId, currentUserId, initialCount 
           onDelete={handleDelete}
           onReply={handleReply}
           onProfile={onProfile}
+          onLike={handleLike}
         />
       ))}
       <CommentInput onSubmit={handlePost} placeholder="Add a reply… (Ctrl+Enter to submit)" />

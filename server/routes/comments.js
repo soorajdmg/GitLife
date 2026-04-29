@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
   try {
     const comments = await Comment.findByDecision(req.params.id, {
       limit: parseInt(req.query.limit) || 50,
+      currentUserId: req.user.userId,
     });
     res.json(comments);
   } catch (error) {
@@ -76,6 +77,18 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error creating comment:', error);
     res.status(500).json({ error: 'Failed to create comment' });
+  }
+});
+
+// POST /decisions/:id/comments/:commentId/like  (toggle)
+router.post('/:commentId/like', async (req, res) => {
+  try {
+    const result = await Comment.toggleLike(req.params.commentId, req.user.userId);
+    if (!result) return res.status(404).json({ error: 'Comment not found' });
+    res.json(result);
+  } catch (error) {
+    console.error('Error liking comment:', error);
+    res.status(500).json({ error: 'Failed to like comment' });
   }
 });
 

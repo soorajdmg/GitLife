@@ -3,6 +3,8 @@ import BlameBadge from '../ui/BlameBadge.jsx';
 
 const TYPE_COLOR = { feat: '#4ade80', fix: '#f87171', chore: '#a78bfa' };
 
+const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 640;
+
 function typeColor(type) {
   return TYPE_COLOR[type] || '#9ca3af';
 }
@@ -115,7 +117,16 @@ export default function DecisionNode({ data, selected }) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: 'oklch(68% 0.12 260)', width: 8, height: 8, border: `2px solid ${handleBorder}` }}
+        style={IS_MOBILE ? {
+          width: 36,
+          height: 14,
+          borderRadius: 7,
+          background: 'oklch(68% 0.12 260 / 0.25)',
+          border: `1.5px solid oklch(68% 0.12 260 / 0.5)`,
+          top: -7,
+        } : {
+          background: 'oklch(68% 0.12 260)', width: 8, height: 8, border: `2px solid ${handleBorder}`,
+        }}
       />
 
       {/* Header row */}
@@ -153,10 +164,46 @@ export default function DecisionNode({ data, selected }) {
         )}
       </div>
 
+      {IS_MOBILE && (
+        <div style={{
+          marginTop: 8,
+          marginLeft: -14,
+          marginRight: -14,
+          marginBottom: -10,
+          height: 28,
+          borderRadius: '0 0 10px 10px',
+          background: 'oklch(68% 0.12 260 / 0.12)',
+          borderTop: `1px dashed oklch(68% 0.12 260 / 0.4)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+          pointerEvents: 'none',
+        }}>
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+            <path d="M8 2v10M8 13l-3-3M8 13l3-3" stroke="oklch(52% 0.14 260)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'oklch(52% 0.14 260)', letterSpacing: '0.03em' }}>
+            drag to connect
+          </span>
+        </div>
+      )}
+
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: 'oklch(68% 0.12 260)', width: 8, height: 8, border: `2px solid ${handleBorder}` }}
+        style={IS_MOBILE ? {
+          width: '100%',
+          height: 28,
+          borderRadius: '0 0 10px 10px',
+          background: 'transparent',
+          border: 'none',
+          transform: 'translateX(-50%)',
+          bottom: 0,
+          cursor: 'grab',
+        } : {
+          background: 'oklch(68% 0.12 260)', width: 8, height: 8, border: `2px solid ${handleBorder}`,
+        }}
       />
     </div>
   );

@@ -19,11 +19,11 @@ function timeAgo(ts) {
   return `${Math.floor(months / 12)}y ago`;
 }
 
-export default function NewCommitModal({ onClose, onSubmit }) {
-  const [commitType, setCommitType] = useState('main');
-  const [msg, setMsg] = useState('');
-  const [body, setBody] = useState('');
-  const [cat, setCat] = useState('');
+export default function NewCommitModal({ onClose, onSubmit, prefill }) {
+  const [commitType, setCommitType] = useState(prefill ? 'what-if' : 'main');
+  const [msg, setMsg] = useState(prefill?.message || '');
+  const [body, setBody] = useState(prefill?.body || '');
+  const [cat, setCat] = useState(prefill?.category || '');
   const [branchName, setBranchName] = useState('');
   const [existingBranches, setExistingBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -179,10 +179,15 @@ export default function NewCommitModal({ onClose, onSubmit }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'oklch(15% 0.02 260 / 0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 18, padding: 28, width: 520, maxWidth: 'calc(100vw - 32px)', boxShadow: '0 24px 64px oklch(25% 0.05 260 / 0.18)', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 22, display: 'flex', alignItems: 'center', gap: 9 }}>
-          <span style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(93% 0.05 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'oklch(42% 0.2 260)' }}>+</span>
-          New commit
+        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: prefill ? 10 : 22, display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(93% 0.05 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'oklch(42% 0.2 260)' }}>⎇</span>
+          {prefill ? 'Fork this path' : 'New commit'}
         </div>
+        {prefill && (
+          <div style={{ fontSize: 12, color: 'oklch(48% 0.01 260)', background: 'oklch(96% 0.015 260)', border: '1px solid oklch(85% 0.025 260)', borderRadius: 8, padding: '7px 11px', marginBottom: 18 }}>
+            Forking someone else's decision — edit it to make it yours, then choose a what-if branch.
+          </div>
+        )}
 
         {/* Branch type */}
         <div style={{ marginBottom: 16 }}>

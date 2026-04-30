@@ -285,6 +285,17 @@ class ApiClient {
   }
 
   // Engagement methods
+  async forkDecision(id) {
+    return this.request(`/decisions/${id}/fork`, { method: 'POST' });
+  }
+
+  async mergeDecision(id, myDecisionId) {
+    return this.request(`/decisions/${id}/merge`, {
+      method: 'POST',
+      body: JSON.stringify({ myDecisionId }),
+    });
+  }
+
   async reactToDecision(id, type) {
     return this.request(`/decisions/${id}/react`, {
       method: 'POST',

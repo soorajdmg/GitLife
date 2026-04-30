@@ -152,7 +152,7 @@ function userColor(userId) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function CommitCard({ c, onReact, onStash, onDelete, compact, currentUser, openMessage, onProfile }) {
+export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDelete, compact, currentUser, openMessage, onProfile }) {
   const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
 
   // Resolve author info from userInfo (populated by backend) or fallback to currentUser
@@ -245,6 +245,22 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
           </div>
         </div>
         <BranchPill name={c.branch} wi={c.wi} merged={false} />
+        {/* Forked-from attribution */}
+        {c.forkedFrom?.username && (
+          <span
+            onClick={e => { e.stopPropagation(); onProfile?.(c.forkedFrom.username); }}
+            title={`Inspired by @${c.forkedFrom.username}`}
+            style={{
+              fontSize: 10.5, color: 'oklch(52% 0.2 260)', fontWeight: 500,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
+              padding: '2px 7px', borderRadius: 20,
+              background: 'oklch(95% 0.015 260)',
+              border: '1px solid oklch(85% 0.025 260)',
+            }}
+          >
+            ⎇ inspired by @{c.forkedFrom.username}
+          </span>
+        )}
         {/* Three-dot menu — author only, shown on hover */}
         {isOwnPost && onDelete && (
           <div style={{ position: 'relative' }} ref={menuRef}>
@@ -380,6 +396,14 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
         </div>
       )}
 
+      {/* Merge convergence indicator */}
+      {c.mergedWith?.length > 0 && (
+        <div style={{ fontSize: 11, color: 'oklch(42% 0.2 260)', display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 6 }}>
+          <span style={{ fontSize: 12 }}>⇄</span>
+          {c.mergedWith.length} {c.mergedWith.length === 1 ? 'person' : 'people'} took this same path
+        </div>
+      )}
+
       {/* Engagement bar */}
       <EngagementBar
         commitId={c.id}
@@ -388,8 +412,11 @@ export default function CommitCard({ c, onReact, onStash, onDelete, compact, cur
         commentCount={localCommentCount}
         isStashed={c.stashed}
         isAuthor={isOwnPost}
+        isFork={!!c.forkedFrom}
         viewCount={c.viewCount}
         onReact={onReact}
+        onFork={onFork}
+        onMerge={onMerge}
         onReplyClick={() => setReplyOpen(p => !p)}
         onStash={onStash}
         onShare={isOwnPost ? null : handleShare}

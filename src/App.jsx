@@ -13,6 +13,7 @@ import MessagesView from './views/MessagesView';
 import NotificationsView from './views/NotificationsView';
 import SettingsView from './views/SettingsView';
 import NewCommitModal from './components/ui/NewCommitModal';
+import MergePickerModal from './components/ui/MergePickerModal';
 import GraphPage from './pages/GraphPage';
 
 /* ─── MOBILE HOOK ─── */
@@ -475,6 +476,9 @@ function mapDecisionToCommit(d, stashedIds = []) {
     stashed: stashedIds.includes(d.id),
     wi: d.branch_name !== 'main',
     userInfo: d.userInfo || null,
+    username: d.userInfo?.username || d.username || null,
+    forkedFrom: d.forkedFrom || null,
+    mergedWith: d.mergedWith || [],
   };
 }
 
@@ -585,6 +589,8 @@ export default function App() {
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedSeeded, setFeedSeeded] = useState(false);
   const [modal, setModal] = useState(false);
+  const [forkSource, setForkSource] = useState(null); // commit object to pre-fill fork modal
+  const [mergeTarget, setMergeTarget] = useState(null); // { id, commit } for merge picker
   const [tweaksVis, setTweaksVis] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -775,6 +781,8 @@ export default function App() {
   };
 
   const addCommit = async data => {
+    const forkedFromData = forkSource ? { decisionId: forkSource.id, userId: forkSource.userId, username: forkSource.username || forkSource.userInfo?.username } : undefined;
+    setForkSource(null);
     try {
       const saved = await api.createDecision({
         decision: data.message,
@@ -783,6 +791,7 @@ export default function App() {
         body: data.body || undefined,
         visibility: data.visibility || 'public',
         image: data.image || undefined,
+        forkedFrom: forkedFromData || undefined,
       });
       if (data.isNewBranch) {
         api.createBranch({ name: data.branch, type: 'what-if' }).catch(() => {});
@@ -791,6 +800,16 @@ export default function App() {
       if (data.influencedBy?.length > 0) {
         api.updateDecisionLinks(saved.id, data.influencedBy, []).catch(() => {});
       }
+      // If this was a fork, bump the original's fork count
+      if (forkedFromData?.decisionId) {
+        api.forkDecision(forkedFromData.decisionId).then(result => {
+          setFeedData(prev => ({
+            ...prev,
+            following: prev.following.map(c => c.id !== forkedFromData.decisionId ? c : { ...c, rx: { ...c.rx, fork: result.count } }),
+            trending:  prev.trending.map(c =>  c.id !== forkedFromData.decisionId ? c : { ...c, rx: { ...c.rx, fork: result.count } }),
+          }));
+        }).catch(() => {});
+      }
       const newPost = mapDecisionToCommit(saved);
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
       // Invalidate so profile/decisions queries re-fetch
@@ -798,8 +817,42 @@ export default function App() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.branches });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.decisionGraph });
     } catch {
+      setForkSource(null);
       const newPost = { id: `c_${Date.now()}`, userId: user?.id, branch: data.branch, message: data.message, body: data.body, category: data.category, ts: 'just now', rx: { fork: 0, merge: 0, support: 0 }, ur: {}, wi: data.wi };
       setFeedData(prev => ({ ...prev, following: [newPost, ...prev.following] }));
+    }
+  };
+
+  const handleFork = (commit) => {
+    setForkSource(commit);
+    setModal(true);
+  };
+
+  const handleMerge = (commitId) => {
+    const commit = [...feedData.following, ...feedData.trending].find(c => c.id === commitId);
+    setMergeTarget({ id: commitId, commit });
+  };
+
+  const handleMergeConfirm = async (myDecisionId) => {
+    if (!mergeTarget) return;
+    const { id } = mergeTarget;
+    const prevFeedData = feedData;
+    // Optimistic update
+    setFeedData(prev => ({
+      ...prev,
+      following: prev.following.map(c => c.id !== id ? c : { ...c, rx: { ...c.rx, merge: c.rx.merge + 1 }, ur: { ...c.ur, merge: true } }),
+      trending:  prev.trending.map(c =>  c.id !== id ? c : { ...c, rx: { ...c.rx, merge: c.rx.merge + 1 }, ur: { ...c.ur, merge: true } }),
+    }));
+    setMergeTarget(null);
+    try {
+      const result = await api.mergeDecision(id, myDecisionId);
+      setFeedData(prev => ({
+        ...prev,
+        following: prev.following.map(c => c.id !== id ? c : { ...c, rx: { ...c.rx, merge: result.count }, ur: { ...c.ur, merge: result.merged } }),
+        trending:  prev.trending.map(c =>  c.id !== id ? c : { ...c, rx: { ...c.rx, merge: result.count }, ur: { ...c.ur, merge: result.merged } }),
+      }));
+    } catch {
+      setFeedData(prevFeedData);
     }
   };
 
@@ -998,7 +1051,7 @@ export default function App() {
         <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
-            <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
+            <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onFork={handleFork} onMerge={handleMerge} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
             <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
             <Route path="/graph" element={<GraphPage currentUser={user} />} />
@@ -1021,7 +1074,19 @@ export default function App() {
         />
       )}
 
-      {modal && <NewCommitModal onClose={() => setModal(false)} onSubmit={addCommit} />}
+      {modal && (
+        <NewCommitModal
+          onClose={() => { setModal(false); setForkSource(null); }}
+          onSubmit={addCommit}
+          prefill={forkSource ? { message: forkSource.message, body: forkSource.body, category: forkSource.category, impact: forkSource.impact } : undefined}
+        />
+      )}
+      <MergePickerModal
+        open={!!mergeTarget}
+        onClose={() => setMergeTarget(null)}
+        onConfirm={handleMergeConfirm}
+        targetCommit={mergeTarget?.commit}
+      />
       <TweaksPanel visible={tweaksVis} tweaks={tweaks} setTweaks={setTweaks} />
     </div>
   );

@@ -27,6 +27,8 @@ export class Decision {
       commentCount: 0,
       viewCount: 0,
       influencedBy: decisionData.influencedBy || [],
+      forkedFrom: decisionData.forkedFrom || null,
+      mergedWith: [],
       blameStatus: null,
       blameNote: null,
       dependentCount: 0,
@@ -253,6 +255,56 @@ export class Decision {
     }
 
     return { root, ancestors, depth };
+  }
+
+  static async mergeDecision(originalId, myDecisionId, mergerUserId, mergerUsername) {
+    const col = this.getCollection();
+    const originalOid = new ObjectId(originalId);
+    const myOid = new ObjectId(myDecisionId);
+
+    const [original, mine] = await Promise.all([
+      col.findOne({ _id: originalOid }),
+      col.findOne({ _id: myOid, userId: mergerUserId }),
+    ]);
+
+    if (!original) return null;
+    if (!mine) return null; // must own myDecisionId
+    if (original.userId === mergerUserId) return null; // can't merge own commit
+
+    const alreadyMerged = (original.reactions?.merge?.users || []).includes(mergerUserId);
+
+    if (alreadyMerged) {
+      // Un-merge: remove links from both, decrement count
+      await Promise.all([
+        col.updateOne({ _id: originalOid }, {
+          $pull: { mergedWith: { userId: mergerUserId }, 'reactions.merge.users': mergerUserId },
+          $inc: { 'reactions.merge.count': -1 },
+        }),
+        col.updateOne({ _id: myOid }, {
+          $pull: { mergedWith: { decisionId: originalId } },
+        }),
+      ]);
+      const updated = await col.findOne({ _id: originalOid });
+      return { merged: false, count: updated.reactions?.merge?.count ?? 0 };
+    } else {
+      // Merge: link both decisions
+      await Promise.all([
+        col.updateOne({ _id: originalOid }, {
+          $addToSet: {
+            mergedWith: { decisionId: myDecisionId, userId: mergerUserId, username: mergerUsername },
+            'reactions.merge.users': mergerUserId,
+          },
+          $inc: { 'reactions.merge.count': 1 },
+        }),
+        col.updateOne({ _id: myOid }, {
+          $addToSet: {
+            mergedWith: { decisionId: originalId, userId: original.userId, username: original.username },
+          },
+        }),
+      ]);
+      const updated = await col.findOne({ _id: originalOid });
+      return { merged: true, count: updated.reactions?.merge?.count ?? 0 };
+    }
   }
 
   static async createIndexes() {

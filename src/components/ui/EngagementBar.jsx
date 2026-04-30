@@ -25,8 +25,11 @@ export default function EngagementBar({
   commentCount = 0,
   isStashed = false,
   isAuthor = false,
+  isFork = false,
   viewCount = 0,
   onReact,
+  onFork,
+  onMerge,
   onReplyClick,
   onStash,
   onShare,
@@ -71,12 +74,21 @@ export default function EngagementBar({
         ].map(({ type, label, icon }) => {
           const active = userReactions[type];
           const count = reactions[type] ?? 0;
+          // Fork hidden for authors and for forked commits (can't fork a fork)
+          if (type === 'fork' && (isAuthor || isFork)) return null;
+          // Merge hidden for authors
+          if (type === 'merge' && isAuthor) return null;
+          const handleClick = () => {
+            if (type === 'fork') onFork?.(commitId);
+            else if (type === 'merge') onMerge?.(commitId);
+            else onReact?.(commitId, type);
+          };
           return (
             <button
               key={type}
-              onClick={() => onReact?.(commitId, type)}
+              onClick={handleClick}
               style={{ ...btnBase, ...rxStyle(type, active) }}
-              title={type === 'fork' ? "I'd explore this" : type === 'merge' ? "I've done this" : 'I support this'}
+              title={type === 'fork' ? 'Explore this path on your profile' : type === 'merge' ? 'Link to one of your own decisions' : 'I support this'}
             >
               {icon ?? <span style={{ fontWeight: 600 }}>{label}</span>} {fmt(count)}
             </button>

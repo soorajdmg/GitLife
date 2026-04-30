@@ -104,6 +104,47 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Fork a decision — increments fork count on original (commit creation handled by frontend)
+router.post('/:id/fork', async (req, res) => {
+  try {
+    const col = getDB().collection('decisions');
+    const original = await col.findOne({ _id: new ObjectId(req.params.id) });
+    if (!original) return res.status(404).json({ error: 'Decision not found' });
+    if (original.userId === req.user.userId) return res.status(400).json({ error: 'Cannot fork your own decision' });
+    if (original.forkedFrom) return res.status(400).json({ error: 'Cannot fork a fork' });
+
+    await col.updateOne({ _id: new ObjectId(req.params.id) }, {
+      $addToSet: { 'reactions.fork.users': req.user.userId },
+      $inc: { 'reactions.fork.count': 1 },
+    });
+    const updated = await col.findOne({ _id: new ObjectId(req.params.id) });
+    res.json({ count: updated.reactions?.fork?.count ?? 0 });
+  } catch (error) {
+    console.error('Error forking decision:', error);
+    res.status(500).json({ error: 'Failed to fork decision' });
+  }
+});
+
+// Merge a decision — links two decisions together (toggle)
+router.post('/:id/merge', async (req, res) => {
+  try {
+    const { myDecisionId } = req.body;
+    if (!myDecisionId) return res.status(400).json({ error: 'myDecisionId required' });
+
+    const db = getDB();
+    const usersCol = db.collection('users');
+    const userDoc = await usersCol.findOne({ _id: new ObjectId(req.user.userId) });
+    const username = userDoc?.username || req.user.username || '';
+
+    const result = await Decision.mergeDecision(req.params.id, myDecisionId, req.user.userId, username);
+    if (!result) return res.status(400).json({ error: 'Invalid merge: decision not found or ownership check failed' });
+    res.json(result);
+  } catch (error) {
+    console.error('Error merging decision:', error);
+    res.status(500).json({ error: 'Failed to merge decision' });
+  }
+});
+
 // Toggle reaction on a decision
 router.post('/:id/react', async (req, res) => {
   try {

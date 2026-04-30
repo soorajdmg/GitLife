@@ -40,7 +40,7 @@ function mapToCard(d) {
   };
 }
 
-export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onStash, onDelete, onNew, compact, loading, currentUser, openMessage, onProfile, hideFab }) {
+export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onFork, onMerge, onStash, onDelete, onNew, compact, loading, currentUser, openMessage, onProfile, hideFab }) {
   const [filter, setFilter] = useState('All');
   const seenRef = useRef(new Set());
   const [searchParams] = useSearchParams();
@@ -129,7 +129,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
               {/* Following posts */}
               {shownFollowing.map(c => (
                 <div key={c.id} id={`post-${c.id}`} style={{ borderRadius: 14, transition: 'box-shadow 0.4s', boxShadow: highlightId === c.id ? '0 0 0 2px oklch(52% 0.2 260), 0 4px 24px oklch(52% 0.2 260 / 0.18)' : 'none' }}>
-                  <CommitCard c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
+                  <CommitCard c={c} onReact={onReact} onFork={onFork} onMerge={onMerge} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
                 </div>
               ))}
 
@@ -151,7 +151,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
               {/* Trending posts */}
               {shownTrending.map(c => (
                 <div key={c.id} id={`post-${c.id}`} style={{ borderRadius: 14, transition: 'box-shadow 0.4s', boxShadow: highlightId === c.id ? '0 0 0 2px oklch(52% 0.2 260), 0 4px 24px oklch(52% 0.2 260 / 0.18)' : 'none' }}>
-                  <CommitCard c={c} onReact={onReact} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
+                  <CommitCard c={c} onReact={onReact} onFork={onFork} onMerge={onMerge} onStash={onStash} onDelete={onDelete} compact={compact} currentUser={currentUser} openMessage={openMessage} onProfile={onProfile} />
                 </div>
               ))}
 

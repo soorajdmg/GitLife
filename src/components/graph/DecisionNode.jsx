@@ -91,8 +91,8 @@ export default function DecisionNode({ data, selected }) {
     ? (isDark ? 'oklch(20% 0.012 155)' : 'oklch(97% 0.012 155)')
     : isDark ? 'oklch(20% 0.015 260)' : 'white';
 
-  const branchPillBg = isDark ? 'oklch(26% 0.012 260)' : 'oklch(95% 0.005 260)';
-  const branchPillColor = isDark ? 'oklch(68% 0.01 260)' : 'oklch(55% 0.01 260)';
+  const branchPillBg = isDark ? 'oklch(32% 0.018 260)' : 'oklch(95% 0.005 260)';
+  const branchPillColor = isDark ? 'oklch(82% 0.01 260)' : 'oklch(55% 0.01 260)';
   const textColor = isDark ? 'oklch(88% 0.008 260)' : 'oklch(20% 0.015 260)';
   const depCountColor = isLoadBearing
     ? 'oklch(42% 0.18 290)'
@@ -131,19 +131,19 @@ export default function DecisionNode({ data, selected }) {
 
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: typeColor(data.type), background: typeColor(data.type) + '22', padding: '1px 6px', borderRadius: 4 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: typeColor(data.type), background: typeColor(data.type) + (isDark ? '44' : '22'), padding: '1px 6px', borderRadius: 4 }}>
           {data.type || 'feat'}
         </span>
         <span style={{ fontSize: 10, color: branchPillColor, fontFamily: "'JetBrains Mono', monospace", background: branchPillBg, padding: '1px 6px', borderRadius: 4, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {branch}
         </span>
         {isLoadBearing && (
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'oklch(42% 0.18 290)', background: 'oklch(95% 0.06 290)', padding: '1px 5px', borderRadius: 4, border: '1px solid oklch(85% 0.1 290)' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: isDark ? 'oklch(78% 0.18 290)' : 'oklch(42% 0.18 290)', background: isDark ? 'oklch(30% 0.1 290)' : 'oklch(95% 0.06 290)', padding: '1px 5px', borderRadius: 4, border: `1px solid ${isDark ? 'oklch(45% 0.15 290)' : 'oklch(85% 0.1 290)'}` }}>
             load-bearing
           </span>
         )}
         {isConnectTarget && (
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'oklch(40% 0.18 155)', background: 'oklch(93% 0.06 155)', padding: '1px 5px', borderRadius: 4 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: isDark ? 'oklch(72% 0.18 155)' : 'oklch(40% 0.18 155)', background: isDark ? 'oklch(28% 0.1 155)' : 'oklch(93% 0.06 155)', padding: '1px 5px', borderRadius: 4 }}>
             click to link
           </span>
         )}

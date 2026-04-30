@@ -6,6 +6,7 @@ import { api } from '../config/api';
 import { QUERY_KEYS } from '../config/queryClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
 import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
 import EngagementBar from '../components/ui/EngagementBar';
@@ -153,7 +154,7 @@ function GridTile({ item, onClick }) {
 }
 
 // ── Post Card (for the feed view) ─────────────────────────────────────────────
-function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, onDelete, isOwnProfile }) {
+function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, onDelete, isOwnProfile, isDark }) {
   const user = item.userInfo;
   const ini = userInitials(user);
   const color = userColor(item.userId);
@@ -168,6 +169,22 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const menuRef = useRef();
+
+  const cardBg = isDark
+    ? (wi ? 'oklch(22% 0.04 55)' : 'oklch(21% 0.012 260)')
+    : (wi ? 'oklch(99.5% 0.012 65)' : 'white');
+  const cardBorder = isDark
+    ? (wi ? 'oklch(32% 0.08 55)' : 'oklch(28% 0.012 260)')
+    : (wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)');
+  const textPri = isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)';
+  const textSec = isDark ? 'oklch(65% 0.01 260)' : 'oklch(58% 0.01 260)';
+  const textMuted = isDark ? 'oklch(52% 0.01 260)' : 'oklch(52% 0.01 260)';
+  const wiTitleColor = isDark ? 'oklch(72% 0.18 55)' : 'oklch(42% 0.18 55)';
+  const impactBg = isDark ? 'oklch(26% 0.01 260)' : 'oklch(95% 0.006 80)';
+  const impactBorder = isDark ? 'oklch(32% 0.01 260)' : 'oklch(90% 0.006 80)';
+  const menuBg = isDark ? 'oklch(22% 0.012 260)' : 'white';
+  const menuBorder = isDark ? 'oklch(30% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const menuBtnHover = isDark ? 'oklch(26% 0.02 25)' : 'oklch(97% 0.01 25)';
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -186,8 +203,8 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
   return (
     <div
       style={{
-        background: wi ? 'oklch(99.5% 0.012 65)' : 'white',
-        border: `1px solid ${wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`,
+        background: cardBg,
+        border: `1px solid ${cardBorder}`,
         borderRadius: 14,
         marginBottom: 12,
         padding: '14px 16px',
@@ -199,7 +216,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
     >
       {/* what-if label */}
       {wi && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(68% 0.19 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
           ⎇ what-if branch
         </div>
       )}
@@ -213,13 +230,13 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             onClick={() => onProfile?.(userHandle || userId)}
-            style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block' }}
+            style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block', color: textPri }}
             onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
           >
             {user?.fullName || user?.username || 'Unknown'}
           </div>
-          <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ fontSize: 12, color: textSec, display: 'flex', gap: 6, alignItems: 'center' }}>
             {user?.username && <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</span>}
             <span>·</span>
             <span>{timeAgo(item.createdAt || item.timestamp)}</span>
@@ -229,14 +246,14 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         {isOwnPost && onDelete && (
           <div style={{ position: 'relative' }} ref={menuRef}>
             <button onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }} title="More options"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: 'none', background: menuOpen ? 'oklch(93% 0.006 260)' : 'transparent', color: 'oklch(55% 0.01 260)', cursor: 'pointer', padding: 0, flexShrink: 0, opacity: hovered || menuOpen ? 1 : 0, transition: 'opacity 0.15s, background 0.12s' }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: 'none', background: menuOpen ? (isDark ? 'oklch(28% 0.01 260)' : 'oklch(93% 0.006 260)') : 'transparent', color: textMuted, cursor: 'pointer', padding: 0, flexShrink: 0, opacity: hovered || menuOpen ? 1 : 0, transition: 'opacity 0.15s, background 0.12s' }}>
               <svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="2.5" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="7" cy="11.5" r="1.2" /></svg>
             </button>
             {menuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: menuBg, border: `1px solid ${menuBorder}`, borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
                 <button onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(item.id); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 25)'}
+                  onMouseEnter={e => e.currentTarget.style.background = menuBtnHover}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                   <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" /></svg>
                   Delete post
@@ -249,7 +266,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 
       {/* Decision title */}
       <div
-        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: item.body ? 6 : 10, color: wi ? 'oklch(42% 0.18 55)' : 'oklch(15% 0.015 260)', cursor: item.body ? 'pointer' : 'default' }}
+        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: item.body ? 6 : 10, color: wi ? wiTitleColor : textPri, cursor: item.body ? 'pointer' : 'default' }}
         onClick={() => item.body && setBodyOpen(p => !p)}
       >
         {item.decision}
@@ -257,7 +274,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 
       {/* Body with read more */}
       {item.body && (bodyOpen || item.body.length < 90) && (
-        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{item.body}</div>
+        <div style={{ fontSize: 13.5, color: isDark ? 'oklch(65% 0.01 260)' : 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{item.body}</div>
       )}
       {item.body && item.body.length >= 90 && !bodyOpen && (
         <div style={{ fontSize: 12, color: 'oklch(52% 0.2 260)', marginBottom: 8, marginTop: -2, cursor: 'pointer' }} onClick={() => setBodyOpen(true)}>Read more</div>
@@ -273,7 +290,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
       {/* Tags row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
         <Tag cat={category} />
-        {item.impact != null && <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>impact {item.impact}</span>}
+        {item.impact != null && <span style={{ fontSize: 11, color: textMuted, background: impactBg, border: `1px solid ${impactBorder}`, borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>impact {item.impact}</span>}
       </div>
 
       {/* Engagement bar */}
@@ -301,7 +318,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 }
 
 // ── Profile Feed View ─────────────────────────────────────────────────────────
-function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, onDelete, isOwnProfile }) {
+function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, onDelete, isOwnProfile, isDark }) {
   const scrollRef = useRef();
   const itemRefs = useRef({});
 
@@ -314,13 +331,15 @@ function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, 
     }, 50);
   }, [startId]);
 
+  const backBarBtnColor = isDark ? 'oklch(82% 0.01 260)' : 'oklch(30% 0.015 260)';
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '10px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: isDark ? 'oklch(18% 0.01 260)' : 'white', borderBottom: `1px solid ${isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)'}`, padding: '10px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'oklch(30% 0.015 260)', padding: '4px 0' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: backBarBtnColor, padding: '4px 0' }}
           onMouseEnter={e => e.currentTarget.style.color = 'oklch(52% 0.2 260)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'oklch(30% 0.015 260)'}>
+          onMouseLeave={e => e.currentTarget.style.color = backBarBtnColor}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4L6 9l5 5" /></svg>
           Profile
         </button>
@@ -342,6 +361,7 @@ function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, 
                 reactionOverride={reactionState[id]}
                 onDelete={isOwnProfile ? onDelete : undefined}
                 isOwnProfile={isOwnProfile}
+                isDark={isDark}
               />
             </div>
             );
@@ -408,7 +428,7 @@ function buildActivityData(commits) {
   return { weekData, weekMonths, graphStart: start };
 }
 
-function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
+function ActivityGraph({ commitCount, topCategory, commits, compact = false, isDark = false }) {
   const [hovered, setHovered] = useState(null);
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -447,14 +467,18 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
     if (i === 0 || m !== weekMonths[i - 1]) monthLabels.push({ week: i, label: m });
   });
 
+  const statBg = isDark ? 'oklch(24% 0.014 260)' : 'oklch(97% 0.006 260)';
+  const statTextPri = isDark ? 'oklch(90% 0.008 260)' : 'oklch(25% 0.015 260)';
+  const statTextSec = isDark ? 'oklch(62% 0.01 260)' : 'oklch(58% 0.01 260)';
+
   return (
     <div ref={containerRef}>
-      <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 10 }}>Commit activity</div>
+      <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)', marginBottom: 10 }}>Commit activity</div>
       <div style={{ display: 'flex', gap: compact ? 6 : 8, marginBottom: 12 }}>
         {[[String(commitCount), 'commits'], ['—', 'streak'], [topCategory || '—', 'top area']].map(([val, lbl]) => (
-          <div key={lbl} style={{ flex: 1, padding: compact ? '6px 6px' : '7px 8px', background: 'oklch(97% 0.006 260)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: 'oklch(25% 0.015 260)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</div>
-            <div style={{ fontSize: compact ? 9 : 10, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>{lbl}</div>
+          <div key={lbl} style={{ flex: 1, padding: compact ? '6px 6px' : '7px 8px', background: statBg, borderRadius: 8, textAlign: 'center' }}>
+            <div style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: statTextPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</div>
+            <div style={{ fontSize: compact ? 9 : 10, color: statTextSec, marginTop: 1 }}>{lbl}</div>
           </div>
         ))}
       </div>
@@ -463,14 +487,14 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
         {/* Month labels */}
         <div style={{ marginLeft: DAY_COL + 4, marginBottom: 3, position: 'relative', height: 14 }}>
           {monthLabels.map(({ week, label }) => (
-            <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
+            <div key={week} style={{ position: 'absolute', left: week * (CELL + GAP), fontSize: 9.5, fontWeight: 600, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>{label}</div>
           ))}
         </div>
         {/* Grid */}
         <div style={{ display: 'flex', gap: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, flexShrink: 0, width: DAY_COL - 4 }}>
             {DAY_LABELS.map((d, i) => (
-              <div key={i} style={{ height: CELL, fontSize: 9, color: 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right' }}>{d}</div>
+              <div key={i} style={{ height: CELL, fontSize: 9, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(62% 0.01 260)', lineHeight: `${CELL}px`, textAlign: 'right' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'flex', gap: GAP, flex: 1 }}>
@@ -513,16 +537,16 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 16, justifyContent: 'flex-end' }}>
-        <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>Less</span>
+        <span style={{ fontSize: 9.5, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(62% 0.01 260)' }}>Less</span>
         {CELL_COLORS.map((bg, i) => <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: bg }} />)}
-        <span style={{ fontSize: 9.5, color: 'oklch(62% 0.01 260)' }}>More</span>
+        <span style={{ fontSize: 9.5, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(62% 0.01 260)' }}>More</span>
       </div>
     </div>
   );
 }
 
 /* ─── GIT GRAPH ─── */
-function GitGraph({ commits, branches = [] }) {
+function GitGraph({ commits, branches = [], isDark = false }) {
   const branchNames = [...new Set(commits.map(c => c.branch))];
   // main always gets col 0; other branches get cols 1, 2, 3... in order of appearance
   const otherBranches = branchNames.filter(b => b !== 'main');
@@ -616,15 +640,15 @@ function GitGraph({ commits, branches = [] }) {
               })()}
 
               {c.wi ? (
-                <><circle cx={cx} cy={midY} r={6} fill="white" stroke={color} strokeWidth={2} /><circle cx={cx} cy={midY} r={2.5} fill={color} /></>
+                <><circle cx={cx} cy={midY} r={6} fill={isDark ? 'oklch(21% 0.012 260)' : 'white'} stroke={color} strokeWidth={2} /><circle cx={cx} cy={midY} r={2.5} fill={color} /></>
               ) : (
-                <circle cx={cx} cy={midY} r={6} fill={color} stroke="white" strokeWidth={2} />
+                <circle cx={cx} cy={midY} r={6} fill={color} stroke={isDark ? 'oklch(21% 0.012 260)' : 'white'} strokeWidth={2} />
               )}
             </svg>
-            <div style={{ flex: 1, padding: '12px 0 12px 14px', borderBottom: i < commits.length - 1 ? '1px solid oklch(96% 0.004 80)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)' }}>{c.message}</span>
+            <div style={{ flex: 1, padding: '12px 0 12px 14px', borderBottom: i < commits.length - 1 ? `1px solid ${isDark ? 'oklch(26% 0.008 260)' : 'oklch(96% 0.004 80)'}` : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: c.wi ? (isDark ? 'oklch(72% 0.18 55)' : 'oklch(45% 0.18 55)') : (isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)') }}>{c.message}</span>
               <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
+                <span style={{ fontSize: 11, color: isDark ? 'oklch(55% 0.008 260)' : 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
                 <Tag cat={c.category} />
               </div>
             </div>
@@ -636,7 +660,7 @@ function GitGraph({ commits, branches = [] }) {
 }
 
 /* ─── COMMIT LOG ─── */
-function CommitLogItem({ c, index, total, currentUserId, isOwnProfile }) {
+function CommitLogItem({ c, index, total, currentUserId, isOwnProfile, isDark = false }) {
   const color = c.wi ? 'oklch(60% 0.19 55)' : 'oklch(52% 0.2 260)';
   const [replyOpen, setReplyOpen] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(c.commentCount ?? 0);
@@ -661,16 +685,16 @@ function CommitLogItem({ c, index, total, currentUserId, isOwnProfile }) {
   };
 
   return (
-    <div key={c.id} style={{ padding: '14px 0', borderBottom: index < total - 1 ? '1px solid oklch(96% 0.004 80)' : 'none' }}>
+    <div key={c.id} style={{ padding: '14px 0', borderBottom: index < total - 1 ? `1px solid ${isDark ? 'oklch(26% 0.008 260)' : 'oklch(96% 0.004 80)'}` : 'none' }}>
       <div style={{ display: 'flex', gap: 14 }}>
         <div style={{ width: 3, borderRadius: 2, background: color, flexShrink: 0, alignSelf: 'stretch', opacity: c.wi ? 0.6 : 1 }} />
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
             <BranchPill name={c.branch === 'main' ? 'main' : c.branch.replace('what-if/', '')} wi={c.wi} merged={false} />
           </div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 5, color: c.wi ? 'oklch(45% 0.18 55)' : 'oklch(15% 0.015 260)', lineHeight: 1.35 }}>{c.message}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 5, color: c.wi ? (isDark ? 'oklch(72% 0.18 55)' : 'oklch(45% 0.18 55)') : (isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)'), lineHeight: 1.35 }}>{c.message}</div>
           <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 11, color: 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
+            <span style={{ fontSize: 11, color: isDark ? 'oklch(55% 0.008 260)' : 'oklch(60% 0.008 260)', fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</span>
             <Tag cat={c.category} />
           </div>
           <EngagementBar
@@ -701,21 +725,26 @@ function CommitLogItem({ c, index, total, currentUserId, isOwnProfile }) {
   );
 }
 
-function CommitLog({ commits, currentUserId, isOwnProfile }) {
+function CommitLog({ commits, currentUserId, isOwnProfile, isDark = false }) {
   return (
     <div>
       {commits.map((c, i) => (
-        <CommitLogItem key={c.id} c={c} index={i} total={commits.length} currentUserId={currentUserId} isOwnProfile={isOwnProfile} />
+        <CommitLogItem key={c.id} c={c} index={i} total={commits.length} currentUserId={currentUserId} isOwnProfile={isOwnProfile} isDark={isDark} />
       ))}
     </div>
   );
 }
 
 /* ─── HORIZONTAL TIMELINE ─── */
-function HorizTimeline({ commits }) {
+function HorizTimeline({ commits, isDark = false }) {
   const main = commits.filter(c => c.branch === 'main');
   const branches = commits.filter(c => c.branch !== 'main');
   const NW = 190, totalW = Math.max(main.length * NW + 60, 700);
+  const dotBorder = isDark ? 'oklch(18% 0.01 260)' : 'white';
+  const msgColor = isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)';
+  const dateColor = isDark ? 'oklch(55% 0.008 260)' : 'oklch(60% 0.008 260)';
+  const wiBg = isDark ? 'oklch(22% 0.01 260)' : 'white';
+  const wiMsg = isDark ? 'oklch(72% 0.18 55)' : 'oklch(45% 0.18 55)';
   return (
     <div style={{ overflowX: 'auto', paddingBottom: 16 }}>
       <div style={{ width: totalW, position: 'relative', height: 240 }}>
@@ -728,19 +757,19 @@ function HorizTimeline({ commits }) {
           });
           return (
             <div key={c.id} style={{ position: 'absolute', top: 0, left: x }}>
-              <div style={{ position: 'absolute', top: 72, left: -7, width: 16, height: 16, borderRadius: '50%', background: 'oklch(52% 0.2 260)', border: '3px solid white', boxShadow: '0 0 0 2px oklch(52% 0.2 260)' }} />
+              <div style={{ position: 'absolute', top: 72, left: -7, width: 16, height: 16, borderRadius: '50%', background: 'oklch(52% 0.2 260)', border: `3px solid ${dotBorder}`, boxShadow: '0 0 0 2px oklch(52% 0.2 260)' }} />
               <div style={{ position: 'absolute', top: 98, left: -NW / 2 + 10, width: NW - 20, textAlign: 'center' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(15% 0.015 260)', lineHeight: 1.35, marginBottom: 3 }}>{c.message}</div>
-                <div style={{ fontSize: 10, color: 'oklch(60% 0.008 260)', marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: msgColor, lineHeight: 1.35, marginBottom: 3 }}>{c.message}</div>
+                <div style={{ fontSize: 10, color: dateColor, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>{c.date}</div>
                 <Tag cat={c.category} />
               </div>
               {forks.map((f, fi) => (
                 <div key={f.id} style={{ position: 'absolute', top: 80 - (fi + 1) * 60 - 14, left: 0 }}>
                   <div style={{ position: 'absolute', bottom: 14, left: 0, width: NW * 0.55, height: 1.5, background: 'oklch(60% 0.19 55)', opacity: 0.7 }} />
-                  <div style={{ position: 'absolute', bottom: 6, left: 0, width: 13, height: 13, borderRadius: '50%', background: 'white', border: `2px solid oklch(60% 0.19 55)` }}>
+                  <div style={{ position: 'absolute', bottom: 6, left: 0, width: 13, height: 13, borderRadius: '50%', background: wiBg, border: `2px solid oklch(60% 0.19 55)` }}>
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 5, height: 5, borderRadius: '50%', background: 'oklch(60% 0.19 55)' }} />
                   </div>
-                  <div style={{ position: 'absolute', bottom: 22, left: 0, width: NW * 0.8, fontSize: 11, color: 'oklch(45% 0.18 55)', fontWeight: 500, lineHeight: 1.3 }}>{f.message}</div>
+                  <div style={{ position: 'absolute', bottom: 22, left: 0, width: NW * 0.8, fontSize: 11, color: wiMsg, fontWeight: 500, lineHeight: 1.3 }}>{f.message}</div>
                 </div>
               ))}
             </div>
@@ -755,6 +784,7 @@ function HorizTimeline({ commits }) {
 export default function ProfileView({ viz, username, onProfile, onMessage, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const isOwnProfile = !username || username === user?.username;
   const [activeBranch, setActiveBranch] = useState('all');
@@ -1009,16 +1039,42 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
         reactionState={reactionState}
         onDelete={handleDeletePost}
         isOwnProfile={isOwnProfile}
+        isDark={isDark}
       />
     );
   }
 
+  // shared tokens for both layouts
+  const pageBg = isDark ? 'oklch(15% 0.01 260)' : 'oklch(98% 0.004 260)';
+  const headerBg = isDark ? 'oklch(18% 0.01 260)' : 'white';
+  const headerBorder = isDark ? 'oklch(28% 0.012 260)' : 'oklch(92% 0.006 80)';
+  const panelBg = isDark ? 'oklch(21% 0.012 260)' : 'white';
+  const panelBorder = isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const textPri = isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)';
+  const textSec = isDark ? 'oklch(65% 0.01 260)' : 'oklch(55% 0.01 260)';
+  const textMuted = isDark ? 'oklch(58% 0.01 260)' : 'oklch(58% 0.01 260)';
+  const skeletonBg = isDark ? 'oklch(26% 0.01 260)' : 'oklch(95% 0.006 80)';
+  const skeletonBg2 = isDark ? 'oklch(28% 0.01 260)' : 'oklch(94% 0.006 80)';
+  const followingBtnBg = isDark ? 'oklch(24% 0.012 260)' : 'white';
+  const followingBtnColor = isDark ? 'oklch(72% 0.18 260)' : 'oklch(42% 0.2 260)';
+  const msgBtnBg = isDark ? 'oklch(24% 0.012 260)' : 'white';
+  const msgBtnColor = isDark ? 'oklch(82% 0.01 260)' : 'oklch(30% 0.015 260)';
+  const msgBtnBorder = isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)';
+  const mutualBorder = isDark ? 'oklch(22% 0.01 260)' : 'white';
+  const mutualNameColor = isDark ? 'oklch(85% 0.01 260)' : 'oklch(30% 0.015 260)';
+  const branchActiveBg = isDark ? 'oklch(26% 0.02 260)' : 'oklch(95% 0.015 260)';
+  const branchPillInactiveBg = isDark ? 'oklch(24% 0.008 260)' : 'oklch(97% 0.004 80)';
+  const branchPillInactiveBorder = isDark ? 'oklch(30% 0.008 260)' : 'oklch(90% 0.006 80)';
+  const branchSelectBg = isDark ? 'oklch(22% 0.01 260)' : 'oklch(97% 0.006 260)';
+  const branchSelectBorder = isDark ? 'oklch(30% 0.012 260)' : 'oklch(88% 0.01 260)';
+  const postGridSkeletonBg = isDark ? 'oklch(24% 0.008 260)' : 'oklch(94% 0.005 260)';
+
   // ── Mobile layout ──
   if (isMobile) {
     return (
-      <div style={{ height: '100%', overflowY: 'auto', background: 'oklch(98% 0.004 260)' }}>
+      <div style={{ height: '100%', overflowY: 'auto', background: pageBg }}>
         {/* Mobile Header */}
-        <div style={{ background: 'white', borderBottom: '1px solid oklch(92% 0.006 80)', padding: '20px 16px 16px' }}>
+        <div style={{ background: headerBg, borderBottom: `1px solid ${headerBorder}`, padding: '20px 16px 16px' }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
             {avatarUrl ? (
               <img src={avatarUrl} alt="avatar" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
@@ -1026,36 +1082,33 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: 'white', flexShrink: 0 }}>{initials}</div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
-              <div style={{ fontSize: 11.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>{handle}</div>
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: textPri }}>{displayName}</div>
+              <div style={{ fontSize: 11.5, color: textSec, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>{handle}</div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                 {isOwnProfile ? (
                   [['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
                     <div key={lbl} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{fmt(val)}</div>
-                      <div style={{ fontSize: 10.5, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>{lbl}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: textPri }}>{fmt(val)}</div>
+                      <div style={{ fontSize: 10.5, color: textMuted, marginTop: 1 }}>{lbl}</div>
                     </div>
                   ))
                 ) : (
                   <>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{fmt(otherUser?.commitCount ?? commits.length)}</div>
-                      <div style={{ fontSize: 10.5, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>commits</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: textPri }}>{fmt(otherUser?.commitCount ?? commits.length)}</div>
+                      <div style={{ fontSize: 10.5, color: textMuted, marginTop: 1 }}>commits</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{fmt(otherUser?.followerCount ?? 0)}</div>
-                      <div style={{ fontSize: 10.5, color: 'oklch(58% 0.01 260)', marginTop: 1 }}>followers</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: textPri }}>{fmt(otherUser?.followerCount ?? 0)}</div>
+                      <div style={{ fontSize: 10.5, color: textMuted, marginTop: 1 }}>followers</div>
                     </div>
                     <button onClick={toggleFollow} disabled={followLoading}
-                      style={{ padding: '6px 18px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? '1.5px solid oklch(88% 0.008 260)' : 'none', background: isFollowing ? 'white' : 'oklch(52% 0.2 260)', color: isFollowing ? 'oklch(42% 0.2 260)' : 'white' }}>
+                      style={{ padding: '6px 18px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? `1.5px solid ${msgBtnBorder}` : 'none', background: isFollowing ? followingBtnBg : 'oklch(52% 0.2 260)', color: isFollowing ? followingBtnColor : 'white' }}>
                       {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                     </button>
                     {onMessage && (
                       <button onClick={() => onMessage(resolvedUserId || username)}
-                        style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: '1.5px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(30% 0.015 260)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H8L5 11V10H3.5C2.7 10 2 9.3 2 8.5v-5z" />
-                        </svg>
+                        style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor }}>
                         Message
                       </button>
                     )}
@@ -1067,7 +1120,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', flexShrink: 0 }}>
                     {(otherUser.mutualFollowers || []).slice(0, 3).map((mu, i) => (
-                      <div key={mu.id} style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid white', marginLeft: i === 0 ? 0 : -6, zIndex: 3 - i, flexShrink: 0, overflow: 'hidden', background: userColor(mu.id) }}>
+                      <div key={mu.id} style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${mutualBorder}`, marginLeft: i === 0 ? 0 : -6, zIndex: 3 - i, flexShrink: 0, overflow: 'hidden', background: userColor(mu.id) }}>
                         {mu.avatarUrl
                           ? <img src={mu.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6, fontWeight: 700, color: 'white' }}>{userInitials(mu).slice(0, 1)}</div>
@@ -1075,16 +1128,16 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                       </div>
                     ))}
                   </div>
-                  <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)' }}>
+                  <span style={{ fontSize: 11, color: textMuted }}>
                     Followed by{' '}
                     <span
-                      style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'oklch(70% 0.01 260)' }}
+                      style={{ fontWeight: 600, color: mutualNameColor, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'oklch(70% 0.01 260)' }}
                       onClick={() => onProfile?.((otherUser.mutualFollowers || [])[0]?.username)}
                     >
                       {(otherUser.mutualFollowers || [])[0]?.fullName?.split(' ')[0] || (otherUser.mutualFollowers || [])[0]?.username}
                     </span>
                     {otherUser.mutualFollowerCount > 1 && (
-                      <span> and <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>{otherUser.mutualFollowerCount - 1} {otherUser.mutualFollowerCount - 1 === 1 ? 'other' : 'others'}</span></span>
+                      <span> and <span style={{ fontWeight: 600, color: mutualNameColor }}>{otherUser.mutualFollowerCount - 1} {otherUser.mutualFollowerCount - 1 === 1 ? 'other' : 'others'}</span></span>
                     )}
                   </span>
                 </div>
@@ -1120,15 +1173,15 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
           )}
 
           {/* ── 1. Commit Activity ── */}
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px 14px 18px', overflow: 'hidden' }}>
-            <ActivityGraph commitCount={commits.length} topCategory={topCategory} commits={commits} compact />
+          <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '14px 14px 18px', overflow: 'hidden' }}>
+            <ActivityGraph commitCount={commits.length} topCategory={topCategory} commits={commits} compact isDark={isDark} />
           </div>
 
           {/* ── 2. Branch Dropdown ── */}
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 9 }}>Branch</div>
+          <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '14px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 9 }}>Branch</div>
             {loading ? (
-              <div style={{ height: 40, background: 'oklch(95% 0.006 80)', borderRadius: 10 }} />
+              <div style={{ height: 40, background: skeletonBg, borderRadius: 10 }} />
             ) : (
               <div style={{ position: 'relative' }}>
                 <select
@@ -1138,8 +1191,8 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                     width: '100%', appearance: 'none', WebkitAppearance: 'none',
                     padding: '10px 36px 10px 12px', borderRadius: 10, fontSize: 13,
                     fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
-                    border: '1.5px solid oklch(88% 0.01 260)',
-                    background: 'oklch(97% 0.006 260)', color: 'oklch(18% 0.015 260)',
+                    border: `1.5px solid ${branchSelectBorder}`,
+                    background: branchSelectBg, color: isDark ? 'oklch(88% 0.008 260)' : 'oklch(18% 0.015 260)',
                     cursor: 'pointer', outline: 'none',
                   }}
                 >
@@ -1150,16 +1203,13 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                   ))}
                 </select>
                 {/* Chevron icon */}
-                <div style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'oklch(50% 0.01 260)' }}>
+                <div style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: textMuted }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 5l4 4 4-4" />
                   </svg>
                 </div>
-                {/* Active branch color dot */}
                 {activeBranchData && (
-                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                    {/* dot overlaid on the select — hidden since select manages its own rendering */}
-                  </div>
+                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 )}
               </div>
             )}
@@ -1174,9 +1224,9 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                       display: 'flex', alignItems: 'center', gap: 5,
                       padding: '4px 10px', borderRadius: 20, fontSize: 11,
                       fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
-                      border: activeBranch === b.id ? `1.5px solid ${b.color}` : '1.5px solid oklch(90% 0.006 80)',
-                      background: activeBranch === b.id ? `${b.color}22` : 'oklch(97% 0.004 80)',
-                      color: activeBranch === b.id ? b.color : 'oklch(50% 0.01 260)',
+                      border: activeBranch === b.id ? `1.5px solid ${b.color}` : `1.5px solid ${branchPillInactiveBorder}`,
+                      background: activeBranch === b.id ? `${b.color}22` : branchPillInactiveBg,
+                      color: activeBranch === b.id ? b.color : textMuted,
                       cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
                     }}
                   >
@@ -1186,51 +1236,51 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                   </button>
                 ))}
                 {allBranches.length > 5 && (
-                  <span style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', padding: '4px 6px', alignSelf: 'center' }}>+{allBranches.length - 5} more</span>
+                  <span style={{ fontSize: 11, color: textMuted, padding: '4px 6px', alignSelf: 'center' }}>+{allBranches.length - 5} more</span>
                 )}
               </div>
             )}
           </div>
 
           {/* ── 3. Git Graph ── */}
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '14px', overflow: 'hidden' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 14 }}>
+          <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '14px', overflow: 'hidden' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 14 }}>
               {{ graph: 'Git Graph', log: 'Commit Log', horizontal: 'Timeline' }[viz] || 'Git Graph'}
             </div>
             {loading ? (
               [1, 2, 3].map(i => (
-                <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 0', borderBottom: '1px solid oklch(96% 0.004 80)' }}>
-                  <div style={{ width: 36, height: 36, background: 'oklch(94% 0.006 80)', borderRadius: 8, flexShrink: 0 }} />
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 0', borderBottom: `1px solid ${isDark ? 'oklch(26% 0.008 260)' : 'oklch(96% 0.004 80)'}` }}>
+                  <div style={{ width: 36, height: 36, background: skeletonBg2, borderRadius: 8, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ height: 12, width: '60%', background: 'oklch(93% 0.006 80)', borderRadius: 5, marginBottom: 7 }} />
-                    <div style={{ height: 9, width: '38%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
+                    <div style={{ height: 12, width: '60%', background: skeletonBg, borderRadius: 5, marginBottom: 7 }} />
+                    <div style={{ height: 9, width: '38%', background: skeletonBg2, borderRadius: 5 }} />
                   </div>
                 </div>
               ))
             ) : shown.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 16px', color: 'oklch(58% 0.01 260)', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: textMuted, fontSize: 13 }}>
                 No commits yet. Start tracking your life decisions!
               </div>
             ) : (
               <div style={{ overflowX: viz === 'horizontal' ? 'auto' : 'visible' }}>
-                <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
+                <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} isDark={isDark} />
               </div>
             )}
           </div>
 
           {/* ── 4. Posts Grid ── */}
           <div>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 10, paddingLeft: 2 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 10, paddingLeft: 2 }}>
               Posts ({rawDecisions.length})
             </div>
             {loading ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
                 {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} style={{ paddingBottom: '100%', borderRadius: 6, background: 'oklch(94% 0.005 260)' }} />
+                  <div key={i} style={{ paddingBottom: '100%', borderRadius: 6, background: postGridSkeletonBg }} />
                 ))}
               </div>
             ) : rawDecisions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '28px 16px', color: 'oklch(58% 0.01 260)', fontSize: 13, background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)' }}>
+              <div style={{ textAlign: 'center', padding: '28px 16px', color: textMuted, fontSize: 13, background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}` }}>
                 No posts yet.
               </div>
             ) : (
@@ -1248,7 +1298,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
 
   // ── Desktop layout ──
   return (
-    <div style={{ height: '100%', overflowY: 'auto' }}>
+    <div style={{ height: '100%', overflowY: 'auto', background: pageBg }}>
       <div style={{ maxWidth: 'var(--profile-max-width, 960px)', margin: '0 auto', padding: 'clamp(20px, 3vw, 36px) clamp(20px, 3vw, 40px) 60px' }}>
         {/* Header */}
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 32 }}>
@@ -1258,29 +1308,26 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'white', flexShrink: 0 }}>{initials}</div>
           )}
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 21, fontWeight: 700, marginBottom: 1 }}>{displayName}</div>
-            <div style={{ fontSize: 12.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginBottom: 7 }}>{handle}</div>
+            <div style={{ fontSize: 21, fontWeight: 700, marginBottom: 1, color: textPri }}>{displayName}</div>
+            <div style={{ fontSize: 12.5, color: textSec, fontFamily: "'JetBrains Mono', monospace", marginBottom: 7 }}>{handle}</div>
             <div style={{ display: 'flex', gap: 22, alignItems: 'center' }}>
               {isOwnProfile ? (
                 [['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
-                  <div key={lbl}><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(val)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>{lbl}</span></div>
+                  <div key={lbl}><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(val)}</span> <span style={{ fontSize: 12, color: textMuted }}>{lbl}</span></div>
                 ))
               ) : (
                 <>
-                  <div><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(otherUser?.commitCount ?? commits.length)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>commits</span></div>
-                  <div><span style={{ fontSize: 15, fontWeight: 700 }}>{fmt(otherUser?.followerCount ?? 0)}</span> <span style={{ fontSize: 12, color: 'oklch(58% 0.01 260)' }}>followers</span></div>
+                  <div><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(otherUser?.commitCount ?? commits.length)}</span> <span style={{ fontSize: 12, color: textMuted }}>commits</span></div>
+                  <div><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(otherUser?.followerCount ?? 0)}</span> <span style={{ fontSize: 12, color: textMuted }}>followers</span></div>
                   <button onClick={toggleFollow} disabled={followLoading}
-                    style={{ marginLeft: 8, padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? '1px solid oklch(88% 0.008 260)' : 'none', background: isFollowing ? 'white' : 'oklch(52% 0.2 260)', color: isFollowing ? 'oklch(42% 0.2 260)' : 'white', transition: 'all 0.12s' }}>
+                    style={{ marginLeft: 8, padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? `1px solid ${msgBtnBorder}` : 'none', background: isFollowing ? followingBtnBg : 'oklch(52% 0.2 260)', color: isFollowing ? followingBtnColor : 'white', transition: 'all 0.12s' }}>
                     {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                   </button>
                   {onMessage && (
                     <button onClick={() => onMessage(resolvedUserId || username)}
-                      style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(30% 0.015 260)', transition: 'all 0.12s', display: 'flex', alignItems: 'center', gap: 6 }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'oklch(96% 0.006 260)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}>
-                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H8L5 11V10H3.5C2.7 10 2 9.3 2 8.5v-5z" />
-                      </svg>
+                      style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor, transition: 'all 0.12s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = isDark ? 'oklch(26% 0.012 260)' : 'oklch(96% 0.006 260)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = msgBtnBg; }}>
                       Message
                     </button>
                   )}
@@ -1292,7 +1339,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
                 <div style={{ display: 'flex', flexShrink: 0 }}>
                   {(otherUser.mutualFollowers || []).slice(0, 3).map((mu, i) => (
-                    <div key={mu.id} style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid white', marginLeft: i === 0 ? 0 : -7, zIndex: 3 - i, flexShrink: 0, overflow: 'hidden', background: userColor(mu.id) }}>
+                    <div key={mu.id} style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${mutualBorder}`, marginLeft: i === 0 ? 0 : -7, zIndex: 3 - i, flexShrink: 0, overflow: 'hidden', background: userColor(mu.id) }}>
                       {mu.avatarUrl
                         ? <img src={mu.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: 'white' }}>{userInitials(mu).slice(0, 1)}</div>
@@ -1300,16 +1347,16 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                     </div>
                   ))}
                 </div>
-                <span style={{ fontSize: 12, color: 'oklch(52% 0.01 260)' }}>
+                <span style={{ fontSize: 12, color: textMuted }}>
                   Followed by{' '}
                   <span
-                    style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'oklch(70% 0.01 260)' }}
+                    style={{ fontWeight: 600, color: mutualNameColor, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'oklch(70% 0.01 260)' }}
                     onClick={() => onProfile?.((otherUser.mutualFollowers || [])[0]?.username)}
                   >
                     {(otherUser.mutualFollowers || [])[0]?.fullName?.split(' ')[0] || (otherUser.mutualFollowers || [])[0]?.username}
                   </span>
                   {otherUser.mutualFollowerCount > 1 && (
-                    <span> and <span style={{ fontWeight: 600, color: 'oklch(30% 0.015 260)' }}>{otherUser.mutualFollowerCount - 1} {otherUser.mutualFollowerCount - 1 === 1 ? 'other' : 'others'}</span></span>
+                    <span> and <span style={{ fontWeight: 600, color: mutualNameColor }}>{otherUser.mutualFollowerCount - 1} {otherUser.mutualFollowerCount - 1 === 1 ? 'other' : 'others'}</span></span>
                   )}
                 </span>
               </div>
@@ -1320,64 +1367,64 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
         <div style={{ display: 'grid', gridTemplateColumns: 'clamp(240px, 25%, 320px) 1fr', gap: 'clamp(16px, 2vw, 28px)' }}>
           {/* Left */}
           <div>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 9 }}>Branches</div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 9 }}>Branches</div>
             {loading ? (
               [1, 2, 3].map(i => (
-                <div key={i} style={{ height: 28, background: 'oklch(95% 0.006 80)', borderRadius: 8, marginBottom: 4 }} />
+                <div key={i} style={{ height: 28, background: skeletonBg, borderRadius: 8, marginBottom: 4 }} />
               ))
             ) : (
               allBranches.map(b => (
                 <div key={b.id} onClick={() => setActiveBranch(b.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, background: activeBranch === b.id ? 'oklch(95% 0.015 260)' : 'transparent', transition: 'background 0.12s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, background: activeBranch === b.id ? branchActiveBg : 'transparent', transition: 'background 0.12s' }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, flex: 1, whiteSpace: 'nowrap' }}>{b.name}</span>
-                  {b.merged && <span style={{ fontSize: 9, padding: '1px 5px', background: 'oklch(92% 0.05 155)', color: 'oklch(38% 0.18 155)', borderRadius: 3, fontWeight: 600 }}>merged</span>}
+                  <span style={{ fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, flex: 1, whiteSpace: 'nowrap', color: textPri }}>{b.name}</span>
+                  {b.merged && <span style={{ fontSize: 9, padding: '1px 5px', background: isDark ? 'oklch(22% 0.08 155)' : 'oklch(92% 0.05 155)', color: isDark ? 'oklch(62% 0.18 155)' : 'oklch(38% 0.18 155)', borderRadius: 3, fontWeight: 600 }}>merged</span>}
                 </div>
               ))
             )}
-            <div style={{ marginTop: 18, padding: 14, background: 'white', borderRadius: 12, border: '1px solid oklch(91% 0.006 80)' }}>
-              <ActivityGraph commitCount={commits.length} topCategory={topCategory} commits={commits} />
+            <div style={{ marginTop: 18, padding: 14, background: panelBg, borderRadius: 12, border: `1px solid ${panelBorder}` }}>
+              <ActivityGraph commitCount={commits.length} topCategory={topCategory} commits={commits} isDark={isDark} />
             </div>
           </div>
 
           {/* Timeline */}
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '20px 22px' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 16 }}>
+          <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '20px 22px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 16 }}>
               {{ graph: 'Git Graph', log: 'Commit Log', horizontal: 'Timeline' }[viz] || 'Git Graph'}
             </div>
             {loading ? (
               [1, 2, 3, 4].map(i => (
-                <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid oklch(96% 0.004 80)' }}>
-                  <div style={{ width: 44, height: 44, background: 'oklch(94% 0.006 80)', borderRadius: 8, flexShrink: 0 }} />
+                <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: `1px solid ${isDark ? 'oklch(26% 0.008 260)' : 'oklch(96% 0.004 80)'}` }}>
+                  <div style={{ width: 44, height: 44, background: skeletonBg2, borderRadius: 8, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ height: 13, width: '55%', background: 'oklch(93% 0.006 80)', borderRadius: 5, marginBottom: 8 }} />
-                    <div style={{ height: 10, width: '35%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
+                    <div style={{ height: 13, width: '55%', background: skeletonBg, borderRadius: 5, marginBottom: 8 }} />
+                    <div style={{ height: 10, width: '35%', background: skeletonBg2, borderRadius: 5 }} />
                   </div>
                 </div>
               ))
             ) : shown.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14 }}>
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: textMuted, fontSize: 14 }}>
                 No commits yet. Start tracking your life decisions!
               </div>
             ) : (
-              <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} />
+              <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} isDark={isDark} />
             )}
           </div>
         </div>
 
         {/* Posts grid */}
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 14 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 14 }}>
             Posts ({rawDecisions.length})
           </div>
           {loading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)' }} />
+                <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: postGridSkeletonBg }} />
               ))}
             </div>
           ) : rawDecisions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14, background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)' }}>
+            <div style={{ textAlign: 'center', padding: '32px 20px', color: textMuted, fontSize: 14, background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}` }}>
               No posts yet.
             </div>
           ) : (

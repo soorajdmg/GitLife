@@ -145,6 +145,25 @@ router.post('/:id/merge', async (req, res) => {
   }
 });
 
+// Un-merge a decision — finds the user's linked decision automatically and removes the link
+router.post('/:id/unmerge', async (req, res) => {
+  try {
+    const col = getDB().collection('decisions');
+    const original = await col.findOne({ _id: new ObjectId(req.params.id) });
+    if (!original) return res.status(404).json({ error: 'Decision not found' });
+
+    // Find the user's decision that is linked to this one
+    const link = (original.mergedWith || []).find(m => m.userId === req.user.userId);
+    if (!link) return res.status(400).json({ error: 'No merge found for this user' });
+
+    const result = await Decision.mergeDecision(req.params.id, link.decisionId, req.user.userId, '');
+    res.json(result);
+  } catch (error) {
+    console.error('Error un-merging decision:', error);
+    res.status(500).json({ error: 'Failed to un-merge decision' });
+  }
+});
+
 // Toggle reaction on a decision
 router.post('/:id/react', async (req, res) => {
   try {

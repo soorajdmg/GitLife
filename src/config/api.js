@@ -296,6 +296,10 @@ class ApiClient {
     });
   }
 
+  async unmergeDecision(id) {
+    return this.request(`/decisions/${id}/unmerge`, { method: 'POST' });
+  }
+
   async reactToDecision(id, type) {
     return this.request(`/decisions/${id}/react`, {
       method: 'POST',

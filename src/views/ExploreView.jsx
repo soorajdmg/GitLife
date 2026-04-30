@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../config/api';
 import { QUERY_KEYS } from '../config/queryClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
 import EngagementBar from '../components/ui/EngagementBar';
@@ -195,7 +196,7 @@ function GridTile({ item, onClick }) {
 }
 
 // ─── Single Post Card (used in feed view) ────────────────────────────────────
-function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride }) {
+function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, isDark }) {
   const user = item.userInfo;
   const ini = userInitials(user);
   const color = userColor(item.userId);
@@ -214,28 +215,33 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
   };
   const userReactions = reactionOverride?.userReactions || item.userReactions || {};
 
+  const cardBg = wi
+    ? (isDark ? 'oklch(20% 0.06 55)' : 'oklch(99.5% 0.012 65)')
+    : (isDark ? 'oklch(21% 0.012 260)' : 'white');
+  const cardBorder = wi
+    ? (isDark ? 'oklch(32% 0.1 55)' : 'oklch(88% 0.1 60)')
+    : (isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)');
+
   return (
     <div
       style={{
-        background: wi ? 'oklch(99.5% 0.012 65)' : 'white',
-        border: `1px solid ${wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`,
+        background: cardBg,
+        border: `1px solid ${cardBorder}`,
         borderRadius: 14,
         marginBottom: 12,
         padding: '14px 16px',
         transition: 'box-shadow 0.15s',
         position: 'relative',
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
     >
-      {/* what-if label */}
       {wi && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.19 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
           ⎇ what-if branch
         </div>
       )}
 
-      {/* Author row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         {user?.avatarUrl
           ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(user?.username || userId)}
@@ -249,13 +255,13 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             onClick={() => onProfile?.(user?.username || userId)}
-            style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block' }}
+            style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block', color: isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)' }}
             onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
           >
             {user?.fullName || user?.username || 'Unknown'}
           </div>
-          <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ fontSize: 12, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>
             {user?.username && <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</span>}
             <span>·</span>
             <span>{timeAgo(item.createdAt || item.timestamp)}</span>
@@ -264,23 +270,20 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         <BranchPill name={item.branch_name || 'main'} wi={wi} merged={false} />
       </div>
 
-      {/* Decision title */}
       <div
-        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: item.body ? 6 : 10, color: wi ? 'oklch(42% 0.18 55)' : 'oklch(15% 0.015 260)', cursor: item.body ? 'pointer' : 'default' }}
+        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: item.body ? 6 : 10, color: wi ? (isDark ? 'oklch(72% 0.18 55)' : 'oklch(42% 0.18 55)') : (isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)'), cursor: item.body ? 'pointer' : 'default' }}
         onClick={() => item.body && setBodyOpen(p => !p)}
       >
         {item.decision}
       </div>
 
-      {/* Body with read more */}
       {item.body && (bodyOpen || item.body.length < 90) && (
-        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{item.body}</div>
+        <div style={{ fontSize: 13.5, color: isDark ? 'oklch(65% 0.01 260)' : 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{item.body}</div>
       )}
       {item.body && item.body.length >= 90 && !bodyOpen && (
         <div style={{ fontSize: 12, color: 'oklch(52% 0.2 260)', marginBottom: 8, marginTop: -2, cursor: 'pointer' }} onClick={() => setBodyOpen(true)}>Read more</div>
       )}
 
-      {/* Image */}
       {(item.image || item.img) && (
         <div style={{ margin: '10px 0', borderRadius: 10, overflow: 'hidden', maxHeight: 220 }}>
           <img
@@ -292,17 +295,15 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         </div>
       )}
 
-      {/* Tags row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
         <Tag cat={category} />
         {item.impact != null && (
-          <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
+          <span style={{ fontSize: 11, color: isDark ? 'oklch(62% 0.01 260)' : 'oklch(52% 0.01 260)', background: isDark ? 'oklch(24% 0.01 260)' : 'oklch(95% 0.006 80)', border: `1px solid ${isDark ? 'oklch(30% 0.01 260)' : 'oklch(90% 0.006 80)'}`, borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
             impact {item.impact}
           </span>
         )}
       </div>
 
-      {/* Engagement bar */}
       <EngagementBar
         commitId={item.id}
         reactions={reactions}
@@ -318,7 +319,6 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         compact
       />
 
-      {/* Comments (toggled) */}
       {commentOpen && (
         <CommentThread
           decisionId={item.id}
@@ -332,14 +332,14 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 }
 
 // ─── Feed View (full-screen vertical scroll) ──────────────────────────────────
-function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState }) {
+function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, isDark }) {
   const scrollRef = useRef();
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Top bar */}
       <div style={{
-        background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)',
+        background: isDark ? 'oklch(18% 0.01 260)' : 'white',
+        borderBottom: `1px solid ${isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)'}`,
         padding: '10px 16px', flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
@@ -348,11 +348,11 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             border: 'none', background: 'none', cursor: 'pointer',
-            fontSize: 13.5, fontWeight: 600, color: 'oklch(30% 0.015 260)',
+            fontSize: 13.5, fontWeight: 600, color: isDark ? 'oklch(75% 0.01 260)' : 'oklch(30% 0.015 260)',
             padding: '4px 0',
           }}
           onMouseEnter={e => e.currentTarget.style.color = 'oklch(52% 0.2 260)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'oklch(30% 0.015 260)'}
+          onMouseLeave={e => e.currentTarget.style.color = isDark ? 'oklch(75% 0.01 260)' : 'oklch(30% 0.015 260)'}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M11 4L6 9l5 5" />
@@ -361,7 +361,6 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
         </button>
       </div>
 
-      {/* Scrollable feed */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '20px 16px 80px' }}>
           {items.map((item) => (
@@ -375,6 +374,7 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
                 onMessage={onMessage}
                 onProfile={onProfile}
                 reactionOverride={reactionState[item.id]}
+                isDark={isDark}
               />
             </div>
           ))}
@@ -385,11 +385,11 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
 }
 
 // ─── People card (search results) ────────────────────────────────────────────
-function UserCard({ user, onMessage, onProfile }) {
+function UserCard({ user, onMessage, onProfile, isDark }) {
   const ini = userInitials(user);
   const color = userColor(user.id);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'white', borderRadius: 12, border: '1px solid oklch(91% 0.006 80)', marginBottom: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: isDark ? 'oklch(21% 0.012 260)' : 'white', borderRadius: 12, border: `1px solid ${isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)'}`, marginBottom: 8 }}>
       {user.avatarUrl
         ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(user.username || user.id)}
             style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: onProfile ? 'pointer' : 'default' }}
@@ -401,23 +401,23 @@ function UserCard({ user, onMessage, onProfile }) {
       }
       <div style={{ flex: 1, minWidth: 0 }}>
         <div onClick={() => onProfile?.(user.username || user.id)}
-          style={{ fontSize: 14, fontWeight: 600, cursor: onProfile ? 'pointer' : 'default', display: 'inline-block' }}
+          style={{ fontSize: 14, fontWeight: 600, cursor: onProfile ? 'pointer' : 'default', display: 'inline-block', color: isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)' }}
           onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
           onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
           {user.fullName || user.username}
         </div>
-        <div style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</div>
+        <div style={{ fontSize: 11.5, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>{user.commitCount}</div>
-          <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)' }}>commits</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)' }}>{user.commitCount}</div>
+          <div style={{ fontSize: 11, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)' }}>commits</div>
         </div>
         {onMessage && (
           <button onClick={() => onMessage(user.id)}
-            style={{ border: '1px solid oklch(88% 0.008 260)', background: 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: 'oklch(42% 0.2 260)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, transition: 'all 0.12s' }}
+            style={{ border: `1px solid ${isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)'}`, background: isDark ? 'oklch(24% 0.012 260)' : 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: 'oklch(42% 0.2 260)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, transition: 'all 0.12s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'oklch(52% 0.2 260)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.border = '1px solid oklch(52% 0.2 260)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; e.currentTarget.style.border = '1px solid oklch(88% 0.008 260)'; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = isDark ? 'oklch(24% 0.012 260)' : 'white'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; e.currentTarget.style.border = `1px solid ${isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)'}`; }}>
             Message
           </button>
         )}
@@ -429,6 +429,7 @@ function UserCard({ user, onMessage, onProfile }) {
 // ─── Main View ────────────────────────────────────────────────────────────────
 export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange }) {
   const { user } = useAuth();
+  const { isDark } = useTheme();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('trending');
   const [catFilter, setCatFilter] = useState('All');
@@ -457,7 +458,6 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     },
   });
 
-  // Seed followed set when suggestedUsers loads
   useEffect(() => {
     if (suggestedUsers.length > 0) {
       setFollowed(new Set(suggestedUsers.filter(u => u.isFollowing).map(u => u.id)));
@@ -548,6 +548,17 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     setFeedView(true);
   };
 
+  // Token shortcuts
+  const surfaceBg  = isDark ? 'oklch(18% 0.01 260)'  : 'white';
+  const borderCol  = isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const textMuted  = isDark ? 'oklch(52% 0.01 260)'  : 'oklch(58% 0.01 260)';
+  const textPri    = isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)';
+  const inputBg    = isDark ? 'oklch(22% 0.01 260)'  : 'oklch(98.5% 0.005 80)';
+  const inputBdr   = isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)';
+  const cardBg     = isDark ? 'oklch(21% 0.012 260)' : 'white';
+  const skeletonBg = isDark ? 'oklch(26% 0.01 260)'  : 'oklch(94% 0.005 260)';
+  const tabBarBg   = isDark ? 'oklch(22% 0.012 260)' : 'white';
+
   // ── Feed view ──
   if (feedView) {
     return (
@@ -561,6 +572,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
         onMessage={onMessage}
         onProfile={onProfile}
         reactionState={reactionState}
+        isDark={isDark}
       />
     );
   }
@@ -569,9 +581,9 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Search bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: 'clamp(10px, 2vw, 12px) var(--explore-h-padding, 28px)', flexShrink: 0 }}>
+      <div style={{ background: surfaceBg, borderBottom: `1px solid ${borderCol}`, padding: 'clamp(10px, 2vw, 12px) var(--explore-h-padding, 28px)', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
-          <svg style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="oklch(62% 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={isDark ? 'oklch(50% 0.01 260)' : 'oklch(62% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="6.8" cy="6.8" r="4.3" />
             <line x1="10" y1="10" x2="14" y2="14" />
           </svg>
@@ -579,13 +591,13 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search decisions, people, branches..."
-            style={{ width: '100%', padding: '9px 36px 9px 36px', borderRadius: 10, border: '1px solid oklch(88% 0.008 260)', fontSize: 13.5, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none', background: 'oklch(98.5% 0.005 80)', color: 'oklch(18% 0.015 260)', transition: 'border-color 0.15s', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '9px 36px 9px 36px', borderRadius: 10, border: `1px solid ${inputBdr}`, fontSize: 13.5, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none', background: inputBg, color: textPri, transition: 'border-color 0.15s', boxSizing: 'border-box' }}
             onFocus={e => e.target.style.borderColor = 'oklch(52% 0.2 260)'}
-            onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'}
+            onBlur={e => e.target.style.borderColor = inputBdr}
           />
           {search && (
             <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="oklch(60% 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={isDark ? 'oklch(55% 0.01 260)' : 'oklch(60% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="4" y1="4" x2="12" y2="12" />
                 <line x1="12" y1="4" x2="4" y2="12" />
               </svg>
@@ -600,44 +612,44 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
           {/* Suggested people */}
           {!search && suggestedUsers.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 12, padding: '0 2px' }}>Suggested people</div>
+              <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 12, padding: '0 2px' }}>Suggested people</div>
               <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
                 {suggestedUsers.map(u => {
                   const ini = userInitials(u);
                   const color = userColor(u.id);
                   const isFollowed = followed.has(u.id);
                   return (
-                    <div key={u.id} style={{ flexShrink: 0, width: 160, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
+                    <div key={u.id} style={{ flexShrink: 0, width: 160, background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: isDark ? '0 1px 4px oklch(5% 0.01 260 / 0.3)' : '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = isDark ? '0 3px 14px oklch(5% 0.01 260 / 0.5)' : '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = isDark ? '0 1px 4px oklch(5% 0.01 260 / 0.3)' : '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
                       <div onClick={() => onProfile?.(u.username || u.id)}
                         style={{ width: 54, height: 54, borderRadius: '50%', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default', flexShrink: 0 }}>
                         {u.avatarUrl
                           ? <img src={u.avatarUrl} alt={ini} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                           : <div style={{ width: 54, height: 54, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'white' }}>{ini}</div>
                         }
-                        <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: '2px solid white' }} />
+                        <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: 'oklch(58% 0.18 155)', border: `2px solid ${cardBg}` }} />
                       </div>
                       <div onClick={() => onProfile?.(u.username || u.id)}
-                        style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default' }}
+                        style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default', color: textPri }}
                         onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
                         onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
                         {(() => { const parts = (u.fullName || u.username || '').split(' '); return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })()}
                       </div>
-                      <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', textAlign: 'center', marginBottom: (u.mutualCount > 0 || (!u.mutualCount && u.followerCount > 0)) ? 4 : 12 }}>{u.commitCount} commits</div>
+                      <div style={{ fontSize: 11, color: textMuted, textAlign: 'center', marginBottom: (u.mutualCount > 0 || (!u.mutualCount && u.followerCount > 0)) ? 4 : 12 }}>{u.commitCount} commits</div>
                       {u.mutualCount > 0 ? (
                         <div style={{ fontSize: 10.5, color: 'oklch(45% 0.18 155)', textAlign: 'center', marginBottom: 12, fontWeight: 500 }}>
                           {u.mutualCount} mutual
                         </div>
                       ) : u.followerCount > 0 ? (
-                        <div style={{ fontSize: 10.5, color: 'oklch(55% 0.01 260)', textAlign: 'center', marginBottom: 12 }}>
+                        <div style={{ fontSize: 10.5, color: textMuted, textAlign: 'center', marginBottom: 12 }}>
                           {fmt(u.followerCount)} followers
                         </div>
                       ) : null}
                       {isFollowed ? (
                         onMessage && (
                           <button onClick={() => onMessage(u.id)}
-                            style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(42% 0.2 260)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                            style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: `1px solid ${inputBdr}`, background: isDark ? 'oklch(24% 0.012 260)' : 'white', color: 'oklch(42% 0.2 260)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                             Message
                           </button>
                         )
@@ -663,16 +675,16 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                   const c = cat !== 'All' ? catColor(cat) : null;
                   return (
                     <button key={cat} onClick={() => setCatFilter(cat)}
-                      style={{ flexShrink: 0, padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'all 0.13s', border: `1px solid ${active ? (c ? c.fg : 'oklch(52% 0.2 260)') : 'oklch(88% 0.008 260)'}`, background: active ? (c ? c.bg : 'oklch(93% 0.05 260)') : 'white', color: active ? (c ? c.fg : 'oklch(42% 0.2 260)') : 'oklch(48% 0.01 260)' }}>
+                      style={{ flexShrink: 0, padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'all 0.13s', border: `1px solid ${active ? (c ? c.fg : 'oklch(52% 0.2 260)') : inputBdr}`, background: active ? (c ? c.bg : 'oklch(93% 0.05 260)') : (isDark ? 'oklch(22% 0.01 260)' : 'white'), color: active ? (c ? c.fg : 'oklch(42% 0.2 260)') : (isDark ? 'oklch(65% 0.01 260)' : 'oklch(48% 0.01 260)') }}>
                       {cat}
                     </button>
                   );
                 })}
               </div>
-              <div style={{ display: 'flex', gap: 0, marginBottom: 14, background: 'white', borderRadius: 10, border: '1px solid oklch(91% 0.006 80)', padding: 4 }}>
+              <div style={{ display: 'flex', gap: 0, marginBottom: 14, background: tabBarBg, borderRadius: 10, border: `1px solid ${borderCol}`, padding: 4 }}>
                 {[['trending', '🔥  Trending'], ['whatifs', '⎇  What-ifs']].map(([id, lbl]) => (
                   <button key={id} onClick={() => setTab(id)}
-                    style={{ flex: 1, padding: 7, borderRadius: 7, border: 'none', fontSize: 13, fontWeight: 600, background: tab === id ? 'oklch(52% 0.2 260)' : 'transparent', color: tab === id ? 'white' : 'oklch(50% 0.01 260)', cursor: 'pointer', transition: 'all 0.14s' }}>
+                    style={{ flex: 1, padding: 7, borderRadius: 7, border: 'none', fontSize: 13, fontWeight: 600, background: tab === id ? 'oklch(52% 0.2 260)' : 'transparent', color: tab === id ? 'white' : (isDark ? 'oklch(60% 0.01 260)' : 'oklch(50% 0.01 260)'), cursor: 'pointer', transition: 'all 0.14s' }}>
                     {lbl}
                   </button>
                 ))}
@@ -683,10 +695,10 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
           {/* People search results */}
           {search && users.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 11, padding: '0 2px' }}>People</div>
-              {users.map(u => <UserCard key={u.id} user={u} onMessage={u.id !== user?.id ? onMessage : null} onProfile={u.id !== user?.id ? onProfile : null} />)}
+              <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 11, padding: '0 2px' }}>People</div>
+              {users.map(u => <UserCard key={u.id} user={u} onMessage={u.id !== user?.id ? onMessage : null} onProfile={u.id !== user?.id ? onProfile : null} isDark={isDark} />)}
               {sortedItems.length > 0 && (
-                <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)', marginBottom: 11, marginTop: 22, padding: '0 2px' }}>Decisions</div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 11, marginTop: 22, padding: '0 2px' }}>Decisions</div>
               )}
             </div>
           )}
@@ -695,7 +707,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
           {loading && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: 'oklch(94% 0.005 260)', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: `${i * 0.08}s` }} />
+                <div key={i} style={{ paddingBottom: '100%', borderRadius: 4, background: skeletonBg, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: `${i * 0.08}s` }} />
               ))}
             </div>
           )}
@@ -704,7 +716,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
           {!loading && error && (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(55% 0.18 20)' }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{error}</div>
-              <button onClick={loadFeed} style={{ marginTop: 12, padding: '8px 18px', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', cursor: 'pointer', fontSize: 13 }}>
+              <button onClick={loadFeed} style={{ marginTop: 12, padding: '8px 18px', borderRadius: 8, border: `1px solid ${inputBdr}`, background: isDark ? 'oklch(24% 0.012 260)' : 'white', cursor: 'pointer', fontSize: 13, color: textPri }}>
                 Retry
               </button>
             </div>
@@ -721,9 +733,9 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
 
           {/* Empty */}
           {!loading && !error && sortedItems.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(58% 0.01 260)' }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: textMuted }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                <svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="oklch(72% 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke={isDark ? 'oklch(42% 0.01 260)' : 'oklch(72% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="6.8" cy="6.8" r="4.3" />
                   <line x1="10" y1="10" x2="14" y2="14" />
                 </svg>

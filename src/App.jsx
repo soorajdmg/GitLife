@@ -6,6 +6,7 @@ import { QUERY_KEYS } from './config/queryClient';
 import { useAuth } from './contexts/AuthContext';
 import { useToast } from './contexts/ToastContext';
 import { useSocket } from './contexts/SocketContext';
+import { useTheme } from './contexts/ThemeContext';
 import FeedView from './views/FeedView';
 import ExploreView from './views/ExploreView';
 import ProfileView from './views/ProfileView';
@@ -198,7 +199,7 @@ function groupLabel(type, count, latestSenderName, username, onProfile, onClose,
   const nameEl = (onProfile && username)
     ? <span
         onClick={e => { e.stopPropagation(); markRead(); onClose(); onProfile(username); }}
-        style={{ fontWeight: 600, color: 'oklch(22% 0.015 260)', cursor: 'pointer' }}
+        style={{ fontWeight: 600, cursor: 'pointer' }}
         onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
         onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
       >{name}</span>
@@ -206,7 +207,7 @@ function groupLabel(type, count, latestSenderName, username, onProfile, onClose,
   return <>{nameEl}{tail} {action}</>;
 }
 
-function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
+function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile, isDark }) {
   const queryClient = useQueryClient();
   const { data: notifs = [], isLoading: loading } = useQuery({
     queryKey: QUERY_KEYS.notifications,
@@ -217,6 +218,22 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const [showAll, setShowAll] = useState(false);
+
+  const nd = {
+    bg:        isDark ? 'oklch(18% 0.01 260)'  : 'white',
+    border:    isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)',
+    borderSub: isDark ? 'oklch(25% 0.01 260)'  : 'oklch(94% 0.004 80)',
+    textPri:   isDark ? 'oklch(92% 0.008 260)' : 'oklch(18% 0.015 260)',
+    textSec:   isDark ? 'oklch(68% 0.01 260)'  : 'oklch(44% 0.01 260)',
+    textMuted: isDark ? 'oklch(52% 0.01 260)'  : 'oklch(62% 0.01 260)',
+    rowUnread: isDark ? 'oklch(21% 0.04 260)'  : 'oklch(96.5% 0.012 260)',
+    rowRead:   isDark ? 'oklch(18% 0.01 260)'  : 'white',
+    rowHoverUnread: isDark ? 'oklch(24% 0.05 260)'  : 'oklch(95% 0.018 260)',
+    rowHoverRead:   isDark ? 'oklch(22% 0.012 260)' : 'oklch(98.5% 0.005 80)',
+    snippetBg: isDark ? 'oklch(22% 0.01 260)'  : 'oklch(96% 0.006 80)',
+    iconBorder:isDark ? 'oklch(18% 0.01 260)'  : 'white',
+    shadow:    isDark ? '0 8px 40px oklch(5% 0.01 260 / 0.5)' : '0 8px 40px oklch(25% 0.05 260 / 0.16)',
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -269,22 +286,22 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
       right: isMobile ? -8 : 0,
       width: isMobile ? 'calc(100vw - 24px)' : 360,
       maxWidth: isMobile ? 'calc(100vw - 24px)' : 360,
-      background: 'white',
+      background: nd.bg,
       borderRadius: 14,
-      boxShadow: '0 8px 40px oklch(25% 0.05 260 / 0.16)',
-      border: '1px solid oklch(91% 0.006 80)',
+      boxShadow: nd.shadow,
+      border: `1px solid ${nd.border}`,
       zIndex: 200,
       overflow: 'hidden',
     }}>
       {/* header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px', borderBottom: '1px solid oklch(94% 0.004 80)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px', borderBottom: `1px solid ${nd.borderSub}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {showAll && (
-            <button onClick={() => setShowAll(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'oklch(48% 0.01 260)' }}>
+            <button onClick={() => setShowAll(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: nd.textMuted }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="10 4 6 8 10 12" /></svg>
             </button>
           )}
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>{showAll ? 'Recent Notifications' : 'Notifications'}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: nd.textPri }}>{showAll ? 'Recent Notifications' : 'Notifications'}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {unreadCount > 0 && <span style={{ fontSize: 11.5, color: 'oklch(42% 0.2 260)', fontWeight: 500 }}>{unreadCount} unread</span>}
@@ -294,10 +311,10 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
 
       {/* grouped rows or flat recent-10 view */}
       <div style={{ maxHeight: showAll ? 480 : 400, overflowY: 'auto' }}>
-        {loading && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>Loading…</div>}
+        {loading && <div style={{ padding: '20px 16px', fontSize: 12.5, color: nd.textMuted, textAlign: 'center' }}>Loading…</div>}
 
-        {!loading && !showAll && groups.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>No notifications yet</div>}
-        {!loading && showAll && recentTen.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: 'oklch(62% 0.01 260)', textAlign: 'center' }}>No notifications yet</div>}
+        {!loading && !showAll && groups.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: nd.textMuted, textAlign: 'center' }}>No notifications yet</div>}
+        {!loading && showAll && recentTen.length === 0 && <div style={{ padding: '20px 16px', fontSize: 12.5, color: nd.textMuted, textAlign: 'center' }}>No notifications yet</div>}
 
         {/* Grouped view (default) */}
         {!showAll && groups.map(({ type, items, hasUnread, latest, count }) => {
@@ -308,9 +325,9 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
           return (
             <div key={type}
               onClick={() => { if (unreadIds.length) markGroupRead(unreadIds); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 16px', background: hasUnread ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: unreadIds.length ? 'pointer' : 'default', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = hasUnread ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
-              onMouseLeave={e => e.currentTarget.style.background = hasUnread ? 'oklch(96.5% 0.012 260)' : 'white'}>
+              style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 16px', background: hasUnread ? nd.rowUnread : nd.rowRead, borderBottom: `1px solid ${nd.borderSub}`, cursor: unreadIds.length ? 'pointer' : 'default', transition: 'background 0.12s' }}
+              onMouseEnter={e => e.currentTarget.style.background = hasUnread ? nd.rowHoverUnread : nd.rowHoverRead}
+              onMouseLeave={e => e.currentTarget.style.background = hasUnread ? nd.rowUnread : nd.rowRead}>
 
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div
@@ -322,14 +339,14 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
                     : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
                   }
                 </div>
-                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[type] || 'oklch(93% 0.05 260)', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[type] || '●'}</div>
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[type] || 'oklch(93% 0.05 260)', border: `2px solid ${nd.bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[type] || '●'}</div>
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, lineHeight: 1.4, color: 'oklch(44% 0.01 260)' }}>
+                <div style={{ fontSize: 13, lineHeight: 1.4, color: nd.textSec }}>
                   {groupLabel(type, count, senderName, latest.sender?.username, onProfile, onClose, () => { if (unreadIds.length) markGroupRead(unreadIds); })}
                 </div>
-                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 2 }}>{formatRelativeTime(latest.createdAt)}</div>
+                <div style={{ fontSize: 10.5, color: nd.textMuted, marginTop: 2 }}>{formatRelativeTime(latest.createdAt)}</div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -350,9 +367,9 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
           return (
             <div key={n.id}
               onClick={() => markOneRead(n.id)}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', borderBottom: '1px solid oklch(95% 0.004 80)', cursor: 'pointer', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = !n.read ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
-              onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'}>
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 16px', background: !n.read ? nd.rowUnread : nd.rowRead, borderBottom: `1px solid ${nd.borderSub}`, cursor: 'pointer', transition: 'background 0.12s' }}
+              onMouseEnter={e => e.currentTarget.style.background = !n.read ? nd.rowHoverUnread : nd.rowHoverRead}
+              onMouseLeave={e => e.currentTarget.style.background = !n.read ? nd.rowUnread : nd.rowRead}>
 
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div
@@ -364,22 +381,22 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
                     : <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>{ini}</div>
                   }
                 </div>
-                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[n.type] || 'oklch(93% 0.05 260)', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[n.type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[n.type] || '●'}</div>
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: NOTIF_TYPE_BG[n.type] || 'oklch(93% 0.05 260)', border: `2px solid ${nd.bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: NOTIF_TYPE_FG[n.type] || 'oklch(42% 0.2 260)' }}>{NOTIF_TYPE_ICON[n.type] || '●'}</div>
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, lineHeight: 1.4, color: 'oklch(44% 0.01 260)' }}>{notifDropdownMessage(n)}</div>
+                <div style={{ fontSize: 13, lineHeight: 1.4, color: nd.textSec }}>{notifDropdownMessage(n)}</div>
                 {n.commentText && (
-                  <div style={{ fontSize: 11.5, color: 'oklch(52% 0.01 260)', background: 'oklch(96% 0.006 80)', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginTop: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11.5, color: nd.textMuted, background: nd.snippetBg, borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginTop: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     "{n.commentText}"
                   </div>
                 )}
                 {!n.commentText && n.decisionText && (
-                  <div style={{ fontSize: 11.5, color: 'oklch(52% 0.01 260)', background: 'oklch(96% 0.006 80)', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginTop: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11.5, color: nd.textMuted, background: nd.snippetBg, borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginTop: 3, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     "{n.decisionText}"
                   </div>
                 )}
-                <div style={{ fontSize: 10.5, color: 'oklch(62% 0.01 260)', marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</div>
+                <div style={{ fontSize: 10.5, color: nd.textMuted, marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</div>
               </div>
 
               {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(52% 0.2 260)', flexShrink: 0, marginTop: 4 }} />}
@@ -390,7 +407,7 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
 
       {/* footer */}
       {!loading && notifs.length > 0 && !showAll && (
-        <div style={{ borderTop: '1px solid oklch(94% 0.004 80)', padding: '10px 16px', textAlign: 'center' }}>
+        <div style={{ borderTop: `1px solid ${nd.borderSub}`, padding: '10px 16px', textAlign: 'center' }}>
           <button
             onClick={() => setShowAll(true)}
             style={{ fontSize: 12.5, fontWeight: 500, color: 'oklch(42% 0.2 260)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -406,26 +423,33 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile }) {
 /* ─── TWEAKS PANEL ─── */
 const TWEAK_DEFAULTS = { timelineViz: 'graph', accentHue: '260', density: 'compact' };
 
-function TweaksPanel({ visible, tweaks, setTweaks }) {
+function TweaksPanel({ visible, tweaks, setTweaks, isDark }) {
   if (!visible) return null;
   const set = (k, v) => {
     const n = { ...tweaks, [k]: v };
     setTweaks(n);
     window.parent?.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
   };
+  const bg     = isDark ? 'oklch(21% 0.012 260)' : 'white';
+  const border = isDark ? 'oklch(30% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const textPri = isDark ? 'oklch(88% 0.008 260)' : 'oklch(32% 0.01 260)';
+  const textMuted = isDark ? 'oklch(55% 0.01 260)' : 'oklch(60% 0.01 260)';
+  const btnInactiveBg = isDark ? 'oklch(26% 0.012 260)' : 'white';
+  const btnInactiveBorder = isDark ? 'oklch(34% 0.012 260)' : 'oklch(88% 0.008 260)';
+  const btnInactiveText = isDark ? 'oklch(72% 0.008 260)' : 'oklch(48% 0.01 260)';
   return (
-    <div style={{ position: 'fixed', bottom: 80, right: 24, background: 'white', borderRadius: 14, padding: 18, boxShadow: '0 8px 40px oklch(30% 0.05 260 / 0.14)', border: '1px solid oklch(91% 0.006 80)', width: 230, zIndex: 50 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 14, color: 'oklch(32% 0.01 260)' }}>Tweaks</div>
+    <div style={{ position: 'fixed', bottom: 80, right: 24, background: bg, borderRadius: 14, padding: 18, boxShadow: isDark ? '0 8px 40px oklch(5% 0.01 260 / 0.5)' : '0 8px 40px oklch(30% 0.05 260 / 0.14)', border: `1px solid ${border}`, width: 230, zIndex: 50 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 14, color: textPri }}>Tweaks</div>
       {[
         { label: 'Timeline view', key: 'timelineViz', opts: [['graph', 'Git Graph'], ['log', 'Commit Log'], ['horizontal', 'Timeline']] },
         { label: 'Density',       key: 'density',     opts: [['comfortable', 'Comfortable'], ['compact', 'Compact']] },
       ].map(g => (
         <div key={g.key} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(60% 0.01 260)', marginBottom: 6 }}>{g.label}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 6 }}>{g.label}</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {g.opts.map(([val, lbl]) => (
               <button key={val} onClick={() => set(g.key, val)}
-                style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11.5, cursor: 'pointer', border: `1px solid ${tweaks[g.key] === val ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.008 260)'}`, background: tweaks[g.key] === val ? 'oklch(52% 0.2 260)' : 'white', color: tweaks[g.key] === val ? 'white' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
+                style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11.5, cursor: 'pointer', border: `1px solid ${tweaks[g.key] === val ? 'oklch(52% 0.2 260)' : btnInactiveBorder}`, background: tweaks[g.key] === val ? 'oklch(52% 0.2 260)' : btnInactiveBg, color: tweaks[g.key] === val ? 'white' : btnInactiveText, transition: 'all 0.12s' }}>
                 {lbl}
               </button>
             ))}
@@ -483,14 +507,19 @@ function mapDecisionToCommit(d, stashedIds = []) {
 }
 
 /* ─── BOTTOM NAV (mobile) ─── */
-function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user }) {
+function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user, isDark }) {
+  const surface    = isDark ? 'oklch(18% 0.01 260)'  : 'white';
+  const border     = isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const textActive = 'oklch(42% 0.2 260)';
+  const textInact  = isDark ? 'oklch(55% 0.01 260)'  : 'oklch(55% 0.01 260)';
+
   const btnBase = {
     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     gap: 3, border: 'none', background: 'transparent', cursor: 'pointer', padding: '6px 0', minWidth: 0,
   };
   const labelStyle = (active) => ({
     fontSize: 10, fontWeight: active ? 600 : 500,
-    color: active ? 'oklch(42% 0.2 260)' : 'oklch(55% 0.01 260)',
+    color: active ? textActive : textInact,
     lineHeight: 1,
   });
 
@@ -499,8 +528,8 @@ function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user }) {
       position: 'fixed', bottom: 0, left: 0, right: 0,
       height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      background: 'white',
-      borderTop: '1px solid oklch(91% 0.006 80)',
+      background: surface,
+      borderTop: `1px solid ${border}`,
       display: 'flex', alignItems: 'stretch',
       zIndex: 100,
     }}>
@@ -545,7 +574,7 @@ function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user }) {
               background: 'oklch(52% 0.2 260)', color: 'white',
               fontSize: 9.5, fontWeight: 700,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 4px', border: '2px solid white',
+              padding: '0 4px', border: `2px solid ${surface}`,
             }}>
               {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
             </span>
@@ -581,10 +610,25 @@ export default function App() {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
   const socket = useSocket();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isMobile = useIsMobile();
   const sidebarWidth = useSidebarWidth();
+
+  // Dark mode token shortcuts for structural inline styles
+  const dk = {
+    appBg:      isDark ? 'oklch(14% 0.008 260)' : 'oklch(98.5% 0.005 80)',
+    surface:    isDark ? 'oklch(18% 0.01 260)'  : 'white',
+    border:     isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)',
+    borderSub:  isDark ? 'oklch(25% 0.01 260)'  : 'oklch(94% 0.004 80)',
+    textPri:    isDark ? 'oklch(94% 0.008 260)' : 'oklch(18% 0.015 260)',
+    textSec:    isDark ? 'oklch(68% 0.01 260)'  : 'oklch(55% 0.01 260)',
+    textMuted:  isDark ? 'oklch(52% 0.01 260)'  : 'oklch(62% 0.01 260)',
+    bgHover:    isDark ? 'oklch(24% 0.012 260)' : 'oklch(96% 0.008 80)',
+    bgActive:   isDark ? 'oklch(22% 0.06 260)'  : 'oklch(94% 0.015 260)',
+    accent:     'oklch(42% 0.2 260)',
+  };
   const [feedData, setFeedData] = useState({ following: [], trending: [], hasFollowing: false });
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedSeeded, setFeedSeeded] = useState(false);
@@ -830,7 +874,32 @@ export default function App() {
 
   const handleMerge = (commitId) => {
     const commit = [...feedData.following, ...feedData.trending].find(c => c.id === commitId);
-    setMergeTarget({ id: commitId, commit });
+    if (commit?.ur?.merge) {
+      // Already merged — un-merge directly without picker
+      handleUnmerge(commitId);
+    } else {
+      setMergeTarget({ id: commitId, commit });
+    }
+  };
+
+  const handleUnmerge = async (commitId) => {
+    const prevFeedData = feedData;
+    // Optimistic update
+    setFeedData(prev => ({
+      ...prev,
+      following: prev.following.map(c => c.id !== commitId ? c : { ...c, rx: { ...c.rx, merge: Math.max(0, c.rx.merge - 1) }, ur: { ...c.ur, merge: false } }),
+      trending:  prev.trending.map(c =>  c.id !== commitId ? c : { ...c, rx: { ...c.rx, merge: Math.max(0, c.rx.merge - 1) }, ur: { ...c.ur, merge: false } }),
+    }));
+    try {
+      const result = await api.unmergeDecision(commitId);
+      setFeedData(prev => ({
+        ...prev,
+        following: prev.following.map(c => c.id !== commitId ? c : { ...c, rx: { ...c.rx, merge: result.count }, ur: { ...c.ur, merge: result.merged } }),
+        trending:  prev.trending.map(c =>  c.id !== commitId ? c : { ...c, rx: { ...c.rx, merge: result.count }, ur: { ...c.ur, merge: result.merged } }),
+      }));
+    } catch {
+      setFeedData(prevFeedData);
+    }
   };
 
   const handleMergeConfirm = async (myDecisionId) => {
@@ -859,16 +928,20 @@ export default function App() {
   const compact = tweaks.density === 'compact';
 
   /* ── Bell icon (shared) ── */
+  const iconBtnBg     = isDark ? 'oklch(24% 0.012 260)' : 'oklch(96% 0.008 80)';
+  const iconBtnColor  = isDark ? 'oklch(72% 0.008 260)' : 'oklch(48% 0.01 260)';
+  const iconBtnBorder = isDark ? `2px solid oklch(18% 0.01 260)` : '2px solid white';
+
   const bellIcon = (
     <div style={{ position: 'relative' }}>
       <div onMouseDown={e => { e.stopPropagation(); setNotifOpen(p => !p); }}
-        style={{ width: 32, height: 32, borderRadius: 8, background: notifOpen ? 'oklch(93% 0.05 260)' : 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: notifOpen ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
+        style={{ width: 32, height: 32, borderRadius: 8, background: notifOpen ? 'oklch(93% 0.05 260)' : iconBtnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: notifOpen ? 'oklch(42% 0.2 260)' : iconBtnColor, transition: 'all 0.12s' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2a4.5 4.5 0 0 1 4.5 4.5c0 2.5.8 3.5 1.5 4H2c.7-.5 1.5-1.5 1.5-4A4.5 4.5 0 0 1 8 2z" /><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" /></svg>
       </div>
       {unreadNotifCount > 0 && !notifOpen && (
-        <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: '2px solid white', pointerEvents: 'none' }}>{unreadNotifCount}</div>
+        <div style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700, color: 'white', border: iconBtnBorder, pointerEvents: 'none' }}>{unreadNotifCount}</div>
       )}
-      {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} isMobile={isMobile} />}
+      {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} onNotifsLoaded={setUnreadNotifCount} onProfile={openProfile} isMobile={isMobile} isDark={isDark} />}
     </div>
   );
 
@@ -892,9 +965,9 @@ export default function App() {
         fontSize: 13,
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif",
-        border: settingsHasChanges ? '1px solid oklch(52% 0.2 260)' : '1px solid oklch(88% 0.008 260)',
-        background: settingsHasChanges ? 'oklch(52% 0.2 260)' : 'oklch(96% 0.008 80)',
-        color: settingsHasChanges ? 'white' : 'oklch(65% 0.01 260)',
+        border: settingsHasChanges ? '1px solid oklch(52% 0.2 260)' : `1px solid ${isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)'}`,
+        background: settingsHasChanges ? 'oklch(52% 0.2 260)' : (isDark ? 'oklch(24% 0.012 260)' : 'oklch(96% 0.008 80)'),
+        color: settingsHasChanges ? 'white' : (isDark ? 'oklch(52% 0.01 260)' : 'oklch(65% 0.01 260)'),
         cursor: settingsHasChanges && !settingsSaving ? 'pointer' : 'default',
         transition: 'all 0.15s',
         opacity: settingsSaving ? 0.7 : 1,
@@ -907,7 +980,7 @@ export default function App() {
   /* ── Desktop top-bar icons (search + bell, or save on settings) ── */
   const topBarIcons = activeNav === 'settings' ? settingsSaveBtn : (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'oklch(48% 0.01 260)' }}>
+      <div style={{ width: 32, height: 32, borderRadius: 8, background: iconBtnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: iconBtnColor }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="13.5" y2="13.5" /></svg>
       </div>
       {bellIcon}
@@ -918,7 +991,7 @@ export default function App() {
   const mobileTopBarIcons = activeNav === 'settings' ? settingsSaveBtn : (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <div onClick={() => navigate('/settings')}
-        style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(96% 0.008 80)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'oklch(48% 0.01 260)', transition: 'all 0.12s' }}>
+        style={{ width: 32, height: 32, borderRadius: 8, background: iconBtnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: iconBtnColor, transition: 'all 0.12s' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
           <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="8" x2="14" y2="8" /><line x1="2" y1="12" x2="14" y2="12" />
           <circle cx="5" cy="4" r="1.5" fill="currentColor" stroke="none" />
@@ -931,12 +1004,12 @@ export default function App() {
   );
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'oklch(98.5% 0.005 80)', flexDirection: isMobile ? 'column' : 'row' }}>
+    <div style={{ display: 'flex', height: '100vh', background: dk.appBg, flexDirection: isMobile ? 'column' : 'row' }}>
 
       {/* ── Desktop Sidebar ── */}
-      <aside className="desktop-only" style={{ width: sidebarWidth, flexShrink: 0, background: 'white', borderRight: '1px solid oklch(91% 0.006 80)', display: 'flex', flexDirection: 'column', padding: `18px ${sidebarWidth >= 260 ? '18px' : '14px'}` }}>
+      <aside className="desktop-only" style={{ width: sidebarWidth, flexShrink: 0, background: dk.surface, borderRight: `1px solid ${dk.border}`, display: 'flex', flexDirection: 'column', padding: `18px ${sidebarWidth >= 260 ? '18px' : '14px'}` }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 20px', fontSize: 17, fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 20px', fontSize: 17, fontWeight: 700, color: dk.textPri }}>
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
             <rect width="28" height="28" rx="8" fill="oklch(52% 0.2 260)" />
             <line x1="10" y1="6" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
@@ -953,7 +1026,7 @@ export default function App() {
           const isActive = activeNav === item.id;
           return (
             <button key={item.id} onClick={() => navigate(`/${item.id === 'feed' ? 'feed' : item.id}`)}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 13.5, fontWeight: isActive ? 600 : 500, color: isActive ? 'oklch(42% 0.2 260)' : 'oklch(48% 0.01 260)', background: isActive ? 'oklch(94% 0.015 260)' : 'transparent', border: 'none', cursor: 'pointer', marginBottom: 1, transition: 'all 0.12s', textAlign: 'left' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 13.5, fontWeight: isActive ? 600 : 500, color: isActive ? dk.accent : dk.textSec, background: isActive ? dk.bgActive : 'transparent', border: 'none', cursor: 'pointer', marginBottom: 1, transition: 'all 0.12s', textAlign: 'left' }}>
               <span style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{NAV_ICONS[item.id](isActive)}</span>
               {item.label}
               {item.id === 'messages' && unreadMsgCount > 0 && (
@@ -968,11 +1041,11 @@ export default function App() {
         {/* Following */}
         {sidebarFollowing.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'oklch(60% 0.01 260)', padding: '0 10px', marginBottom: 7 }}>Following</div>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: dk.textMuted, padding: '0 10px', marginBottom: 7 }}>Following</div>
             {sidebarFollowing.slice(0, 5).map(u => (
               <button key={u.id} onClick={() => openProfile(u.username)}
                 style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
+                onMouseEnter={e => e.currentTarget.style.background = dk.bgHover}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 {u.avatarUrl ? (
                   <img src={u.avatarUrl} alt={u.username} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
@@ -981,7 +1054,7 @@ export default function App() {
                     {(u.username || '?').slice(0, 2).toUpperCase()}
                   </div>
                 )}
-                <div style={{ fontSize: 12.5, fontWeight: 500, color: 'oklch(28% 0.01 260)', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 500, color: dk.textPri, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {u.fullName || u.username}
                 </div>
               </button>
@@ -990,10 +1063,10 @@ export default function App() {
         )}
 
         {/* User profile at bottom */}
-        <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid oklch(91% 0.006 80)' }}>
+        <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: `1px solid ${dk.border}` }}>
           <button onClick={() => navigate('/profile')}
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 9, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'oklch(96% 0.008 80)'}
+            onMouseEnter={e => e.currentTarget.style.background = dk.bgHover}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
@@ -1003,14 +1076,14 @@ export default function App() {
               </div>
             )}
             <div style={{ textAlign: 'left', flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.fullName || user?.username || user?.email?.split('@')[0] || 'You'}</div>
-              <div style={{ fontSize: 11, color: 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || ''}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: dk.textPri, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.fullName || user?.username || user?.email?.split('@')[0] || 'You'}</div>
+              <div style={{ fontSize: 11, color: dk.textMuted, fontFamily: "'JetBrains Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || ''}</div>
             </div>
           </button>
           <button onClick={logout}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 12.5, color: 'oklch(55% 0.01 260)', transition: 'all 0.12s', marginTop: 2 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 12.5, color: dk.textSec, transition: 'all 0.12s', marginTop: 2 }}
             onMouseEnter={e => { e.currentTarget.style.background = 'oklch(95% 0.02 20)'; e.currentTarget.style.color = 'oklch(42% 0.18 20)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'oklch(55% 0.01 260)'; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = dk.textSec; }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 2H2.5A1.5 1.5 0 0 0 1 3.5v7A1.5 1.5 0 0 0 2.5 12H5" />
               <polyline points="9 10 13 7 9 4" />
@@ -1025,15 +1098,15 @@ export default function App() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingBottom: (isMobile && (activeNav !== 'messages' || msgMobilePane === 'list')) ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
         {/* Desktop top bar */}
-        <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(22px, 2.5vw, 40px)' }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>{VIEW_TITLE[activeNav] || 'Feed'}</div>
+        <div className="desktop-only" style={{ height: 52, flexShrink: 0, background: dk.surface, borderBottom: `1px solid ${dk.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(22px, 2.5vw, 40px)' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: dk.textPri }}>{VIEW_TITLE[activeNav] || 'Feed'}</div>
           {topBarIcons}
         </div>
 
         {/* Mobile top bar — hidden on messages page (MessagesView has its own header) */}
-        <div className="mobile-only" style={{ height: activeNav === 'messages' ? 0 : 'calc(52px + env(safe-area-inset-top, 0px))', flexShrink: 0, background: 'white', borderBottom: activeNav === 'messages' ? 'none' : '1px solid oklch(91% 0.006 80)', display: activeNav === 'messages' ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: 16, paddingRight: 16 }}>
+        <div className="mobile-only" style={{ height: activeNav === 'messages' ? 0 : 'calc(52px + env(safe-area-inset-top, 0px))', flexShrink: 0, background: dk.surface, borderBottom: activeNav === 'messages' ? 'none' : `1px solid ${dk.border}`, display: activeNav === 'messages' ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: 16, paddingRight: 16 }}>
           {/* Logo + brand name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: dk.textPri }}>
             <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
               <rect width="28" height="28" rx="8" fill="oklch(52% 0.2 260)" />
               <line x1="10" y1="6" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
@@ -1071,6 +1144,7 @@ export default function App() {
           setModal={setModal}
           unreadMsgCount={unreadMsgCount}
           user={user}
+          isDark={isDark}
         />
       )}
 
@@ -1087,7 +1161,7 @@ export default function App() {
         onConfirm={handleMergeConfirm}
         targetCommit={mergeTarget?.commit}
       />
-      <TweaksPanel visible={tweaksVis} tweaks={tweaks} setTweaks={setTweaks} />
+      <TweaksPanel visible={tweaksVis} tweaks={tweaks} setTweaks={setTweaks} isDark={isDark} />
     </div>
   );
 }

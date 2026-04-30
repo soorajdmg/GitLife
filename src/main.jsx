@@ -8,6 +8,7 @@ import Auth from './components/Auth.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { queryClient } from './config/queryClient'
 
 function Root() {
@@ -19,13 +20,15 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ToastProvider>
-            <SocketProvider>
-              <Root />
-            </SocketProvider>
-          </ToastProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <SocketProvider>
+                <Root />
+              </SocketProvider>
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </BrowserRouter>
   </StrictMode>,

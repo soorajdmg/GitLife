@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { fmt } from '../../data/gitlife';
+import { useTheme } from '../../contexts/ThemeContext';
 
-const rxStyle = (type, active) => {
+const rxStyle = (type, active, isDark) => {
   const m = {
-    fork:    { b: 'oklch(60% 0.19 55)',  f: 'oklch(45% 0.19 55)',  bg: 'oklch(96% 0.015 60)'  },
-    merge:   { b: 'oklch(52% 0.2 260)',  f: 'oklch(42% 0.2 260)',  bg: 'oklch(95% 0.015 260)' },
-    support: { b: 'oklch(50% 0.18 155)', f: 'oklch(40% 0.18 155)', bg: 'oklch(95% 0.015 155)' },
+    fork:    { b: 'oklch(60% 0.19 55)',  f: 'oklch(45% 0.19 55)',  bg: isDark ? 'oklch(22% 0.04 55)'  : 'oklch(96% 0.015 60)'  },
+    merge:   { b: 'oklch(52% 0.2 260)',  f: 'oklch(42% 0.2 260)',  bg: isDark ? 'oklch(22% 0.05 260)' : 'oklch(95% 0.015 260)' },
+    support: { b: 'oklch(50% 0.18 155)', f: 'oklch(40% 0.18 155)', bg: isDark ? 'oklch(22% 0.04 155)' : 'oklch(95% 0.015 155)' },
   }[type];
+  const inactiveBg = isDark ? 'oklch(22% 0.01 260)' : 'white';
+  const inactiveBorder = isDark ? 'oklch(32% 0.012 260)' : 'oklch(90% 0.006 260)';
+  const inactiveColor = isDark ? 'oklch(65% 0.01 260)' : 'oklch(50% 0.01 260)';
   return active
     ? { border: `1px solid ${m.b}`, color: m.f, background: m.bg }
-    : { border: '1px solid oklch(90% 0.006 260)', color: 'oklch(50% 0.01 260)', background: 'white' };
+    : { border: `1px solid ${inactiveBorder}`, color: inactiveColor, background: inactiveBg };
 };
 
 const btnBase = {
@@ -35,6 +39,7 @@ export default function EngagementBar({
   onShare,
   compact = false,
 }) {
+  const { isDark } = useTheme();
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const shareRef = useRef();
@@ -56,9 +61,20 @@ export default function EngagementBar({
     });
   };
 
+  const inactiveBg = isDark ? 'oklch(22% 0.01 260)' : 'white';
+  const inactiveBorder = isDark ? 'oklch(32% 0.012 260)' : 'oklch(90% 0.006 260)';
+  const inactiveColor = isDark ? 'oklch(65% 0.01 260)' : 'oklch(50% 0.01 260)';
+  const sepColor = isDark ? 'oklch(30% 0.01 260)' : 'oklch(90% 0.006 260)';
+  const dropBg = isDark ? 'oklch(21% 0.012 260)' : 'white';
+  const dropBorder = isDark ? 'oklch(30% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const dropItemColor = isDark ? 'oklch(82% 0.008 260)' : 'oklch(25% 0.015 260)';
+  const dropHoverBg = isDark ? 'oklch(25% 0.012 260)' : 'oklch(97% 0.006 80)';
+  const dropDivider = isDark ? 'oklch(28% 0.01 260)' : 'oklch(94% 0.004 80)';
+  const barBorderTop = isDark ? 'oklch(26% 0.01 260)' : 'oklch(95% 0.004 80)';
+
   return (
     <div
-      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid oklch(95% 0.004 80)', gap: 4 }}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${barBorderTop}`, gap: 4 }}
       onClick={e => e.stopPropagation()}
     >
       {/* Left: reactions + reply */}
@@ -87,8 +103,8 @@ export default function EngagementBar({
             <button
               key={type}
               onClick={handleClick}
-              style={{ ...btnBase, ...rxStyle(type, active) }}
-              title={type === 'fork' ? 'Explore this path on your profile' : type === 'merge' ? 'Link to one of your own decisions' : 'I support this'}
+              style={{ ...btnBase, ...rxStyle(type, active, isDark) }}
+              title={type === 'fork' ? 'Explore this path on your profile' : type === 'merge' ? (active ? 'Click to un-merge' : 'Link to one of your own decisions') : 'I support this'}
             >
               {icon ?? <span style={{ fontWeight: 600 }}>{label}</span>} {fmt(count)}
             </button>
@@ -96,12 +112,12 @@ export default function EngagementBar({
         })}
 
         {/* Separator */}
-        <div style={{ width: 1, height: 16, background: 'oklch(90% 0.006 260)', margin: '0 2px', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 16, background: sepColor, margin: '0 2px', flexShrink: 0 }} />
 
         {/* Reply */}
         <button
           onClick={() => onReplyClick?.(commitId)}
-          style={{ ...btnBase, border: '1px solid oklch(90% 0.006 260)', color: 'oklch(50% 0.01 260)', background: 'white' }}
+          style={{ ...btnBase, border: `1px solid ${inactiveBorder}`, color: inactiveColor, background: inactiveBg }}
           title="Replies"
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -115,7 +131,7 @@ export default function EngagementBar({
       {/* Right: views (author-only), stash, share */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         {isAuthor && (
-          <span style={{ fontSize: 11, color: 'oklch(62% 0.008 260)', display: 'flex', alignItems: 'center', gap: 3, marginRight: 4 }} title="Views (only you can see this)">
+          <span style={{ fontSize: 11, color: inactiveColor, display: 'flex', alignItems: 'center', gap: 3, marginRight: 4 }} title="Views (only you can see this)">
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M1.5 7C1.5 7 3.5 3 7 3s5.5 4 5.5 4-2 4-5.5 4S1.5 7 1.5 7z" /><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" />
             </svg>
@@ -127,7 +143,7 @@ export default function EngagementBar({
         <button
           onClick={() => onStash?.(commitId)}
           title={isStashed ? 'Unstash' : 'Stash this commit'}
-          style={{ ...btnBase, border: '1px solid oklch(90% 0.006 260)', background: isStashed ? 'oklch(95% 0.015 260)' : 'white', color: isStashed ? 'oklch(42% 0.2 260)' : 'oklch(58% 0.01 260)', padding: '5px 8px' }}
+          style={{ ...btnBase, border: `1px solid ${inactiveBorder}`, background: isStashed ? (isDark ? 'oklch(22% 0.05 260)' : 'oklch(95% 0.015 260)') : inactiveBg, color: isStashed ? 'oklch(42% 0.2 260)' : inactiveColor, padding: '5px 8px' }}
         >
           <svg width="13" height="13" viewBox="0 0 14 14" fill={isStashed ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 2h8a1 1 0 0 1 1 1v9l-5-2.5L2 12V3a1 1 0 0 1 1-1z" />
@@ -139,18 +155,18 @@ export default function EngagementBar({
           <button
             onClick={() => setShareOpen(p => !p)}
             title="Share"
-            style={{ ...btnBase, border: '1px solid oklch(90% 0.006 260)', color: 'oklch(50% 0.01 260)', background: shareOpen ? 'oklch(95% 0.015 260)' : 'white', padding: '5px 8px' }}
+            style={{ ...btnBase, border: `1px solid ${inactiveBorder}`, color: inactiveColor, background: shareOpen ? (isDark ? 'oklch(22% 0.05 260)' : 'oklch(95% 0.015 260)') : inactiveBg, padding: '5px 8px' }}
           >
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 2l3 3-3 3" /><path d="M12 5H6a3 3 0 0 0-3 3v2" />
             </svg>
           </button>
           {shareOpen && (
-            <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 100, overflow: 'hidden', minWidth: 160 }}>
+            <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 10, boxShadow: isDark ? '0 4px 20px oklch(5% 0.01 260 / 0.5)' : '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 100, overflow: 'hidden', minWidth: 160 }}>
               <button
                 onClick={copyLink}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(25% 0.015 260)', cursor: 'pointer', textAlign: 'left' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.006 80)'}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: dropItemColor, cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={e => e.currentTarget.style.background = dropHoverBg}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 {copied ? '✓ Copied!' : 'Copy link'}
@@ -158,8 +174,8 @@ export default function EngagementBar({
               {onShare && (
                 <button
                   onClick={() => { onShare(commitId); setShareOpen(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', borderTop: '1px solid oklch(94% 0.004 80)', fontSize: 12.5, fontWeight: 500, color: 'oklch(25% 0.015 260)', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.006 80)'}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', borderTop: `1px solid ${dropDivider}`, fontSize: 12.5, fontWeight: 500, color: dropItemColor, cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = dropHoverBg}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   Send in DM

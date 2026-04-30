@@ -6,13 +6,29 @@ import EngagementBar from './EngagementBar';
 import CommentThread from './CommentThread';
 import BlameBadge from './BlameBadge';
 import { api } from '../../config/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
-function SendCommitDMModal({ commit, currentUserId, onClose, onSend }) {
+function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
   const inputRef = useRef(null);
+  const dm = {
+    bg:        isDark ? 'oklch(18% 0.01 260)'  : 'white',
+    border:    isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)',
+    borderSub: isDark ? 'oklch(25% 0.01 260)'  : 'oklch(93% 0.004 80)',
+    borderSub2:isDark ? 'oklch(25% 0.01 260)'  : 'oklch(94% 0.004 80)',
+    textPri:   isDark ? 'oklch(92% 0.008 260)' : 'oklch(18% 0.015 260)',
+    textSec:   isDark ? 'oklch(65% 0.01 260)'  : 'oklch(55% 0.01 260)',
+    textMuted: isDark ? 'oklch(52% 0.01 260)'  : 'oklch(58% 0.01 260)',
+    previewBg: isDark ? 'oklch(22% 0.04 260)'  : 'oklch(97.5% 0.01 260)',
+    searchBg:  isDark ? 'oklch(22% 0.01 260)'  : 'oklch(97.5% 0.006 260)',
+    searchBdr: isDark ? 'oklch(30% 0.012 260)' : 'oklch(90% 0.008 260)',
+    closeBg:   isDark ? 'oklch(25% 0.01 260)'  : 'oklch(95% 0.006 80)',
+    rowHover:  isDark ? 'oklch(22% 0.04 260)'  : 'oklch(96.5% 0.01 260)',
+    rowDivider:isDark ? 'oklch(23% 0.01 260)'  : 'oklch(96.5% 0.003 80)',
+  };
 
   useEffect(() => {
     api.searchUsers('', 12).then(data => {
@@ -47,50 +63,50 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'oklch(20% 0.03 260 / 0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}
     >
-      <div style={{ background: 'white', borderRadius: 16, width: 400, maxHeight: 520, display: 'flex', flexDirection: 'column', boxShadow: '0 8px 48px oklch(25% 0.05 260 / 0.18)', border: '1px solid oklch(91% 0.006 80)' }}>
+      <div style={{ background: dm.bg, borderRadius: 16, width: 400, maxHeight: 520, display: 'flex', flexDirection: 'column', boxShadow: isDark ? '0 8px 48px oklch(5% 0.01 260 / 0.6)' : '0 8px 48px oklch(25% 0.05 260 / 0.18)', border: `1px solid ${dm.border}` }}>
         {/* Header */}
-        <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid oklch(93% 0.004 80)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'oklch(18% 0.015 260)' }}>Send commit in DM</div>
-          <button onClick={onClose} style={{ border: 'none', background: 'oklch(95% 0.006 80)', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(48% 0.01 260)', fontSize: 14 }}>✕</button>
+        <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${dm.borderSub}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: dm.textPri }}>Send commit in DM</div>
+          <button onClick={onClose} style={{ border: 'none', background: dm.closeBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.textMuted, fontSize: 14 }}>✕</button>
         </div>
 
         {/* Commit preview */}
-        <div style={{ padding: '10px 18px', borderBottom: '1px solid oklch(94% 0.004 80)', background: 'oklch(97.5% 0.01 260)' }}>
+        <div style={{ padding: '10px 18px', borderBottom: `1px solid ${dm.borderSub2}`, background: dm.previewBg }}>
           <div style={{ fontSize: 10, color: 'oklch(52% 0.2 260)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
             <span>⎇</span> Sharing commit
           </div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'oklch(18% 0.015 260)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{commit.message}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: dm.textPri, marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{commit.message}</div>
           <BranchPill name={commit.branch} wi={false} merged={false} />
         </div>
 
         {/* Search */}
-        <div style={{ padding: '10px 18px', borderBottom: '1px solid oklch(94% 0.004 80)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'oklch(97.5% 0.006 260)', border: '1px solid oklch(90% 0.008 260)', borderRadius: 10, padding: '8px 12px' }}
+        <div style={{ padding: '10px 18px', borderBottom: `1px solid ${dm.borderSub2}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: dm.searchBg, border: `1px solid ${dm.searchBdr}`, borderRadius: 10, padding: '8px 12px' }}
             onFocusCapture={e => e.currentTarget.style.border = '1px solid oklch(72% 0.12 260)'}
-            onBlurCapture={e => e.currentTarget.style.border = '1px solid oklch(90% 0.008 260)'}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="oklch(58% 0.01 260)" strokeWidth="1.6" strokeLinecap="round"><circle cx="6" cy="6" r="4" /><line x1="9.5" y1="9.5" x2="12.5" y2="12.5" /></svg>
+            onBlurCapture={e => e.currentTarget.style.border = `1px solid ${dm.searchBdr}`}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={dm.textMuted} strokeWidth="1.6" strokeLinecap="round"><circle cx="6" cy="6" r="4" /><line x1="9.5" y1="9.5" x2="12.5" y2="12.5" /></svg>
             <input
               ref={inputRef}
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search by name or @username…"
-              style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(18% 0.015 260)' }}
+              style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: dm.textPri }}
             />
-            {query && <button onClick={() => setQuery('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: 'oklch(60% 0.01 260)', fontSize: 13 }}>✕</button>}
+            {query && <button onClick={() => setQuery('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: dm.textMuted, fontSize: 13 }}>✕</button>}
           </div>
         </div>
 
         {/* Results */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {!query.trim() && results.length > 0 && (
-            <div style={{ padding: '8px 18px 4px', fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'oklch(58% 0.01 260)' }}>Suggested</div>
+            <div style={{ padding: '8px 18px 4px', fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: dm.textMuted }}>Suggested</div>
           )}
-          {loading && <div style={{ padding: '20px 18px', fontSize: 13, color: 'oklch(60% 0.01 260)', textAlign: 'center' }}>Searching…</div>}
+          {loading && <div style={{ padding: '20px 18px', fontSize: 13, color: dm.textMuted, textAlign: 'center' }}>Searching…</div>}
           {!loading && results.length === 0 && query.trim() && (
             <div style={{ padding: '28px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'oklch(35% 0.01 260)', marginBottom: 4 }}>No users found</div>
-              <div style={{ fontSize: 12, color: 'oklch(60% 0.01 260)' }}>Try a different name or username</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: dm.textSec, marginBottom: 4 }}>No users found</div>
+              <div style={{ fontSize: 12, color: dm.textMuted }}>Try a different name or username</div>
             </div>
           )}
           {!loading && results.map(u => {
@@ -99,16 +115,16 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend }) {
               <div
                 key={u.id}
                 onClick={() => onSend(u)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: '1px solid oklch(96.5% 0.003 80)', transition: 'background 0.1s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'oklch(96.5% 0.01 260)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: `1px solid ${dm.rowDivider}`, transition: 'background 0.1s' }}
+                onMouseEnter={e => e.currentTarget.style.background = dm.rowHover}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0, overflow: 'hidden' }}>
                   {u.avatarUrl ? <img src={u.avatarUrl} alt={ini} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : ini}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'oklch(18% 0.015 260)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.username}</div>
-                  <div style={{ fontSize: 11.5, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{u.username}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: dm.textPri, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.username}</div>
+                  <div style={{ fontSize: 11.5, color: dm.textSec, fontFamily: "'JetBrains Mono', monospace" }}>@{u.username}</div>
                 </div>
               </div>
             );
@@ -153,6 +169,7 @@ function userColor(userId) {
 }
 
 export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDelete, compact, currentUser, openMessage, onProfile }) {
+  const { isDark } = useTheme();
   const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
 
   // Resolve author info from userInfo (populated by backend) or fallback to currentUser
@@ -214,19 +231,34 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
+  const cardBg = c.wi
+    ? (isDark ? 'oklch(19% 0.015 55)' : 'oklch(99.5% 0.012 65)')
+    : (isDark ? 'oklch(18% 0.01 260)' : 'white');
+  const cardBorder = c.wi
+    ? (isDark ? 'oklch(32% 0.08 55)' : 'oklch(88% 0.1 60)')
+    : (isDark ? 'oklch(26% 0.01 260)' : 'oklch(91% 0.006 80)');
+  const textPri  = isDark ? 'oklch(92% 0.008 260)' : (c.wi ? 'oklch(42% 0.18 55)' : 'oklch(15% 0.015 260)');
+  const textSec  = isDark ? 'oklch(65% 0.01 260)'  : 'oklch(58% 0.01 260)';
+  const textBody = isDark ? 'oklch(72% 0.01 260)'  : 'oklch(44% 0.01 260)';
+  const menuBg    = isDark ? 'oklch(21% 0.012 260)' : 'white';
+  const menuBorder= isDark ? 'oklch(30% 0.012 260)' : 'oklch(91% 0.006 80)';
+  const menuDivider = isDark ? 'oklch(28% 0.01 260)' : 'oklch(94% 0.004 80)';
+  const menuText  = isDark ? 'oklch(78% 0.008 260)' : 'oklch(50% 0.01 260)';
+  const menuHover = isDark ? 'oklch(25% 0.012 260)' : undefined;
+
   return (
     <div
       style={{
-        background: c.wi ? 'oklch(99.5% 0.012 65)' : 'white',
-        border: `1px solid ${c.wi ? 'oklch(88% 0.1 60)' : 'oklch(91% 0.006 80)'}`,
+        background: cardBg,
+        border: `1px solid ${cardBorder}`,
         borderRadius: 14, padding: compact ? '14px 16px' : '18px 20px',
         marginBottom: 10, transition: 'box-shadow 0.15s', position: 'relative',
         borderLeft: blameStatus === 'broken' ? '3px solid oklch(60% 0.18 30)' : undefined,
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; setHovered(false); }}
     >
-      {c.wi && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>⎇ what-if branch</div>}
+      {c.wi && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.15 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>⎇ what-if branch</div>}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -240,7 +272,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
             onMouseEnter={e => { if (onProfile && (c.userInfo?.username || c.userId)) e.currentTarget.style.textDecoration = 'underline'; }}
             onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
           >{user.name}</div>
-          <div style={{ fontSize: 12, color: 'oklch(58% 0.01 260)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ fontSize: 12, color: textSec, display: 'flex', gap: 6, alignItems: 'center' }}>
             <span>{user.handle}</span><span>·</span><span>{c.ts}</span>
           </div>
         </div>
@@ -282,13 +314,13 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
               </svg>
             </button>
             {menuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: 'white', border: '1px solid oklch(91% 0.006 80)', borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 160 }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: menuBg, border: `1px solid ${menuBorder}`, borderRadius: 10, boxShadow: isDark ? '0 4px 20px oklch(5% 0.01 260 / 0.5)' : '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 160 }}>
                 {/* Blame options */}
                 {!blameStatus && (
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); setBlameFormOpen(true); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.18 30)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 30)'}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(65% 0.18 30)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(24% 0.02 30)' : 'oklch(97% 0.01 30)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
                     ⚠ Mark as broken
@@ -297,8 +329,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 {blameStatus === 'broken' && (
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus('resolved'); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(42% 0.18 155)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 155)'}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: isDark ? 'oklch(65% 0.18 155)' : 'oklch(42% 0.18 155)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 155)' : 'oklch(97% 0.01 155)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
                     ✓ Mark as resolved
@@ -307,18 +339,18 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 {blameStatus && (
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus(null); setBlameNote(''); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(50% 0.01 260)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.005 260)'}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: menuText, cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = menuHover || 'oklch(97% 0.005 260)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
                     ✕ Clear blame
                   </button>
                 )}
-                <div style={{ margin: '4px 12px', borderTop: '1px solid oklch(94% 0.004 80)' }} />
+                <div style={{ margin: '4px 12px', borderTop: `1px solid ${menuDivider}` }} />
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(c.id); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.01 25)'}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: isDark ? 'oklch(65% 0.2 25)' : 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 25)' : 'oklch(97% 0.01 25)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -334,14 +366,14 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
 
       {/* Message */}
       <div
-        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: c.body ? 6 : 10, color: c.wi ? 'oklch(42% 0.18 55)' : 'oklch(15% 0.015 260)', cursor: c.body ? 'pointer' : 'default' }}
+        style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, marginBottom: c.body ? 6 : 10, color: textPri, cursor: c.body ? 'pointer' : 'default' }}
         onClick={() => c.body && setBodyOpen(p => !p)}
       >
         {c.message}
       </div>
 
       {c.body && (bodyOpen || c.body.length < 90) && (
-        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.65, marginBottom: 10 }}>{renderMentions(c.body, onProfile)}</div>
+        <div style={{ fontSize: 13.5, color: textBody, lineHeight: 1.65, marginBottom: 10 }}>{renderMentions(c.body, onProfile)}</div>
       )}
       {c.body && c.body.length >= 90 && !bodyOpen && (
         <div style={{ fontSize: 12, color: 'oklch(52% 0.2 260)', marginBottom: 8, marginTop: -2, cursor: 'pointer' }} onClick={() => setBodyOpen(true)}>Read more</div>
@@ -358,7 +390,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: blameFormOpen ? 8 : 12, flexWrap: 'wrap' }}>
         <Tag cat={c.category} />
         {c.impact != null && (
-          <span style={{ fontSize: 11, color: 'oklch(52% 0.01 260)', background: 'oklch(95% 0.006 80)', border: '1px solid oklch(90% 0.006 80)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
+          <span style={{ fontSize: 11, color: isDark ? 'oklch(65% 0.01 260)' : 'oklch(52% 0.01 260)', background: isDark ? 'oklch(24% 0.01 260)' : 'oklch(95% 0.006 80)', border: `1px solid ${isDark ? 'oklch(30% 0.01 260)' : 'oklch(90% 0.006 80)'}`, borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
             impact {c.impact}
           </span>
         )}
@@ -367,16 +399,16 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
 
       {/* Inline blame form */}
       {blameFormOpen && (
-        <div style={{ marginBottom: 12, padding: '10px 12px', background: 'oklch(98% 0.008 30)', borderRadius: 8, border: '1px solid oklch(90% 0.05 30)' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'oklch(45% 0.18 30)', marginBottom: 6 }}>⚠ What went wrong?</div>
+        <div style={{ marginBottom: 12, padding: '10px 12px', background: isDark ? 'oklch(20% 0.015 30)' : 'oklch(98% 0.008 30)', borderRadius: 8, border: `1px solid ${isDark ? 'oklch(32% 0.05 30)' : 'oklch(90% 0.05 30)'}` }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: isDark ? 'oklch(65% 0.18 30)' : 'oklch(45% 0.18 30)', marginBottom: 6 }}>⚠ What went wrong?</div>
           <textarea
             value={blameNote}
             onChange={e => setBlameNote(e.target.value)}
             placeholder="Optional: describe what this decision led to…"
             rows={2}
-            style={{ width: '100%', padding: '7px 9px', border: '1px solid oklch(88% 0.05 30)', borderRadius: 6, fontSize: 12.5, resize: 'vertical', fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(22% 0.015 260)', boxSizing: 'border-box', outline: 'none', background: 'white' }}
+            style={{ width: '100%', padding: '7px 9px', border: `1px solid ${isDark ? 'oklch(34% 0.05 30)' : 'oklch(88% 0.05 30)'}`, borderRadius: 6, fontSize: 12.5, resize: 'vertical', fontFamily: "'Plus Jakarta Sans', sans-serif", color: isDark ? 'oklch(82% 0.008 260)' : 'oklch(22% 0.015 260)', boxSizing: 'border-box', outline: 'none', background: isDark ? 'oklch(22% 0.012 30)' : 'white' }}
             onFocus={e => e.target.style.borderColor = 'oklch(62% 0.18 30)'}
-            onBlur={e => e.target.style.borderColor = 'oklch(88% 0.05 30)'}
+            onBlur={e => e.target.style.borderColor = isDark ? 'oklch(34% 0.05 30)' : 'oklch(88% 0.05 30)'}
           />
           <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
             <button
@@ -388,7 +420,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
             </button>
             <button
               onClick={() => setBlameFormOpen(false)}
-              style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid oklch(88% 0.008 260)', background: 'white', fontSize: 12, color: 'oklch(48% 0.01 260)', cursor: 'pointer' }}
+              style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${isDark ? 'oklch(30% 0.01 260)' : 'oklch(88% 0.008 260)'}`, background: isDark ? 'oklch(24% 0.012 260)' : 'white', fontSize: 12, color: isDark ? 'oklch(68% 0.01 260)' : 'oklch(48% 0.01 260)', cursor: 'pointer' }}
             >
               Cancel
             </button>
@@ -441,6 +473,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
           currentUserId={currentUser?.id || currentUser?._id}
           onClose={() => setDmModalOpen(false)}
           onSend={handleDMSend}
+          isDark={isDark}
         />
       )}
     </div>

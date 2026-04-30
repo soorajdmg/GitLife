@@ -73,3 +73,49 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
     --messages-list-width: 360px;
   }
 }
+
+/* ─── Dark mode overrides ─── */
+[data-theme="dark"] {
+  --bg-app:        oklch(14% 0.008 260);
+  --bg-surface:    oklch(18% 0.01 260);
+  --bg-elevated:   oklch(21% 0.012 260);
+  --bg-hover:      oklch(24% 0.012 260);
+  --bg-input:      oklch(22% 0.01 260);
+  --border:        oklch(28% 0.012 260);
+  --border-light:  oklch(25% 0.01 260);
+  --text-primary:  oklch(94% 0.008 260);
+  --text-secondary: oklch(68% 0.01 260);
+  --text-muted:    oklch(52% 0.01 260);
+  --accent:        oklch(60% 0.2 260);
+  --accent-bg:     oklch(22% 0.06 260);
+}
+
+[data-theme="dark"] body {
+  background: oklch(14% 0.008 260);
+  color: oklch(94% 0.008 260);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: oklch(32% 0.01 260);
+}
+
+/* Surface cards, sidebars, top bars */
+[data-theme="dark"] aside,
+[data-theme="dark"] .dark-surface {
+  background: oklch(18% 0.01 260) !important;
+  border-color: oklch(28% 0.012 260) !important;
+}
+
+/* Inputs and selects */
+[data-theme="dark"] input:not([type="file"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: oklch(22% 0.01 260) !important;
+  color: oklch(92% 0.008 260) !important;
+  border-color: oklch(32% 0.012 260) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: oklch(50% 0.01 260) !important;
+}

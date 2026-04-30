@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/gitlife';
 import CommitCard from '../components/ui/CommitCard';
+import { useTheme } from '../contexts/ThemeContext';
 
 function formatRelativeTime(timestamp) {
   if (!timestamp) return 'just now';
@@ -41,6 +42,7 @@ function mapToCard(d) {
 }
 
 export default function FeedView({ feedData = { following: [], trending: [], hasFollowing: false }, onReact, onFork, onMerge, onStash, onDelete, onNew, compact, loading, currentUser, openMessage, onProfile, hideFab }) {
+  const { isDark } = useTheme();
   const [filter, setFilter] = useState('All');
   const seenRef = useRef(new Set());
   const [searchParams] = useSearchParams();
@@ -100,11 +102,11 @@ export default function FeedView({ feedData = { following: [], trending: [], has
       {/* Feed */}
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto' }}>
         {/* Filter bar — sticky on desktop, scrolls with content on mobile */}
-        <div className="feed-filter-bar" style={{ background: 'white', borderBottom: '1px solid oklch(91% 0.006 80)', padding: '12px clamp(16px, 2.5vw, 40px)' }}>
+        <div className="feed-filter-bar" style={{ background: isDark ? 'oklch(18% 0.01 260)' : 'white', borderBottom: `1px solid ${isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)'}`, padding: '12px clamp(16px, 2.5vw, 40px)' }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['All', ...CATEGORIES].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                style={{ padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, border: `1px solid ${filter === f ? 'oklch(52% 0.2 260)' : 'oklch(88% 0.008 260)'}`, background: filter === f ? 'oklch(52% 0.2 260)' : 'white', color: filter === f ? 'white' : 'oklch(48% 0.01 260)', transition: 'all 0.12s', cursor: 'pointer' }}>
+                style={{ padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, border: `1px solid ${filter === f ? 'oklch(52% 0.2 260)' : (isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)')}`, background: filter === f ? 'oklch(52% 0.2 260)' : (isDark ? 'oklch(22% 0.01 260)' : 'white'), color: filter === f ? 'white' : (isDark ? 'oklch(65% 0.01 260)' : 'oklch(48% 0.01 260)'), transition: 'all 0.12s', cursor: 'pointer' }}>
                 {f}
               </button>
             ))}
@@ -113,13 +115,13 @@ export default function FeedView({ feedData = { following: [], trending: [], has
         <div style={{ maxWidth: 'var(--feed-max-width, 680px)', margin: '0 auto', padding: '20px 16px 80px' }}>
           {loading ? (
             [1, 2, 3].map(i => (
-              <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '18px 20px', marginBottom: 12 }}>
-                <div style={{ height: 14, width: '60%', background: 'oklch(93% 0.006 80)', borderRadius: 6, marginBottom: 10 }} />
-                <div style={{ height: 11, width: '40%', background: 'oklch(95% 0.004 80)', borderRadius: 5 }} />
+              <div key={i} style={{ background: isDark ? 'oklch(21% 0.012 260)' : 'white', borderRadius: 14, border: `1px solid ${isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)'}`, padding: '18px 20px', marginBottom: 12 }}>
+                <div style={{ height: 14, width: '60%', background: isDark ? 'oklch(26% 0.01 260)' : 'oklch(93% 0.006 80)', borderRadius: 6, marginBottom: 10 }} />
+                <div style={{ height: 11, width: '40%', background: isDark ? 'oklch(24% 0.008 260)' : 'oklch(95% 0.004 80)', borderRadius: 5 }} />
               </div>
             ))
           ) : allEmpty ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'oklch(58% 0.01 260)', fontSize: 14 }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: isDark ? 'oklch(52% 0.01 260)' : 'oklch(58% 0.01 260)', fontSize: 14 }}>
               {feedData.hasFollowing
                 ? 'All caught up! No posts match this filter.'
                 : 'Follow people to see their commits here.'}
@@ -136,15 +138,15 @@ export default function FeedView({ feedData = { following: [], trending: [], has
               {/* Divider: All caught up / Trending */}
               {followingEmpty && feedData.hasFollowing ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 20px', padding: '0 4px' }}>
-                  <div style={{ flex: 1, height: 1, background: 'oklch(91% 0.006 80)' }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>All caught up</span>
-                  <div style={{ flex: 1, height: 1, background: 'oklch(91% 0.006 80)' }} />
+                  <div style={{ flex: 1, height: 1, background: isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)' }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? 'oklch(52% 0.01 260)' : 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>All caught up</span>
+                  <div style={{ flex: 1, height: 1, background: isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)' }} />
                 </div>
               ) : shownFollowing.length > 0 && shownTrending.length > 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 20px', padding: '0 4px' }}>
-                  <div style={{ flex: 1, height: 1, background: 'oklch(91% 0.006 80)' }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>Trending</span>
-                  <div style={{ flex: 1, height: 1, background: 'oklch(91% 0.006 80)' }} />
+                  <div style={{ flex: 1, height: 1, background: isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)' }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? 'oklch(52% 0.01 260)' : 'oklch(58% 0.01 260)', whiteSpace: 'nowrap' }}>Trending</span>
+                  <div style={{ flex: 1, height: 1, background: isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)' }} />
                 </div>
               ) : null}
 
@@ -157,7 +159,7 @@ export default function FeedView({ feedData = { following: [], trending: [], has
 
               {/* No following + trending exists: label it */}
               {!feedData.hasFollowing && shownTrending.length > 0 && (
-                <div style={{ textAlign: 'center', fontSize: 11.5, color: 'oklch(62% 0.01 260)', marginTop: 8, paddingBottom: 4 }}>
+                <div style={{ textAlign: 'center', fontSize: 11.5, color: isDark ? 'oklch(52% 0.01 260)' : 'oklch(62% 0.01 260)', marginTop: 8, paddingBottom: 4 }}>
                   Follow people to see their commits here
                 </div>
               )}

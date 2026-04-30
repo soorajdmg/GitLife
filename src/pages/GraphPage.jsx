@@ -12,6 +12,7 @@ import DecisionNode from '../components/graph/DecisionNode.jsx';
 import DecisionEdge from '../components/graph/DecisionEdge.jsx';
 import GraphToolbar from '../components/graph/GraphToolbar.jsx';
 import BlameChainPanel from '../components/graph/BlameChainPanel.jsx';
+import { useTheme } from '../contexts/ThemeContext';
 
 const NODE_TYPES = { decisionNode: DecisionNode };
 const EDGE_TYPES = { decisionEdge: DecisionEdge };
@@ -180,7 +181,14 @@ function markOnboardingSeen() {
 }
 
 // ── Onboarding overlay ──────────────────────────────────────────────────────
-function OnboardingOverlay({ onDismiss }) {
+function OnboardingOverlay({ onDismiss, isDark }) {
+  const cardBg = isDark ? 'oklch(18% 0.015 260)' : 'white';
+  const cardBorder = isDark ? '1px solid oklch(30% 0.015 260)' : 'none';
+  const titleColor = isDark ? 'oklch(92% 0.008 260)' : 'oklch(18% 0.015 260)';
+  const bodyColor = isDark ? 'oklch(62% 0.01 260)' : 'oklch(44% 0.01 260)';
+  const stepsBg = isDark ? 'oklch(22% 0.015 260)' : 'oklch(97% 0.006 260)';
+  const stepTextColor = isDark ? 'oklch(75% 0.008 260)' : 'oklch(30% 0.01 260)';
+
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 40,
@@ -189,17 +197,18 @@ function OnboardingOverlay({ onDismiss }) {
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
       <div style={{
-        background: 'white', borderRadius: 18, padding: '32px 36px', maxWidth: 440,
+        background: cardBg, borderRadius: 18, padding: '32px 36px', maxWidth: 440,
         boxShadow: '0 24px 64px oklch(20% 0.05 260 / 0.25)',
+        border: cardBorder,
         textAlign: 'center',
       }}>
         {/* Icon */}
         <div style={{ fontSize: 40, marginBottom: 14 }}>◈</div>
 
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'oklch(18% 0.015 260)', marginBottom: 10 }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: titleColor, marginBottom: 10 }}>
           Your Life Graph
         </div>
-        <div style={{ fontSize: 13.5, color: 'oklch(44% 0.01 260)', lineHeight: 1.7, marginBottom: 24 }}>
+        <div style={{ fontSize: 13.5, color: bodyColor, lineHeight: 1.7, marginBottom: 24 }}>
           Every decision you've logged is a <strong>node</strong>. The goal is to draw
           edges between them — "this decision caused that one".<br /><br />
           Over time you'll see which choices were <strong>load-bearing</strong> (many
@@ -208,7 +217,7 @@ function OnboardingOverlay({ onDismiss }) {
         </div>
 
         {/* Step-by-step */}
-        <div style={{ background: 'oklch(97% 0.006 260)', borderRadius: 10, padding: '14px 18px', marginBottom: 22, textAlign: 'left' }}>
+        <div style={{ background: stepsBg, borderRadius: 10, padding: '14px 18px', marginBottom: 22, textAlign: 'left' }}>
           {[
             ['1', 'Click any node to select it'],
             ['2', 'In the side panel, click "Link an influence"'],
@@ -217,7 +226,7 @@ function OnboardingOverlay({ onDismiss }) {
           ].map(([n, txt]) => (
             <div key={n} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: n === '4' ? 0 : 8 }}>
               <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'oklch(52% 0.2 260)', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{n}</span>
-              <span style={{ fontSize: 13, color: 'oklch(30% 0.01 260)', lineHeight: 1.45 }}>{txt}</span>
+              <span style={{ fontSize: 13, color: stepTextColor, lineHeight: 1.45 }}>{txt}</span>
             </div>
           ))}
         </div>
@@ -263,10 +272,22 @@ function ConnectBanner({ sourceNode, onCancel }) {
 }
 
 // ── Note popover ─────────────────────────────────────────────────────────────
-function NotePopover({ source, target, onConfirm, onCancel, saving }) {
+function NotePopover({ source, target, onConfirm, onCancel, saving, isDark }) {
   const [note, setNote] = useState('');
   const srcText = source?.data?.decision || '';
   const tgtText = target?.data?.decision || '';
+  const modalBg = isDark ? 'oklch(18% 0.015 260)' : 'white';
+  const modalBorder = isDark ? '1px solid oklch(30% 0.015 260)' : 'none';
+  const titleColor = isDark ? 'oklch(92% 0.008 260)' : 'oklch(18% 0.015 260)';
+  const summaryBg = isDark ? 'oklch(22% 0.015 260)' : 'oklch(97% 0.006 260)';
+  const summaryText = isDark ? 'oklch(75% 0.008 260)' : 'oklch(28% 0.01 260)';
+  const inputBg = isDark ? 'oklch(22% 0.015 260)' : 'white';
+  const inputBorder = isDark ? 'oklch(35% 0.015 260)' : 'oklch(88% 0.008 260)';
+  const inputColor = isDark ? 'oklch(88% 0.008 260)' : 'oklch(20% 0.015 260)';
+  const cancelBg = isDark ? 'oklch(24% 0.015 260)' : 'white';
+  const cancelBorder = isDark ? 'oklch(35% 0.015 260)' : 'oklch(88% 0.008 260)';
+  const cancelColor = isDark ? 'oklch(68% 0.01 260)' : 'oklch(44% 0.01 260)';
+
   return (
     <div style={{
       position: 'absolute', inset: 0, background: 'oklch(15% 0.02 260 / 0.4)',
@@ -274,27 +295,28 @@ function NotePopover({ source, target, onConfirm, onCancel, saving }) {
       backdropFilter: 'blur(5px)',
     }} onClick={onCancel}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: 'white', borderRadius: 14, padding: 24, width: 380,
+        background: modalBg, borderRadius: 14, padding: 24, width: 380,
         boxShadow: '0 16px 48px oklch(25% 0.05 260 / 0.2)',
+        border: modalBorder,
         fontFamily: "'Plus Jakarta Sans', sans-serif",
       }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'oklch(18% 0.015 260)', marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: titleColor, marginBottom: 4 }}>
           Add causal link
         </div>
 
         {/* Visual relationship summary */}
-        <div style={{ background: 'oklch(97% 0.006 260)', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12 }}>
+        <div style={{ background: summaryBg, borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12 }}>
           <div style={{ color: 'oklch(52% 0.2 260)', fontWeight: 600, marginBottom: 4 }}>Influence</div>
-          <div style={{ color: 'oklch(28% 0.01 260)', marginBottom: 6, lineHeight: 1.4 }}>
+          <div style={{ color: summaryText, marginBottom: 6, lineHeight: 1.4 }}>
             {srcText.length > 55 ? srcText.slice(0, 52) + '…' : srcText}
           </div>
           <div style={{ color: 'oklch(62% 0.01 260)', fontSize: 11, marginBottom: 4 }}>↓ influenced</div>
-          <div style={{ color: 'oklch(28% 0.01 260)', fontWeight: 500, lineHeight: 1.4 }}>
+          <div style={{ color: summaryText, fontWeight: 500, lineHeight: 1.4 }}>
             {tgtText.length > 55 ? tgtText.slice(0, 52) + '…' : tgtText}
           </div>
         </div>
 
-        <div style={{ fontSize: 12, color: 'oklch(52% 0.01 260)', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, color: isDark ? 'oklch(62% 0.01 260)' : 'oklch(52% 0.01 260)', marginBottom: 6 }}>
           Why? <span style={{ opacity: 0.7 }}>(optional)</span>
         </div>
         <textarea
@@ -303,13 +325,13 @@ function NotePopover({ source, target, onConfirm, onCancel, saving }) {
           value={note}
           onChange={e => setNote(e.target.value)}
           rows={3}
-          style={{ width: '100%', padding: '9px 12px', border: '1px solid oklch(88% 0.008 260)', borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(20% 0.015 260)', boxSizing: 'border-box', outline: 'none' }}
+          style={{ width: '100%', padding: '9px 12px', border: `1px solid ${inputBorder}`, borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: "'Plus Jakarta Sans', sans-serif", color: inputColor, background: inputBg, boxSizing: 'border-box', outline: 'none' }}
           onFocus={e => e.target.style.borderColor = 'oklch(52% 0.2 260)'}
-          onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'}
+          onBlur={e => e.target.style.borderColor = inputBorder}
           onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) onConfirm(note); }}
         />
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-          <button onClick={onCancel} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', background: 'white', fontSize: 13, cursor: 'pointer', color: 'oklch(44% 0.01 260)' }}>
+          <button onClick={onCancel} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${cancelBorder}`, background: cancelBg, fontSize: 13, cursor: 'pointer', color: cancelColor }}>
             Cancel
           </button>
           <button onClick={() => onConfirm(note)} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'oklch(52% 0.2 260)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -322,7 +344,7 @@ function NotePopover({ source, target, onConfirm, onCancel, saving }) {
 }
 
 // ── Main canvas ──────────────────────────────────────────────────────────────
-function GraphCanvas({ decisions, currentUser }) {
+function GraphCanvas({ decisions, currentUser, isDark }) {
   const userId = currentUser?.id || currentUser?.userId || 'anon';
   const savedPositions = getSavedPositions(userId);
 
@@ -394,6 +416,42 @@ function GraphCanvas({ decisions, currentUser }) {
     const t = setTimeout(() => fitView({ padding: 0.15, duration: 0 }), 150);
     return () => clearTimeout(t);
   }, [isMobile, fitView]);
+
+  // Inject dark-mode overrides for ReactFlow Controls (plus/minus/fit/lock buttons)
+  useEffect(() => {
+    const id = 'rf-controls-dark-override';
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('style');
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    if (isDark) {
+      el.textContent = `
+        .react-flow__controls {
+          background: oklch(18% 0.015 260) !important;
+          border: 1px solid oklch(30% 0.015 260) !important;
+          box-shadow: 0 2px 8px oklch(0% 0 0 / 0.3) !important;
+          border-radius: 8px !important;
+        }
+        .react-flow__controls-button {
+          background: oklch(18% 0.015 260) !important;
+          border-bottom: 1px solid oklch(28% 0.015 260) !important;
+          fill: oklch(72% 0.01 260) !important;
+          color: oklch(72% 0.01 260) !important;
+        }
+        .react-flow__controls-button:hover {
+          background: oklch(24% 0.015 260) !important;
+        }
+        .react-flow__controls-button svg { fill: oklch(72% 0.01 260) !important; }
+        .react-flow__minimap { background: oklch(18% 0.015 260) !important; border: 1px solid oklch(30% 0.015 260) !important; }
+        .react-flow__minimap-mask { fill: oklch(13% 0.01 260 / 0.7) !important; }
+      `;
+    } else {
+      el.textContent = '';
+    }
+    return () => { /* keep style tag, just clear on unmount */ };
+  }, [isDark]);
 
   const onNodeDragStop = useCallback((_, node) => {
     savePosition(userId, node.id, node.position);
@@ -476,6 +534,7 @@ function GraphCanvas({ decisions, currentUser }) {
       isSelected: n.id === selectedNodeId,
       isSearchMatch: matchedNodeIds ? matchedNodeIds.has(n.id) : false,
       isSearchDimmed: matchedNodeIds ? !matchedNodeIds.has(n.id) : false,
+      isDark,
     },
   }));
 
@@ -545,16 +604,17 @@ function GraphCanvas({ decisions, currentUser }) {
         fitViewOptions={{ padding: 0.15 }}
         deleteKeyCode={null}
         panOnScroll={false}
-        style={{ background: 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s', flex: 1, height: '100%' }}
+        style={{ background: isDark ? 'oklch(13% 0.01 260)' : 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s', flex: 1, height: '100%' }}
       >
-        <Background color="oklch(86% 0.004 260)" gap={24} size={1} />
+        <Background color={isDark ? 'oklch(25% 0.01 260)' : 'oklch(86% 0.004 260)'} gap={24} size={1} />
         <Controls style={{ bottom: 116, left: 16 }} />
         {/* Legend card */}
         <div style={{
           position: 'absolute', bottom: 12, left: 16, zIndex: 5,
-          background: 'white', borderRadius: 8, padding: '8px 12px',
+          background: isDark ? 'oklch(18% 0.015 260)' : 'white',
+          borderRadius: 8, padding: '8px 12px',
           boxShadow: '0 2px 10px oklch(25% 0.05 260 / 0.1)',
-          border: '1px solid oklch(92% 0.005 260)',
+          border: `1px solid ${isDark ? 'oklch(30% 0.015 260)' : 'oklch(92% 0.005 260)'}`,
           fontFamily: "'Plus Jakarta Sans', sans-serif",
           display: 'flex', flexDirection: 'column', gap: 6,
           pointerEvents: 'none',
@@ -565,7 +625,7 @@ function GraphCanvas({ decisions, currentUser }) {
             { color: 'oklch(52% 0.18 290)', label: 'Load-bearing' },
             { color: 'oklch(68% 0.12 260)', label: 'Default' },
           ].map(({ color, label }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'oklch(38% 0.01 260)' }}>
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: isDark ? 'oklch(65% 0.01 260)' : 'oklch(38% 0.01 260)' }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />
               {label}
             </div>
@@ -586,6 +646,7 @@ function GraphCanvas({ decisions, currentUser }) {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearchJump={handleSearchJump}
+          isDark={isDark}
         />
       </ReactFlow>
 
@@ -593,10 +654,11 @@ function GraphCanvas({ decisions, currentUser }) {
       {!hasEdges && !connectSourceId && !selectedNodeId && (
         <div style={{
           position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-          background: 'white', borderRadius: 10, padding: '10px 18px',
+          background: isDark ? 'oklch(18% 0.015 260)' : 'white',
+          borderRadius: 10, padding: '10px 18px',
           boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.14)',
-          border: '1px solid oklch(90% 0.01 260)',
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: 'oklch(44% 0.01 260)',
+          border: `1px solid ${isDark ? 'oklch(30% 0.015 260)' : 'oklch(90% 0.01 260)'}`,
+          fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: isDark ? 'oklch(65% 0.01 260)' : 'oklch(44% 0.01 260)',
           pointerEvents: 'none', zIndex: 5, whiteSpace: 'nowrap',
         }}>
           👆 Click any node to select it, then use the panel to link decisions
@@ -611,6 +673,7 @@ function GraphCanvas({ decisions, currentUser }) {
           onConfirm={confirmLink}
           onCancel={cancelLink}
           saving={savingLink}
+          isDark={isDark}
         />
       )}
 
@@ -625,6 +688,7 @@ function GraphCanvas({ decisions, currentUser }) {
             setConnectSourceId(selectedNode.id);
             setSelectedNodeId(null);
           }}
+          isDark={isDark}
         />
       )}
     </div>
@@ -633,6 +697,7 @@ function GraphCanvas({ decisions, currentUser }) {
 
 // ── Page wrapper ─────────────────────────────────────────────────────────────
 export default function GraphPage({ currentUser }) {
+  const { isDark } = useTheme();
   const [showOnboarding, setShowOnboarding] = useState(!hasSeenOnboarding());
 
   const { data: decisions = [], isLoading, isError } = useQuery({
@@ -648,7 +713,7 @@ export default function GraphPage({ currentUser }) {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(55% 0.01 260)', fontSize: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontFamily: "'Plus Jakarta Sans', sans-serif", color: isDark ? 'oklch(62% 0.01 260)' : 'oklch(55% 0.01 260)', fontSize: 14 }}>
         Loading your decision graph…
       </div>
     );
@@ -666,8 +731,8 @@ export default function GraphPage({ currentUser }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", textAlign: 'center', padding: 32 }}>
         <div style={{ fontSize: 40 }}>◈</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'oklch(28% 0.015 260)' }}>No decisions yet</div>
-        <div style={{ fontSize: 13.5, color: 'oklch(55% 0.01 260)', maxWidth: 320, lineHeight: 1.65 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? 'oklch(88% 0.008 260)' : 'oklch(28% 0.015 260)' }}>No decisions yet</div>
+        <div style={{ fontSize: 13.5, color: isDark ? 'oklch(58% 0.01 260)' : 'oklch(55% 0.01 260)', maxWidth: 320, lineHeight: 1.65 }}>
           Make your first commit on the Feed, then come back here to connect your decisions into a causal graph.
         </div>
       </div>
@@ -677,9 +742,9 @@ export default function GraphPage({ currentUser }) {
   return (
     <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
       <ReactFlowProvider>
-        <GraphCanvas decisions={decisions} currentUser={currentUser} />
+        <GraphCanvas decisions={decisions} currentUser={currentUser} isDark={isDark} />
       </ReactFlowProvider>
-      {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} />}
+      {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} isDark={isDark} />}
     </div>
   );
 }

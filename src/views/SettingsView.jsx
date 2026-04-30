@@ -2,48 +2,76 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../config/api';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
+
+/* ─── DARK TOKENS HELPER ─── */
+function makeDk(isDark) {
+  return {
+    surface:   isDark ? 'oklch(18% 0.01 260)'  : 'white',
+    elevated:  isDark ? 'oklch(21% 0.012 260)' : 'white',
+    border:    isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)',
+    borderSub: isDark ? 'oklch(25% 0.01 260)'  : 'oklch(96% 0.004 80)',
+    borderRow: isDark ? 'oklch(25% 0.01 260)'  : 'oklch(96% 0.004 80)',
+    textPri:   isDark ? 'oklch(94% 0.008 260)' : 'oklch(20% 0.01 260)',
+    textSec:   isDark ? 'oklch(68% 0.01 260)'  : 'oklch(58% 0.01 260)',
+    textMuted: isDark ? 'oklch(52% 0.01 260)'  : 'oklch(42% 0.01 260)',
+    inputBg:   isDark ? 'oklch(22% 0.01 260)'  : 'white',
+    inputBgDis:isDark ? 'oklch(20% 0.008 260)' : 'oklch(97% 0.004 80)',
+    inputBdr:  isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)',
+    btnBg:     isDark ? 'oklch(24% 0.012 260)' : 'white',
+    btnBdr:    isDark ? 'oklch(34% 0.012 260)' : 'oklch(88% 0.008 260)',
+    btnText:   isDark ? 'oklch(80% 0.008 260)' : 'oklch(42% 0.01 260)',
+    toggleOff: isDark ? 'oklch(35% 0.01 260)'  : 'oklch(85% 0.008 260)',
+    isDarkMode: isDark,
+  };
+}
 
 /* ─── UI PRIMITIVES ─── */
-function Toggle({ checked, onChange, disabled }) {
+function Toggle({ checked, onChange, disabled, dk }) {
+  const offBg = dk?.toggleOff || 'oklch(85% 0.008 260)';
   return (
     <div onClick={() => !disabled && onChange(!checked)}
-      style={{ width: 36, height: 20, borderRadius: 10, background: checked ? 'oklch(52% 0.2 260)' : 'oklch(85% 0.008 260)', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, opacity: disabled ? 0.5 : 1 }}>
+      style={{ width: 36, height: 20, borderRadius: 10, background: checked ? 'oklch(52% 0.2 260)' : offBg, cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, opacity: disabled ? 0.5 : 1 }}>
       <div style={{ position: 'absolute', top: 3, left: checked ? 17 : 3, width: 14, height: 14, borderRadius: '50%', background: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px oklch(0% 0 0 / 0.2)' }} />
     </div>
   );
 }
 
-function Row({ label, sub, right }) {
+function Row({ label, sub, right, dk }) {
+  const t = dk || {};
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid oklch(96% 0.004 80)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: `1px solid ${t.borderRow || 'oklch(96% 0.004 80)'}` }}>
       <div>
-        <div style={{ fontSize: 13.5, fontWeight: 500, color: 'oklch(20% 0.01 260)' }}>{label}</div>
-        {sub && <div style={{ fontSize: 11.5, color: 'oklch(58% 0.01 260)', marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: 13.5, fontWeight: 500, color: t.textPri || 'oklch(20% 0.01 260)' }}>{label}</div>
+        {sub && <div style={{ fontSize: 11.5, color: t.textSec || 'oklch(58% 0.01 260)', marginTop: 2 }}>{sub}</div>}
       </div>
       {right}
     </div>
   );
 }
 
-function SelectInput({ value, onChange, opts, disabled }) {
+function SelectInput({ value, onChange, opts, disabled, dk }) {
+  const t = dk || {};
   return (
     <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
-      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid oklch(88% 0.008 260)', fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(25% 0.01 260)', background: disabled ? 'oklch(97% 0.004 80)' : 'white', cursor: disabled ? 'not-allowed' : 'pointer', outline: 'none' }}>
+      style={{ padding: '5px 10px', borderRadius: 7, border: `1px solid ${t.inputBdr || 'oklch(88% 0.008 260)'}`, fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: t.textPri || 'oklch(25% 0.01 260)', background: disabled ? (t.inputBgDis || 'oklch(97% 0.004 80)') : (t.inputBg || 'white'), cursor: disabled ? 'not-allowed' : 'pointer', outline: 'none' }}>
       {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, children, dk }) {
+  const t = dk || {};
   return (
-    <div style={{ background: 'white', borderRadius: 14, border: '1px solid oklch(91% 0.006 80)', padding: '22px 24px', marginBottom: 16 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'oklch(22% 0.01 260)', marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid oklch(94% 0.004 80)' }}>{title}</div>
+    <div style={{ background: t.surface || 'white', borderRadius: 14, border: `1px solid ${t.border || 'oklch(91% 0.006 80)'}`, padding: '22px 24px', marginBottom: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: t.textPri || 'oklch(22% 0.01 260)', marginBottom: 18, paddingBottom: 12, borderBottom: `1px solid ${t.borderSub || 'oklch(94% 0.004 80)'}` }}>{title}</div>
       {children}
     </div>
   );
 }
 
-function FieldInput({ value, onChange, placeholder, type = 'text', disabled }) {
+function FieldInput({ value, onChange, placeholder, type = 'text', disabled, dk }) {
+  const t = dk || {};
   return (
     <input
       type={type}
@@ -51,18 +79,21 @@ function FieldInput({ value, onChange, placeholder, type = 'text', disabled }) {
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'oklch(20% 0.01 260)', background: disabled ? 'oklch(97% 0.004 80)' : 'white', outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'border-color 0.15s' }}
+      style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${t.inputBdr || 'oklch(88% 0.008 260)'}`, fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: t.textPri || 'oklch(20% 0.01 260)', background: disabled ? (t.inputBgDis || 'oklch(97% 0.004 80)') : (t.inputBg || 'white'), outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'border-color 0.15s' }}
       onFocus={e => { if (!disabled) e.target.style.borderColor = 'oklch(60% 0.15 260)'; }}
-      onBlur={e => e.target.style.borderColor = 'oklch(88% 0.008 260)'}
+      onBlur={e => e.target.style.borderColor = t.inputBdr || 'oklch(88% 0.008 260)'}
     />
   );
 }
 
-function Btn({ children, onClick, variant = 'default', disabled, loading }) {
+function Btn({ children, onClick, variant = 'default', disabled, loading, dk }) {
+  const t = dk || {};
   const styles = {
-    default: { border: '1px solid oklch(88% 0.008 260)', background: 'white', color: 'oklch(42% 0.01 260)' },
+    default: { border: `1px solid ${t.btnBdr || 'oklch(88% 0.008 260)'}`, background: t.btnBg || 'white', color: t.btnText || 'oklch(42% 0.01 260)' },
     primary: { border: '1px solid oklch(52% 0.2 260)', background: 'oklch(52% 0.2 260)', color: 'white' },
-    danger: { border: '1px solid oklch(75% 0.15 20)', background: 'oklch(97% 0.015 20)', color: 'oklch(48% 0.2 20)' },
+    danger: t.isDarkMode
+      ? { border: '1px solid oklch(42% 0.2 20)', background: 'oklch(30% 0.14 20)', color: 'oklch(78% 0.18 20)' }
+      : { border: '1px solid oklch(75% 0.15 20)', background: 'oklch(97% 0.015 20)', color: 'oklch(48% 0.2 20)' },
   };
   return (
     <button
@@ -89,7 +120,8 @@ async function uploadToCloudinary(file) {
 }
 
 /* ─── EDIT PROFILE MODAL ─── */
-function EditProfileModal({ user, onClose, onSaved }) {
+function EditProfileModal({ user, onClose, onSaved, isDark }) {
+  const dk = makeDk(isDark);
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [username, setUsername] = useState(user?.username || '');
   const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl || null);
@@ -144,54 +176,56 @@ function EditProfileModal({ user, onClose, onSaved }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'white', borderRadius: 16, width: 420, padding: '28px 28px 24px', boxShadow: '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 22 }}>Edit Profile</div>
+      <div style={{ background: dk.surface, borderRadius: 16, width: 420, padding: '28px 28px 24px', boxShadow: isDark ? '0 16px 60px oklch(5% 0.01 260 / 0.6)' : '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 22, color: dk.textPri }}>Edit Profile</div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
           <div style={{ position: 'relative' }}>
             {avatarPreview
-              ? <img src={avatarPreview} alt="avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid oklch(91% 0.006 80)' }} />
+              ? <img src={avatarPreview} alt="avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${dk.border}` }} />
               : <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'white' }}>{ini}</div>
             }
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
-            <Btn onClick={() => fileRef.current.click()}>Upload photo</Btn>
+            <Btn dk={dk} onClick={() => fileRef.current.click()}>Upload photo</Btn>
             {(avatarPreview || user?.avatarUrl) && (
               <button onClick={handleRemoveAvatar}
                 style={{ fontSize: 12, color: 'oklch(50% 0.18 20)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
                 Remove photo
               </button>
             )}
-            <div style={{ fontSize: 11, color: 'oklch(62% 0.01 260)' }}>JPG, PNG · max 5MB</div>
+            <div style={{ fontSize: 11, color: dk.textMuted }}>JPG, PNG · max 5MB</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>Full Name</div>
-            <FieldInput value={fullName} onChange={setFullName} placeholder="Your full name" />
+            <div style={{ fontSize: 12, fontWeight: 600, color: dk.textSec, marginBottom: 5 }}>Full Name</div>
+            <FieldInput dk={dk} value={fullName} onChange={setFullName} placeholder="Your full name" />
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>Username</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: dk.textSec, marginBottom: 5 }}>Username</div>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'oklch(60% 0.01 260)', fontSize: 13 }}>@</span>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: dk.textMuted, fontSize: 13 }}>@</span>
               <input
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="username"
-                style={{ padding: '7px 12px 7px 24px', borderRadius: 8, border: '1px solid oklch(88% 0.008 260)', fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: 'oklch(20% 0.01 260)', background: 'white', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                style={{ padding: '7px 12px 7px 24px', borderRadius: 8, border: `1px solid ${dk.inputBdr}`, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: dk.textPri, background: dk.inputBg, outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                onFocus={e => e.target.style.borderColor = 'oklch(60% 0.15 260)'}
+                onBlur={e => e.target.style.borderColor = dk.inputBdr}
               />
             </div>
           </div>
         </div>
 
-        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginBottom: 14 }}>{error}</div>}
+        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: isDark ? 'oklch(20% 0.06 20)' : 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginBottom: 14 }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Btn onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn variant="primary" onClick={handleSave} loading={saving}>Save changes</Btn>
+          <Btn dk={dk} onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn variant="primary" dk={dk} onClick={handleSave} loading={saving}>Save changes</Btn>
         </div>
       </div>
     </div>
@@ -199,7 +233,8 @@ function EditProfileModal({ user, onClose, onSaved }) {
 }
 
 /* ─── CHANGE EMAIL MODAL ─── */
-function ChangeEmailModal({ user, onClose, onSaved }) {
+function ChangeEmailModal({ user, onClose, onSaved, isDark }) {
+  const dk = makeDk(isDark);
   const [email, setEmail] = useState(user?.email || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -224,14 +259,14 @@ function ChangeEmailModal({ user, onClose, onSaved }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'white', borderRadius: 16, width: 380, padding: '28px 28px 24px', boxShadow: '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>Change Email</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>New email address</div>
-        <FieldInput value={email} onChange={setEmail} placeholder="you@example.com" type="email" />
-        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginTop: 10 }}>{error}</div>}
+      <div style={{ background: dk.surface, borderRadius: 16, width: 380, padding: '28px 28px 24px', boxShadow: isDark ? '0 16px 60px oklch(5% 0.01 260 / 0.6)' : '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18, color: dk.textPri }}>Change Email</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: dk.textSec, marginBottom: 5 }}>New email address</div>
+        <FieldInput dk={dk} value={email} onChange={setEmail} placeholder="you@example.com" type="email" />
+        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: isDark ? 'oklch(20% 0.06 20)' : 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginTop: 10 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-          <Btn onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn variant="primary" onClick={handleSave} loading={saving}>Update email</Btn>
+          <Btn dk={dk} onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn variant="primary" dk={dk} onClick={handleSave} loading={saving}>Update email</Btn>
         </div>
       </div>
     </div>
@@ -239,7 +274,8 @@ function ChangeEmailModal({ user, onClose, onSaved }) {
 }
 
 /* ─── CHANGE PASSWORD MODAL ─── */
-function ChangePasswordModal({ onClose }) {
+function ChangePasswordModal({ onClose, isDark }) {
+  const dk = makeDk(isDark);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -269,21 +305,21 @@ function ChangePasswordModal({ onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'white', borderRadius: 16, width: 380, padding: '28px 28px 24px', boxShadow: '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>Change Password</div>
+      <div style={{ background: dk.surface, borderRadius: 16, width: 380, padding: '28px 28px 24px', boxShadow: isDark ? '0 16px 60px oklch(5% 0.01 260 / 0.6)' : '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18, color: dk.textPri }}>Change Password</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
           {[['Current password', current, setCurrent], ['New password', next, setNext], ['Confirm new password', confirm, setConfirm]].map(([label, val, setter]) => (
             <div key={label}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>{label}</div>
-              <FieldInput value={val} onChange={setter} type="password" placeholder="••••••••" />
+              <div style={{ fontSize: 12, fontWeight: 600, color: dk.textSec, marginBottom: 5 }}>{label}</div>
+              <FieldInput dk={dk} value={val} onChange={setter} type="password" placeholder="••••••••" />
             </div>
           ))}
         </div>
-        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginBottom: 12 }}>{error}</div>}
-        {success && <div style={{ fontSize: 12.5, color: 'oklch(40% 0.18 155)', background: 'oklch(96% 0.04 155)', borderRadius: 7, padding: '8px 12px', marginBottom: 12 }}>Password updated!</div>}
+        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: isDark ? 'oklch(20% 0.06 20)' : 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginBottom: 12 }}>{error}</div>}
+        {success && <div style={{ fontSize: 12.5, color: isDark ? 'oklch(65% 0.18 155)' : 'oklch(40% 0.18 155)', background: isDark ? 'oklch(20% 0.08 155)' : 'oklch(96% 0.04 155)', borderRadius: 7, padding: '8px 12px', marginBottom: 12 }}>Password updated!</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Btn onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn variant="primary" onClick={handleSave} loading={saving}>Update password</Btn>
+          <Btn dk={dk} onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn variant="primary" dk={dk} onClick={handleSave} loading={saving}>Update password</Btn>
         </div>
       </div>
     </div>
@@ -291,7 +327,8 @@ function ChangePasswordModal({ onClose }) {
 }
 
 /* ─── DELETE ACCOUNT MODAL ─── */
-function DeleteAccountModal({ user, onClose, onDeleted }) {
+function DeleteAccountModal({ user, onClose, onDeleted, isDark }) {
+  const dk = makeDk(isDark);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
@@ -315,19 +352,19 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
       onClick={e => { if (e.target === e.currentTarget && !deleting) onClose(); }}>
-      <div style={{ background: 'white', borderRadius: 16, width: 420, padding: '28px 28px 24px', boxShadow: '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, color: 'oklch(35% 0.18 20)' }}>Delete account</div>
-        <div style={{ fontSize: 13, color: 'oklch(40% 0.01 260)', marginBottom: 20, lineHeight: 1.6 }}>
+      <div style={{ background: dk.surface, borderRadius: 16, width: 420, padding: '28px 28px 24px', boxShadow: isDark ? '0 16px 60px oklch(5% 0.01 260 / 0.6)' : '0 16px 60px oklch(25% 0.05 260 / 0.2)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, color: isDark ? 'oklch(65% 0.2 20)' : 'oklch(35% 0.18 20)' }}>Delete account</div>
+        <div style={{ fontSize: 13, color: dk.textSec, marginBottom: 20, lineHeight: 1.6 }}>
           This will permanently delete your account, all your commits, branches, and data. This cannot be undone.
         </div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'oklch(42% 0.01 260)', marginBottom: 5 }}>
-          Type <span style={{ fontFamily: "'JetBrains Mono', monospace", background: 'oklch(96% 0.006 80)', padding: '1px 5px', borderRadius: 4 }}>{expected}</span> to confirm
+        <div style={{ fontSize: 12, fontWeight: 600, color: dk.textSec, marginBottom: 5 }}>
+          Type <span style={{ fontFamily: "'JetBrains Mono', monospace", background: isDark ? 'oklch(24% 0.01 260)' : 'oklch(96% 0.006 80)', padding: '1px 5px', borderRadius: 4, color: dk.textPri }}>{expected}</span> to confirm
         </div>
-        <FieldInput value={confirmText} onChange={setConfirmText} placeholder={expected} />
-        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginTop: 10 }}>{error}</div>}
+        <FieldInput dk={dk} value={confirmText} onChange={setConfirmText} placeholder={expected} />
+        {error && <div style={{ fontSize: 12.5, color: 'oklch(48% 0.2 20)', background: isDark ? 'oklch(20% 0.06 20)' : 'oklch(97% 0.015 20)', borderRadius: 7, padding: '8px 12px', marginTop: 10 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-          <Btn onClick={onClose} disabled={deleting}>Cancel</Btn>
-          <Btn variant="danger" onClick={handleDelete} loading={deleting}>Delete my account</Btn>
+          <Btn dk={dk} onClick={onClose} disabled={deleting}>Cancel</Btn>
+          <Btn variant="danger" dk={dk} onClick={handleDelete} loading={deleting}>Delete my account</Btn>
         </div>
       </div>
     </div>
@@ -338,7 +375,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
 const DEFAULT_PREFS = {
   notifications: { reactions: true, follows: true, whatifs: true, digest: false },
   privacy: { mainPublic: true, branchesPublic: true, activityPublic: true },
-  appearance: 'system',
+  appearance: 'light',
   language: 'en',
 };
 
@@ -346,6 +383,8 @@ const DEFAULT_PREFS = {
 export default function SettingsView({ saveRef, onHasChanges }) {
   const { user, updateUser, logout } = useAuth();
   const { addToast } = useToast();
+  const { setTheme, isDark } = useTheme();
+  const dk = makeDk(isDark);
 
   const [modal, setModal] = useState(null);
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
@@ -366,12 +405,13 @@ export default function SettingsView({ saveRef, onHasChanges }) {
         if (!cancelled) {
           setPrefs(res.preferences);
           setSavedPrefs(res.preferences);
+          if (res.preferences.appearance) setTheme(res.preferences.appearance);
         }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setPrefsLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [setTheme]);
 
   // Keep dirty flag in sync with parent
   useEffect(() => {
@@ -410,11 +450,10 @@ export default function SettingsView({ saveRef, onHasChanges }) {
   const setPrivacy = (key, val) =>
     setPrefs(p => ({ ...p, privacy: { ...p.privacy, [key]: val } }));
 
-  const setAppearance = (val) =>
+  const setAppearance = (val) => {
     setPrefs(p => ({ ...p, appearance: val }));
-
-  const setLanguage = (val) =>
-    setPrefs(p => ({ ...p, language: val }));
+    setTheme(val);
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -441,55 +480,59 @@ export default function SettingsView({ saveRef, onHasChanges }) {
   };
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto' }}>
+    <div style={{ height: '100%', overflowY: 'auto', background: isDark ? 'oklch(14% 0.008 260)' : 'oklch(98.5% 0.005 80)' }}>
       <div style={{ maxWidth: 'clamp(600px, 60vw, 780px)', margin: '0 auto', padding: 'clamp(20px, 3vw, 36px) clamp(20px, 3vw, 40px) 60px' }}>
 
         {/* Account Section */}
-        <Section title="Account">
+        <Section title="Account" dk={dk}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             {user?.avatarUrl
-              ? <img src={user.avatarUrl} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid oklch(91% 0.006 80)' }} referrerPolicy="no-referrer" />
+              ? <img src={user.avatarUrl} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${dk.border}` }} referrerPolicy="no-referrer" />
               : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: 'white', flexShrink: 0 }}>{ini}</div>
             }
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fullName}</div>
-              <div style={{ fontSize: 12, color: 'oklch(55% 0.01 260)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>@{username}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: dk.textPri, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fullName}</div>
+              <div style={{ fontSize: 12, color: dk.textSec, fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>@{username}</div>
             </div>
-            <Btn onClick={() => setModal('editProfile')}>Edit profile</Btn>
+            <Btn dk={dk} onClick={() => setModal('editProfile')}>Edit profile</Btn>
           </div>
 
-          <Row
+          <Row dk={dk}
             label="Email"
             sub={email}
-            right={<Btn onClick={() => setModal('changeEmail')}>Change</Btn>}
+            right={<Btn dk={dk} onClick={() => setModal('changeEmail')}>Change</Btn>}
           />
-          <Row
+          <Row dk={dk}
             label="Password"
             sub="Update your login password"
-            right={<Btn onClick={() => setModal('changePassword')}>Update</Btn>}
+            right={<Btn dk={dk} onClick={() => setModal('changePassword')}>Update</Btn>}
           />
-          <Row
+          <Row dk={dk}
             label="Member since"
             sub={user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}
             right={null}
           />
-          <Row
+          <Row dk={dk}
             label="Sign out"
             sub="Log out of your account on this device"
-            right={<Btn variant="danger" onClick={logout}>Sign out</Btn>}
+            right={<Btn variant="danger" dk={dk} onClick={logout}>Sign out</Btn>}
           />
         </Section>
 
-        {/* Notifications Section */}
-        <Section title="Notifications">
+        {/* Notifications Section — coming soon */}
+        <Section title="Notifications" dk={dk}>
+          <div style={{ fontSize: 12, color: isDark ? 'oklch(60% 0.15 260)' : 'oklch(48% 0.18 260)', background: isDark ? 'oklch(20% 0.06 260)' : 'oklch(95% 0.02 260)', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
+            Notification delivery is coming soon. Your preferences will be saved and applied when it launches.
+          </div>
           {[
             ['reactions', 'Reactions on your commits', 'When someone forks, merges or supports your decisions'],
             ['follows',   'New followers',             'When someone starts following your life'],
             ['whatifs',   'Branch activity',           'Updates on your what-if branches'],
             ['digest',    'Weekly digest',             'A summary of what people in your network are up to'],
           ].map(([key, label, sub]) => (
-            <Row key={key} label={label} sub={sub} right={
+            <Row key={key} dk={dk} label={label} sub={sub} right={
               <Toggle
+                dk={dk}
                 checked={prefs.notifications[key]}
                 onChange={val => setNotif(key, val)}
                 disabled={prefsLoading}
@@ -499,14 +542,15 @@ export default function SettingsView({ saveRef, onHasChanges }) {
         </Section>
 
         {/* Privacy Section */}
-        <Section title="Privacy">
+        <Section title="Privacy" dk={dk}>
           {[
             ['mainPublic',     'Public main branch',      'Anyone can see your real-life decisions'],
             ['branchesPublic', 'Public what-if branches', 'Anyone can see your hypothetical branches'],
             ['activityPublic', 'Show activity graph',     'Display your commit activity on your profile'],
           ].map(([key, label, sub]) => (
-            <Row key={key} label={label} sub={sub} right={
+            <Row key={key} dk={dk} label={label} sub={sub} right={
               <Toggle
+                dk={dk}
                 checked={prefs.privacy[key]}
                 onChange={val => setPrivacy(key, val)}
                 disabled={prefsLoading}
@@ -516,12 +560,13 @@ export default function SettingsView({ saveRef, onHasChanges }) {
         </Section>
 
         {/* Preferences Section */}
-        <Section title="Preferences">
-          <Row
+        <Section title="Preferences" dk={dk}>
+          <Row dk={dk}
             label="Appearance"
             sub="Interface theme"
             right={
               <SelectInput
+                dk={dk}
                 value={prefs.appearance}
                 onChange={setAppearance}
                 disabled={prefsLoading}
@@ -529,31 +574,19 @@ export default function SettingsView({ saveRef, onHasChanges }) {
               />
             }
           />
-          <Row
-            label="Language"
-            sub="Interface language"
-            right={
-              <SelectInput
-                value={prefs.language}
-                onChange={setLanguage}
-                disabled={prefsLoading}
-                opts={[['en', 'English'], ['es', 'Español'], ['fr', 'Français'], ['de', 'Deutsch'], ['ja', '日本語']]}
-              />
-            }
-          />
         </Section>
 
         {/* Data & Export Section */}
-        <Section title="Data & Export">
-          <Row
+        <Section title="Data & Export" dk={dk}>
+          <Row dk={dk}
             label="Export my life data"
             sub="Download all your commits and branches as JSON"
-            right={<Btn onClick={handleExport} loading={exporting}>Export</Btn>}
+            right={<Btn dk={dk} onClick={handleExport} loading={exporting}>Export</Btn>}
           />
-          <Row
+          <Row dk={dk}
             label="Delete account"
             sub="Permanently remove your account and all data"
-            right={<Btn variant="danger" onClick={() => setModal('deleteAccount')}>Delete</Btn>}
+            right={<Btn variant="danger" dk={dk} onClick={() => setModal('deleteAccount')}>Delete</Btn>}
           />
         </Section>
 
@@ -561,16 +594,16 @@ export default function SettingsView({ saveRef, onHasChanges }) {
 
       {/* Modals */}
       {modal === 'editProfile' && (
-        <EditProfileModal user={user} onClose={() => setModal(null)} onSaved={handleProfileSaved} />
+        <EditProfileModal user={user} onClose={() => setModal(null)} onSaved={handleProfileSaved} isDark={isDark} />
       )}
       {modal === 'changeEmail' && (
-        <ChangeEmailModal user={user} onClose={() => setModal(null)} onSaved={handleProfileSaved} />
+        <ChangeEmailModal user={user} onClose={() => setModal(null)} onSaved={handleProfileSaved} isDark={isDark} />
       )}
       {modal === 'changePassword' && (
-        <ChangePasswordModal onClose={() => setModal(null)} />
+        <ChangePasswordModal onClose={() => setModal(null)} isDark={isDark} />
       )}
       {modal === 'deleteAccount' && (
-        <DeleteAccountModal user={user} onClose={() => setModal(null)} onDeleted={handleAccountDeleted} />
+        <DeleteAccountModal user={user} onClose={() => setModal(null)} onDeleted={handleAccountDeleted} isDark={isDark} />
       )}
     </div>
   );

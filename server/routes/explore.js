@@ -17,6 +17,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const db = getDB();
+    const currentUserId = req.user.userId || req.user.id || req.user._id?.toString();
     const { limit = 50, type, search, userId } = req.query;
 
     const matchStage = {};
@@ -32,6 +33,10 @@ router.get('/', authenticateToken, async (req, res) => {
     if (userId && userId.trim()) {
       matchStage.userId = userId.trim();
     }
+
+    // Viewing another user's profile: only show decisions they've made public
+    // If viewing own profile (userId === currentUserId), skip privacy filter
+    const isOwnProfile = userId && userId.trim() === currentUserId;
 
     const decisions = await db.collection('decisions').aggregate([
       { $match: matchStage },
@@ -81,6 +86,43 @@ router.get('/', authenticateToken, async (req, res) => {
           userInfo: { $arrayElemAt: ['$userInfo', 0] }
         }
       },
+      // Privacy filter: hide decisions from users who have restricted visibility
+      // Skip for own profile view (user can always see their own content)
+      ...(!isOwnProfile ? [{
+        $match: {
+          $or: [
+            // Always show current user's own decisions
+            { userId: currentUserId },
+            // Show main-branch decisions only if mainPublic !== false
+            {
+              $and: [
+                { branch_name: 'main' },
+                { $or: [
+                  { 'userInfo.preferences.privacy.mainPublic': { $ne: false } },
+                  { 'userInfo.preferences': { $exists: false } }
+                ]}
+              ]
+            },
+            // Show what-if branches only if branchesPublic !== false
+            {
+              $and: [
+                { branch_name: { $regex: '^what-if/', $options: 'i' } },
+                { $or: [
+                  { 'userInfo.preferences.privacy.branchesPublic': { $ne: false } },
+                  { 'userInfo.preferences': { $exists: false } }
+                ]}
+              ]
+            },
+            // Show any branch that is neither 'main' nor 'what-if/*' unconditionally
+            {
+              $and: [
+                { branch_name: { $ne: 'main' } },
+                { branch_name: { $not: { $regex: '^what-if/', $options: 'i' } } }
+              ]
+            }
+          ]
+        }
+      }] : []),
       {
         $addFields: {
           userReactions: {
@@ -210,7 +252,38 @@ router.get('/feed', authenticateToken, async (req, res) => {
       },
       { $sort: { trendScore: -1 } },
       { $limit: limit },
-      ...userLookup
+      ...userLookup,
+      // Privacy filter: respect mainPublic / branchesPublic preferences
+      {
+        $match: {
+          $or: [
+            {
+              $and: [
+                { branch_name: 'main' },
+                { $or: [
+                  { 'userInfo.preferences.privacy.mainPublic': { $ne: false } },
+                  { 'userInfo.preferences': { $exists: false } }
+                ]}
+              ]
+            },
+            {
+              $and: [
+                { branch_name: { $regex: '^what-if/', $options: 'i' } },
+                { $or: [
+                  { 'userInfo.preferences.privacy.branchesPublic': { $ne: false } },
+                  { 'userInfo.preferences': { $exists: false } }
+                ]}
+              ]
+            },
+            {
+              $and: [
+                { branch_name: { $ne: 'main' } },
+                { branch_name: { $not: { $regex: '^what-if/', $options: 'i' } } }
+              ]
+            }
+          ]
+        }
+      }
     ]).toArray();
 
     res.json({

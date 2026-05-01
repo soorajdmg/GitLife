@@ -1,3 +1,34 @@
+/* ─── Auth page: always light — override global dark theme ─── */
+.auth-page,
+.auth-page * {
+  color-scheme: light;
+}
+
+.auth-page input:not([type="file"]),
+.auth-page select,
+.auth-page textarea {
+  background: oklch(98.5% 0.003 80) !important;
+  color: oklch(18% 0.015 260) !important;
+  border-color: oklch(89% 0.007 80) !important;
+}
+
+.auth-page input::placeholder,
+.auth-page textarea::placeholder {
+  color: oklch(72% 0.008 260) !important;
+}
+
+.auth-page input:focus,
+.auth-page textarea:focus {
+  background: white !important;
+  border-color: oklch(52% 0.2 260) !important;
+}
+
+.auth-form-panel,
+.auth-form-inner {
+  background: white !important;
+  color: oklch(18% 0.015 260) !important;
+}
+
 /* ─── Auth page: split layout ─── */
 .auth-page {
   min-height: 100vh;

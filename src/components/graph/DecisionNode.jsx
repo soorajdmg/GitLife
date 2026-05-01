@@ -69,7 +69,8 @@ export default function DecisionNode({ data, selected }) {
     ? 'oklch(72% 0.18 290)'
     : isDark ? 'oklch(35% 0.015 260)' : 'oklch(88% 0.008 260)';
 
-  const boxShadow = isSearchMatch
+  const brokenAccent = isBroken ? 'inset 3px 0 0 oklch(60% 0.18 30), ' : '';
+  const boxShadow = brokenAccent + (isSearchMatch
     ? '0 0 0 3px oklch(68% 0.22 55 / 0.45), 0 4px 20px oklch(68% 0.22 55 / 0.2)'
     : isConnectSource
     ? '0 0 0 3px oklch(52% 0.2 260 / 0.4), 0 4px 16px oklch(25% 0.05 260 / 0.12)'
@@ -79,7 +80,7 @@ export default function DecisionNode({ data, selected }) {
     ? '0 0 0 2px oklch(52% 0.18 290 / 0.3), 0 4px 20px oklch(25% 0.05 260 / 0.12)'
     : selected
     ? '0 0 0 2px oklch(52% 0.2 260 / 0.25), 0 4px 16px oklch(25% 0.05 260 / 0.1)'
-    : isDark ? '0 2px 8px oklch(0% 0 0 / 0.3)' : '0 2px 8px oklch(25% 0.05 260 / 0.08)';
+    : isDark ? '0 2px 8px oklch(0% 0 0 / 0.3)' : '0 2px 8px oklch(25% 0.05 260 / 0.08)');
 
   const text = data.decision || '';
   const truncated = text.length > chars ? text.slice(0, chars - 3) + '…' : text;
@@ -109,7 +110,6 @@ export default function DecisionNode({ data, selected }) {
       width,
       fontFamily: "'Plus Jakarta Sans', sans-serif",
       position: 'relative',
-      borderLeft: isBroken ? '3px solid oklch(60% 0.18 30)' : undefined,
       transition: 'border-color 0.15s, box-shadow 0.15s, width 0.2s, background 0.15s, opacity 0.15s',
       cursor: isConnectTarget ? 'pointer' : 'default',
       opacity: isSearchDimmed ? 0.3 : 1,

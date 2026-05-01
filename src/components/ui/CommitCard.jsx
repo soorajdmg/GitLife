@@ -253,10 +253,10 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
         border: `1px solid ${cardBorder}`,
         borderRadius: 14, padding: compact ? '14px 16px' : '18px 20px',
         marginBottom: 10, transition: 'box-shadow 0.15s', position: 'relative',
-        borderLeft: blameStatus === 'broken' ? '3px solid oklch(60% 0.18 30)' : undefined,
+        boxShadow: blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30)' : undefined,
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; setHovered(false); }}
+      onMouseEnter={e => { const inset = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30), ' : ''; e.currentTarget.style.boxShadow = inset + (isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'); setHovered(true); }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30)' : 'none'; setHovered(false); }}
     >
       {c.wi && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.15 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>⎇ what-if branch</div>}
 

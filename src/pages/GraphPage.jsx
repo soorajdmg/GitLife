@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
@@ -365,6 +365,17 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchJumpIndex, setSearchJumpIndex] = useState(0);
 
+  // Minimap visibility — show only while panning/zooming
+  const [showMinimap, setShowMinimap] = useState(false);
+  const minimapHideTimer = useRef(null);
+  const onMoveStart = useCallback(() => {
+    clearTimeout(minimapHideTimer.current);
+    setShowMinimap(true);
+  }, []);
+  const onMoveEnd = useCallback(() => {
+    minimapHideTimer.current = setTimeout(() => setShowMinimap(false), 800);
+  }, []);
+
   const { fitView, fitBounds } = useReactFlow();
 
   // Search helpers
@@ -595,6 +606,8 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
         onNodeClick={handleNodeClick}
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
+        onMoveStart={onMoveStart}
+        onMoveEnd={onMoveEnd}
         onPaneClick={() => {
           if (!connectSourceId) setSelectedNodeId(null);
         }}
@@ -607,10 +620,10 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
         style={{ background: isDark ? 'oklch(13% 0.01 260)' : 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s', flex: 1, height: '100%' }}
       >
         <Background color={isDark ? 'oklch(25% 0.01 260)' : 'oklch(86% 0.004 260)'} gap={24} size={1} />
-        <Controls style={{ bottom: 116, left: 16 }} />
+        <Controls style={{ bottom: 16, left: 16 }} />
         {/* Legend card */}
         <div style={{
-          position: 'absolute', bottom: 12, left: 16, zIndex: 5,
+          position: 'absolute', bottom: 16, right: 16, zIndex: 5,
           background: isDark ? 'oklch(18% 0.015 260)' : 'white',
           borderRadius: 8, padding: '8px 12px',
           boxShadow: '0 2px 10px oklch(25% 0.05 260 / 0.1)',
@@ -634,7 +647,7 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
         {!isMobile && (
           <MiniMap
             nodeColor={n => n.data?.blameStatus === 'broken' ? 'oklch(60% 0.18 30)' : n.data?.dependentCount >= 3 ? 'oklch(52% 0.18 290)' : 'oklch(68% 0.12 260)'}
-            style={{ bottom: 12, right: selectedNodeId ? 356 : 12, transition: 'right 0.2s' }}
+            style={{ top: 16, left: 16, bottom: 'auto', right: 'auto', opacity: showMinimap ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: showMinimap ? 'auto' : 'none' }}
           />
         )}
         <GraphToolbar

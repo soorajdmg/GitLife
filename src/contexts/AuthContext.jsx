@@ -16,22 +16,70 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [coldStart, setColdStart] = useState(false);
 
-  // Check if user is logged in on mount
+  // Check if user is logged in on mount, with cold-start retry logic
   useEffect(() => {
+    const MAX_RETRIES = 3;
+    const ATTEMPT_TIMEOUT_MS = 18000;
+    const RETRY_DELAYS_MS = [5000, 8000, 10000];
+
+    const isNetworkError = (err) =>
+      err.name === 'AbortError' ||
+      err.message === 'Failed to fetch' ||
+      err.message?.includes('NetworkError');
+
+    const verifyWithTimeout = async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ATTEMPT_TIMEOUT_MS);
+      try {
+        const response = await api.verifyToken({ signal: controller.signal });
+        clearTimeout(timer);
+        return response;
+      } catch (err) {
+        clearTimeout(timer);
+        throw err;
+      }
+    };
+
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
-      if (token) {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          const response = await api.verifyToken();
+          const response = await verifyWithTimeout();
           setUser(response.user);
+          setColdStart(false);
+          setLoading(false);
+          return;
         } catch (err) {
-          console.error('Token verification failed:', err);
-          localStorage.removeItem('token');
-          setUser(null);
+          if (!isNetworkError(err)) {
+            // Server replied quickly with a real auth error (401/403)
+            console.error('Token verification failed (auth error):', err);
+            localStorage.removeItem('token');
+            setUser(null);
+            setColdStart(false);
+            setLoading(false);
+            return;
+          }
+          // Network error / timeout → server is cold-starting
+          if (attempt === 0) setColdStart(true);
+          if (attempt < MAX_RETRIES) {
+            await new Promise(res => setTimeout(res, RETRY_DELAYS_MS[attempt]));
+          } else {
+            // All retries exhausted
+            console.error('Token verification failed after all retries (cold start):', err);
+            localStorage.removeItem('token');
+            setUser(null);
+            setColdStart(false);
+            setLoading(false);
+          }
         }
       }
-      setLoading(false);
     };
 
     checkAuth();
@@ -110,6 +158,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     error,
+    coldStart,
     login,
     register,
     loginWithGoogle,
@@ -121,7 +170,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

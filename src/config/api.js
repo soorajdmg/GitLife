@@ -57,8 +57,8 @@ class ApiClient {
     });
   }
 
-  async verifyToken() {
-    return this.request('/auth/verify');
+  async verifyToken(options = {}) {
+    return this.request('/auth/verify', options);
   }
 
   async logout() {

@@ -630,7 +630,8 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
           {!search && suggestedUsers.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 12, padding: '0 2px' }}>Suggested people</div>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
+              <div className="scroll-fade-row" style={{ '--fade-color': isDark ? 'oklch(18% 0.01 260)' : 'white' }}>
+              <div className="scroll-fade-row-inner" style={{ gap: 10, paddingBottom: 6 }}>
                 {suggestedUsers.map(u => {
                   const ini = userInitials(u);
                   const color = userColor(u.id);
@@ -680,13 +681,15 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                   );
                 })}
               </div>
+              </div>
             </div>
           )}
 
           {/* Tabs + category filters */}
           {!search && (
             <>
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 2 }}>
+              <div className="scroll-fade-row" style={{ marginBottom: 12, '--fade-color': isDark ? 'oklch(18% 0.01 260)' : 'oklch(98.5% 0.005 80)' }}>
+              <div className="scroll-fade-row-inner" style={{ gap: 6, paddingBottom: 2 }}>
                 {['All', ...CATEGORIES].map(cat => {
                   const active = catFilter === cat;
                   const c = cat !== 'All' ? catColor(cat) : null;
@@ -697,6 +700,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                     </button>
                   );
                 })}
+              </div>
               </div>
               <div style={{ display: 'flex', gap: 0, marginBottom: 14, background: tabBarBg, borderRadius: 10, border: `1px solid ${borderCol}`, padding: 4 }}>
                 {[
@@ -785,6 +789,28 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
+        }
+        .scroll-fade-row {
+          position: relative;
+        }
+        .scroll-fade-row::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 48px;
+          height: 100%;
+          pointer-events: none;
+          background: linear-gradient(to right, transparent, var(--fade-color, white));
+        }
+        .scroll-fade-row-inner {
+          display: flex;
+          overflow-x: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .scroll-fade-row-inner::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

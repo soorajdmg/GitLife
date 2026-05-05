@@ -52,6 +52,12 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
   --messages-list-width: 280px;
 }
 
+@media (max-width: 768px) {
+  :root {
+    --explore-h-padding: 10px;
+  }
+}
+
 @media (min-width: 1280px) {
   :root {
     --sidebar-width: 260px;

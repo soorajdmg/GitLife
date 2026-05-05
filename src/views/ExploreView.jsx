@@ -688,10 +688,26 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                 })}
               </div>
               <div style={{ display: 'flex', gap: 0, marginBottom: 14, background: tabBarBg, borderRadius: 10, border: `1px solid ${borderCol}`, padding: 4 }}>
-                {[['trending', '🔥  Trending'], ['whatifs', '⎇  What-ifs']].map(([id, lbl]) => (
+                {[
+                  ['trending', (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <polyline points="1,12 5,7 9,10 15,3" />
+                      <polyline points="11,3 15,3 15,7" />
+                    </svg>
+                  ), 'Trending'],
+                  ['whatifs', (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="5" cy="3.5" r="1.5" />
+                      <circle cx="5" cy="12.5" r="1.5" />
+                      <circle cx="11" cy="6.5" r="1.5" />
+                      <line x1="5" y1="5" x2="5" y2="11" />
+                      <path d="M5 5c0 0 0-1.5 6 0" />
+                    </svg>
+                  ), 'What-ifs'],
+                ].map(([id, icon, lbl]) => (
                   <button key={id} onClick={() => setTab(id)}
-                    style={{ flex: 1, padding: 7, borderRadius: 7, border: 'none', fontSize: 13, fontWeight: 600, background: tab === id ? 'oklch(52% 0.2 260)' : 'transparent', color: tab === id ? 'white' : (isDark ? 'oklch(60% 0.01 260)' : 'oklch(50% 0.01 260)'), cursor: 'pointer', transition: 'all 0.14s' }}>
-                    {lbl}
+                    style={{ flex: 1, padding: 7, borderRadius: 7, border: 'none', fontSize: 13, fontWeight: 600, background: tab === id ? 'oklch(52% 0.2 260)' : 'transparent', color: tab === id ? 'white' : (isDark ? 'oklch(60% 0.01 260)' : 'oklch(50% 0.01 260)'), cursor: 'pointer', transition: 'all 0.14s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    {icon}{lbl}
                   </button>
                 ))}
               </div>

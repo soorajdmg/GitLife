@@ -385,7 +385,7 @@ router.get('/me/preferences', authenticateToken, async (req, res) => {
           branchesPublic: prefs.privacy?.branchesPublic ?? true,
           activityPublic: prefs.privacy?.activityPublic ?? true,
         },
-        appearance: prefs.appearance ?? 'system',
+        appearance: prefs.appearance ?? 'light',
         language: prefs.language ?? 'en',
       }
     });
@@ -406,7 +406,7 @@ router.put('/me/preferences', authenticateToken, async (req, res) => {
     const updated = {
       notifications: { ...(current.notifications || {}), ...(notifications || {}) },
       privacy: { ...(current.privacy || {}), ...(privacy || {}) },
-      appearance: appearance ?? current.appearance ?? 'system',
+      appearance: appearance ?? current.appearance ?? 'light',
       language: language ?? current.language ?? 'en',
     };
 

@@ -1,4 +1,4 @@
-*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html, body {
   height: 100%;
@@ -17,7 +17,7 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: oklch(87% 0.008 260); border-radius: 99px; }
 
-button { font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+button { font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
 
 #root { width: 100%; height: 100%; }

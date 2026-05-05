@@ -226,17 +226,21 @@ function LinkPreview({ url, isDark, isMe }) {
 
 // ─── Reaction Picker ──────────────────────────────────────────────────────────
 
-function ReactionPicker({ onReact, isDark, isMe }) {
+function ReactionPicker({ onReact, isDark, isMe, pickerRef, onMouseEnter, onMouseLeave }) {
   const bg = isDark ? 'oklch(24% 0.015 260)' : 'white';
   const border = isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)';
   return (
-    <div style={{
-      position: 'absolute', bottom: '100%', [isMe ? 'right' : 'left']: 0,
-      background: bg, border: `1px solid ${border}`, borderRadius: 22,
-      padding: '4px 6px', display: 'flex', gap: 2, zIndex: 50,
-      boxShadow: isDark ? '0 4px 16px oklch(5% 0.01 260 / 0.5)' : '0 4px 16px oklch(25% 0.05 260 / 0.14)',
-      marginBottom: 4,
-    }}>
+    <div
+      ref={pickerRef}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{
+        position: 'absolute', bottom: '100%', [isMe ? 'right' : 'left']: 0,
+        background: bg, border: `1px solid ${border}`, borderRadius: 22,
+        padding: '4px 6px', display: 'flex', gap: 2, zIndex: 50,
+        boxShadow: isDark ? '0 4px 16px oklch(5% 0.01 260 / 0.5)' : '0 4px 16px oklch(25% 0.05 260 / 0.14)',
+        marginBottom: 4,
+      }}>
       {REACTION_EMOJIS.map(e => (
         <button key={e} onClick={() => onReact(e)}
           style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 3px', borderRadius: 8, lineHeight: 1, transition: 'transform 0.1s' }}
@@ -285,6 +289,20 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editText, setEditText] = useState('');
   const editInputRef = useRef(null);
+  const hoverLeaveTimerRef = useRef(null);
+  const pickerRef = useRef(null);
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!pickerMsgId) return;
+    const handler = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setPickerMsgId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [pickerMsgId]);
 
   const incomingBg     = isDark ? 'oklch(26% 0.012 260)' : 'white';
   const incomingColor  = isDark ? 'oklch(92% 0.008 260)' : 'oklch(18% 0.015 260)';
@@ -378,8 +396,20 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
               {/* Bubble + action buttons */}
               <div
                 style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5, flexDirection: isMe ? 'row-reverse' : 'row', width: '100%', justifyContent: isMe ? 'flex-start' : 'flex-start' }}
-                onMouseEnter={() => { if (!isMobile) setHoveredMsgId(msg.id); }}
-                onMouseLeave={() => { if (!isMobile) { setHoveredMsgId(null); setPickerMsgId(null); } }}>
+                onMouseEnter={() => {
+                  if (!isMobile) {
+                    clearTimeout(hoverLeaveTimerRef.current);
+                    setHoveredMsgId(msg.id);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (!isMobile) {
+                    // Delay so the mouse can travel from the bubble to the picker without it vanishing
+                    hoverLeaveTimerRef.current = setTimeout(() => {
+                      setHoveredMsgId(null);
+                    }, 200);
+                  }
+                }}>
 
                 {/* Message bubble */}
                 <div style={{ position: 'relative', maxWidth: '100%' }}>
@@ -429,7 +459,14 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                   {url && !isDeleted && <LinkPreview url={url} isDark={isDark} isMe={isMe} />}
                   {/* Reaction picker */}
                   {pickerMsgId === msg.id && (
-                    <ReactionPicker isDark={isDark} isMe={isMe} onReact={(emoji) => { onReact(msg.id, emoji); setPickerMsgId(null); }} />
+                    <ReactionPicker
+                      isDark={isDark}
+                      isMe={isMe}
+                      pickerRef={pickerRef}
+                      onReact={(emoji) => { onReact(msg.id, emoji); setPickerMsgId(null); }}
+                      onMouseEnter={() => clearTimeout(hoverLeaveTimerRef.current)}
+                      onMouseLeave={() => { hoverLeaveTimerRef.current = setTimeout(() => { setHoveredMsgId(null); setPickerMsgId(null); }, 200); }}
+                    />
                   )}
                 </div>
 

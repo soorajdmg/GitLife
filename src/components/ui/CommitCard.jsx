@@ -381,8 +381,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
 
       {/* Image */}
       {(c.image || c.img) && (
-        <div style={{ margin: '10px 0', borderRadius: 10, overflow: 'hidden' }}>
-          <img src={c.image || c.img} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} onError={e => e.target.style.display = 'none'} />
+        <div style={{ margin: '10px 0', borderRadius: 10, overflow: 'hidden', maxHeight: 220 }}>
+          <img src={c.image || c.img} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 220 }} onError={e => e.target.style.display = 'none'} />
         </div>
       )}
 

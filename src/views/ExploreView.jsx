@@ -285,11 +285,11 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
       )}
 
       {(item.image || item.img) && (
-        <div style={{ margin: '10px 0', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ margin: '10px 0', borderRadius: 10, overflow: 'hidden', maxHeight: 220 }}>
           <img
             src={item.image || item.img}
             alt=""
-            style={{ width: '100%', height: 'auto', display: 'block' }}
+            style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 220 }}
             onError={e => e.target.style.display = 'none'}
           />
         </div>
@@ -587,7 +587,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Search bar */}
-      <div style={{ background: surfaceBg, borderBottom: `1px solid ${borderCol}`, padding: `clamp(10px, 2vw, 12px) ${isMobile ? '12px' : 'var(--explore-h-padding, 28px)'}`, flexShrink: 0 }}>
+      <div style={{ background: surfaceBg, borderBottom: `1px solid ${borderCol}`, padding: 'clamp(10px, 2vw, 12px) var(--explore-h-padding, 28px)', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <svg style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={isDark ? 'oklch(50% 0.01 260)' : 'oklch(62% 0.01 260)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="6.8" cy="6.8" r="4.3" />

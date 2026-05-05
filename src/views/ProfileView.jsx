@@ -455,6 +455,24 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false, isD
   const weekMonths = allWeekMonths.slice(-NUM_WEEKS_DISPLAY);
   const weekOffset = allWeekData.length - NUM_WEEKS_DISPLAY;
 
+  // Compute current streak from commits
+  const commitDays = new Set(
+    commits.filter(c => c.rawDate).map(c => {
+      const d = new Date(c.rawDate);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().slice(0, 10);
+    })
+  );
+  let streak = 0;
+  const todayForStreak = new Date();
+  todayForStreak.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(todayForStreak);
+    d.setDate(d.getDate() - i);
+    if (commitDays.has(d.toISOString().slice(0, 10))) streak++;
+    else if (i > 0) break;
+  }
+
   const getDate = (weekIndex, day) => {
     const actualWeek = weekIndex + weekOffset;
     const d = new Date(graphStart);
@@ -475,7 +493,7 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false, isD
     <div ref={containerRef}>
       <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)', marginBottom: 10 }}>Commit activity</div>
       <div style={{ display: 'flex', gap: compact ? 6 : 8, marginBottom: 12 }}>
-        {[[String(commitCount), 'commits'], ['—', 'streak'], [topCategory || '—', 'top area']].map(([val, lbl]) => (
+        {[[String(commitCount), 'commits'], [streak > 0 ? `${streak}d` : '—', 'streak'], [topCategory || '—', 'top area']].map(([val, lbl]) => (
           <div key={lbl} style={{ flex: 1, padding: compact ? '6px 6px' : '7px 8px', background: statBg, borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: statTextPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</div>
             <div style={{ fontSize: compact ? 9 : 10, color: statTextSec, marginTop: 1 }}>{lbl}</div>

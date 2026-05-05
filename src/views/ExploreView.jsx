@@ -528,9 +528,9 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     return matchesCat && matchesSearch;
   });
 
-  const sortedItems = tab === 'trending'
-    ? [...shownItems].sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
-    : shownItems;
+  // Backend already returns items sorted by trendScore; preserve that order for
+  // the trending tab instead of overriding it with a recency sort.
+  const sortedItems = shownItems;
 
   const toggleFollow = async (id) => {
     const wasFollowing = followed.has(id);

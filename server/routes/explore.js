@@ -59,11 +59,28 @@ router.get('/', authenticateToken, async (req, res) => {
       },
       {
         $addFields: {
+          // Blended score: reactions weighted x3 (strong engagement signal) +
+          // comments (discussion signal) + 1 (brief window for brand-new posts).
+          // Exponent 1.8 decays faster than before — zero-reaction posts drop
+          // off within ~2-4h. Hard cap: posts older than 7 days score 0 so old
+          // content never floats back up regardless of reaction count.
           trendScore: {
-            $divide: [
-              { $add: ['$totalReactions', 1] },
-              { $pow: [{ $add: ['$hoursAge', 2] }, 1.5] }
-            ]
+            $cond: {
+              if: { $gt: ['$hoursAge', 168] }, // 7-day cap
+              then: 0,
+              else: {
+                $divide: [
+                  {
+                    $add: [
+                      { $multiply: ['$totalReactions', 3] },
+                      { $ifNull: ['$commentCount', 0] },
+                      1
+                    ]
+                  },
+                  { $pow: [{ $add: ['$hoursAge', 2] }, 1.8] }
+                ]
+              }
+            }
           }
         }
       },

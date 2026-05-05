@@ -22,7 +22,7 @@ const SLIDES = [
 function GitLifeLogo({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
-      <rect width="28" height="28" rx="8" fill="oklch(52% 0.2 260)" />
+      <rect width="28" height="28" rx="8" fill="#3b82f6" />
       <line x1="10" y1="6" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
       <path d="M10 11 C10 11 10 8 18 8" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none" />
       <circle cx="10" cy="19" r="2.5" fill="white" />

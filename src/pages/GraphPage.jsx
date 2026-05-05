@@ -193,14 +193,18 @@ function OnboardingOverlay({ onDismiss, isDark }) {
     <div style={{
       position: 'absolute', inset: 0, zIndex: 40,
       background: 'oklch(12% 0.02 260 / 0.55)', backdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      overflowY: 'auto',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
+      padding: '24px 16px',
     }}>
       <div style={{
         background: cardBg, borderRadius: 18, padding: '32px 36px', maxWidth: 440,
+        width: '100%',
         boxShadow: '0 24px 64px oklch(20% 0.05 260 / 0.25)',
         border: cardBorder,
         textAlign: 'center',
+        margin: 'auto',
       }}>
         {/* Icon */}
         <div style={{ fontSize: 40, marginBottom: 14 }}>◈</div>

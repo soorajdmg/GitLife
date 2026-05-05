@@ -12,6 +12,16 @@ import { catColor, fmt } from '../data/gitlife';
 
 const CATEGORIES = ['Career', 'Health', 'Relationships', 'Finance', 'Education', 'Travel', 'Housing'];
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+}
+
 function userInitials(user) {
   if (!user) return '?';
   const name = user.fullName || user.username || '';
@@ -430,6 +440,7 @@ function UserCard({ user, onMessage, onProfile, isDark }) {
 export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange, onFollowChange }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('trending');
   const [catFilter, setCatFilter] = useState('All');

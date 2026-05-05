@@ -427,7 +427,7 @@ function UserCard({ user, onMessage, onProfile, isDark }) {
 }
 
 // ─── Main View ────────────────────────────────────────────────────────────────
-export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange }) {
+export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange, onFollowChange }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const [search, setSearch] = useState('');
@@ -537,6 +537,12 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     setFollowed(prev => { const next = new Set(prev); wasFollowing ? next.delete(id) : next.add(id); return next; });
     try {
       wasFollowing ? await api.unfollowUser(id) : await api.followUser(id);
+      if (!wasFollowing) {
+        const u = suggestedUsers.find(u => u.id === id);
+        if (u) onFollowChange?.({ id: u.id, username: u.username, fullName: u.fullName, avatarUrl: u.avatarUrl }, true);
+      } else {
+        onFollowChange?.({ id }, false);
+      }
     } catch {
       setFollowed(prev => { const next = new Set(prev); wasFollowing ? next.add(id) : next.delete(id); return next; });
     }

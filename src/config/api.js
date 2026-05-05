@@ -284,6 +284,33 @@ class ApiClient {
     return this.request(`/messages/conversations/${conversationId}`, { method: 'DELETE' });
   }
 
+  async searchMessages(conversationId, q, limit = 30) {
+    const params = new URLSearchParams({ q, limit });
+    return this.request(`/messages/conversations/${conversationId}/search?${params}`);
+  }
+
+  async deleteMessage(msgId) {
+    return this.request(`/messages/message/${msgId}`, { method: 'DELETE' });
+  }
+
+  async editMessage(msgId, text) {
+    return this.request(`/messages/message/${msgId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ text }),
+    });
+  }
+
+  async reactToMessage(msgId, emoji) {
+    return this.request(`/messages/message/${msgId}/react`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji }),
+    });
+  }
+
+  async getLinkPreview(url) {
+    return this.request(`/messages/link-preview?url=${encodeURIComponent(url)}`, { silent: true });
+  }
+
   // Engagement methods
   async forkDecision(id) {
     return this.request(`/decisions/${id}/fork`, { method: 'POST' });

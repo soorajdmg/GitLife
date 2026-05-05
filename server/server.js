@@ -137,10 +137,10 @@ io.on('connection', async (socket) => {
   socket.broadcast.emit('user_online', { userId });
 
   // ── Send message ──────────────────────────────────────────────────────────
-  socket.on('send_message', async ({ conversationId, text, sharedCommit, participants: clientParticipants }, ack) => {
-    if (!text?.trim()) return ack?.({ error: 'Empty message' });
+  socket.on('send_message', async ({ conversationId, text, sharedCommit, replyTo, participants: clientParticipants }, ack) => {
+    if (!text?.trim() && !sharedCommit) return ack?.({ error: 'Empty message' });
 
-    const trimmed = text.trim();
+    const trimmed = text?.trim() || '';
     const now = new Date().toISOString();
 
     // Build the message object locally and ack instantly — zero DB wait for the sender
@@ -150,6 +150,8 @@ io.on('connection', async (socket) => {
       senderId: userId,
       text: trimmed,
       sharedCommit: sharedCommit || null,
+      replyTo: replyTo || null,
+      reactions: {},
       readBy: [userId],
       createdAt: now,
     };
@@ -169,7 +171,7 @@ io.on('connection', async (socket) => {
     // Persist to DB in background
     (async () => {
       try {
-        const message = await Message.create({ conversationId, senderId: userId, text: trimmed, sharedCommit: sharedCommit || null });
+        const message = await Message.create({ conversationId, senderId: userId, text: trimmed, sharedCommit: sharedCommit || null, replyTo: replyTo || null });
         socket.emit('message_saved', { tempId: optimisticMsg.id, message });
         const conv = await Conversation.findById(conversationId);
         if (conv) {

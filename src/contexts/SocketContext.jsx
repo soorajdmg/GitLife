@@ -98,6 +98,10 @@ export function SocketProvider({ children }) {
       (listenersRef.current.conversation_updated || []).forEach(h => h(payload));
     });
 
+    socket.on('message_updated', (payload) => {
+      (listenersRef.current.message_updated || []).forEach(h => h(payload));
+    });
+
     // Server pushes this when someone starts a new conversation with us
     socket.on('join_conversation', (conversationId) => {
       socket.emit('join_conversation', conversationId);
@@ -112,11 +116,11 @@ export function SocketProvider({ children }) {
 
   // ── Emit helpers ──────────────────────────────────────────────────────────
 
-  const sendMessage = useCallback(({ conversationId, text, sharedCommit, participants }) => {
+  const sendMessage = useCallback(({ conversationId, text, sharedCommit, replyTo, participants }) => {
     const tryEmit = () => new Promise((resolve, reject) => {
       if (!socketRef.current) return reject(new Error('No socket'));
       const timeout = setTimeout(() => reject(new Error('Send timed out')), 2000);
-      socketRef.current.emit('send_message', { conversationId, text, sharedCommit, participants }, (res) => {
+      socketRef.current.emit('send_message', { conversationId, text, sharedCommit, replyTo, participants }, (res) => {
         clearTimeout(timeout);
         if (res?.error) reject(new Error(res.error));
         else resolve(res);

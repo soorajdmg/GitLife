@@ -799,7 +799,7 @@ function HorizTimeline({ commits, isDark = false }) {
 }
 
 /* ─── PROFILE VIEW ─── */
-export default function ProfileView({ viz, username, onProfile, onMessage, currentUser, stashedIds = [], onStashChange }) {
+export default function ProfileView({ viz, username, onProfile, onMessage, currentUser, stashedIds = [], onStashChange, onFollowChange }) {
   const { user } = useAuth();
   const { addToast } = useToast();
   const { isDark } = useTheme();
@@ -994,10 +994,12 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
         await api.unfollowUser(resolvedUserId || username);
         setIsFollowing(false);
         setOtherProfile(prev => prev ? { ...prev, followerCount: Math.max(0, (prev.followerCount || 1) - 1) } : prev);
+        onFollowChange?.({ id: resolvedUserId || username }, false);
       } else {
         await api.followUser(resolvedUserId || username);
         setIsFollowing(true);
         setOtherProfile(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) + 1 } : prev);
+        onFollowChange?.({ id: resolvedUserId || username, username: otherProfile?.username || username, fullName: otherProfile?.fullName, avatarUrl: otherProfile?.avatarUrl }, true);
       }
     } catch {
       // ignore

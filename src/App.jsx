@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './config/api';
@@ -641,6 +641,7 @@ export default function App() {
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const [sidebarFollowing, setSidebarFollowing] = useState([]);
+  const [newlyFollowedId, setNewlyFollowedId] = useState(null);
   const [stashedIds, setStashedIds] = useState([]);
   const unreadConvIdsRef = useRef(new Set());
   const settingsSaveRef = useRef(null); // set by SettingsView
@@ -758,6 +759,23 @@ export default function App() {
     staleTime: 60_000,
   });
   useEffect(() => { setSidebarFollowing(followingData); }, [followingData]);
+
+  // Optimistically update sidebar when follow/unfollow happens anywhere in the app
+  const handleFollowChange = useCallback((targetUser, nowFollowing) => {
+    setSidebarFollowing(prev => {
+      if (nowFollowing) {
+        if (prev.some(u => u.id === targetUser.id)) return prev;
+        return [targetUser, ...prev];
+      } else {
+        return prev.filter(u => u.id !== targetUser.id);
+      }
+    });
+    if (nowFollowing) {
+      setNewlyFollowedId(targetUser.id);
+      setTimeout(() => setNewlyFollowedId(null), 600);
+    }
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.following(user?.id) });
+  }, [queryClient, user?.id]);
 
   useEffect(() => {
     const h = e => {
@@ -1041,10 +1059,11 @@ export default function App() {
         {/* Following */}
         {sidebarFollowing.length > 0 && (
           <div style={{ marginTop: 24 }}>
+            <style>{`@keyframes _sbFollowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}`}</style>
             <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: dk.textMuted, padding: '0 10px', marginBottom: 7 }}>Following</div>
             {sidebarFollowing.slice(0, 5).map(u => (
               <button key={u.id} onClick={() => openProfile(u.username)}
-                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s', animation: u.id === newlyFollowedId ? '_sbFollowIn 0.35s ease both' : undefined }}
                 onMouseEnter={e => e.currentTarget.style.background = dk.bgHover}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 {u.avatarUrl ? (
@@ -1125,13 +1144,13 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<FeedView feedData={feedData} onReact={react} onFork={handleFork} onMerge={handleMerge} onStash={stash} onDelete={deletePost} onNew={() => setModal(true)} compact={compact} loading={feedLoading} currentUser={user} openMessage={openMessage} onProfile={openProfile} hideFab={isMobile} />} />
-            <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
-            <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/explore" element={<ExploreView onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />
+            <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />
             <Route path="/graph" element={<GraphPage currentUser={user} />} />
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
             <Route path="/notifications" element={<NotificationsView />} />
             <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
-            <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} />} />
+            <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />
           </Routes>
         </div>
       </main>

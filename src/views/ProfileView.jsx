@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { DAY_LABELS, CELL_COLORS } from '../data/gitlife';
+import { DAY_LABELS, CELL_COLORS, CELL_COLORS_DARK } from '../data/gitlife';
 import { api } from '../config/api';
 import { QUERY_KEYS } from '../config/queryClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -88,9 +88,20 @@ function tileBg(category, wi) {
   return map[category] || { bg: 'linear-gradient(135deg, oklch(22% 0.03 260) 0%, oklch(15% 0.02 260) 100%)', text: 'oklch(82% 0.04 260)' };
 }
 
+function useIsMobile() {
+  const [m, setM] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth <= 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return m;
+}
+
 // ── Grid Tile (same as ExploreView) ──────────────────────────────────────────
 function GridTile({ item, onClick }) {
   const [hovered, setHovered] = useState(false);
+  const isMobile = useIsMobile();
   const wi = isWhatIf(item.branch_name);
   const category = item.type || inferCategory(item.decision);
   const hasImage = !!(item.image || item.img);
@@ -103,8 +114,8 @@ function GridTile({ item, onClick }) {
   return (
     <div
       onClick={() => onClick(item)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { if (!isMobile) setHovered(true); }}
+      onMouseLeave={() => { if (!isMobile) setHovered(false); }}
       style={{
         position: 'relative', width: '100%', paddingBottom: '100%',
         cursor: 'pointer', borderRadius: 4, overflow: 'hidden',
@@ -155,6 +166,7 @@ function GridTile({ item, onClick }) {
 
 // ── Post Card (for the feed view) ─────────────────────────────────────────────
 function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, onDelete, isOwnProfile, isDark }) {
+  const isMobile = useIsMobile();
   const user = item.userInfo;
   const ini = userInitials(user);
   const color = userColor(item.userId);
@@ -211,8 +223,8 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         transition: 'box-shadow 0.15s',
         position: 'relative',
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; setHovered(false); }}
+      onMouseEnter={e => { if (!isMobile) { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); } }}
+      onMouseLeave={e => { if (!isMobile) { e.currentTarget.style.boxShadow = 'none'; setHovered(false); } }}
     >
       {/* what-if label */}
       {wi && (
@@ -231,8 +243,8 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
           <div
             onClick={() => onProfile?.(userHandle || userId)}
             style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block', color: textPri }}
-            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+            onMouseEnter={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}
           >
             {user?.fullName || user?.username || 'Unknown'}
           </div>
@@ -253,8 +265,8 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
               <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: menuBg, border: `1px solid ${menuBorder}`, borderRadius: 10, boxShadow: '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 200, overflow: 'hidden', minWidth: 140 }}>
                 <button onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(item.id); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = menuBtnHover}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                  onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = menuBtnHover; }}
+                  onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}>
                   <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" /></svg>
                   Delete post
                 </button>
@@ -319,6 +331,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 
 // ── Profile Feed View ─────────────────────────────────────────────────────────
 function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, onDelete, isOwnProfile, isDark }) {
+  const isMobile = useIsMobile();
   const scrollRef = useRef();
   const itemRefs = useRef({});
 
@@ -338,8 +351,8 @@ function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, 
       <div style={{ background: isDark ? 'oklch(18% 0.01 260)' : 'white', borderBottom: `1px solid ${isDark ? 'oklch(28% 0.012 260)' : 'oklch(91% 0.006 80)'}`, padding: '10px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack}
           style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: backBarBtnColor, padding: '4px 0' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'oklch(52% 0.2 260)'}
-          onMouseLeave={e => e.currentTarget.style.color = backBarBtnColor}>
+          onMouseEnter={e => { if (!isMobile) e.currentTarget.style.color = 'oklch(52% 0.2 260)'; }}
+          onMouseLeave={e => { if (!isMobile) e.currentTarget.style.color = backBarBtnColor; }}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4L6 9l5 5" /></svg>
           Profile
         </button>
@@ -430,6 +443,7 @@ function buildActivityData(commits) {
 
 function ActivityGraph({ commitCount, topCategory, commits, compact = false, isDark = false }) {
   const [hovered, setHovered] = useState(null);
+  const isMobile = useIsMobile();
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -523,13 +537,13 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false, isD
                   const isHov = hovered?.week === wi && hovered?.day === di;
                   return (
                     <div key={di}
-                      onMouseEnter={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
-                      onMouseLeave={() => setHovered(null)}
+                      onMouseEnter={() => { if (!isMobile) setHovered({ week: wi, day: di, count, date: getDate(wi, di) }); }}
+                      onMouseLeave={() => { if (!isMobile) setHovered(null); }}
                       onTouchStart={() => setHovered({ week: wi, day: di, count, date: getDate(wi, di) })}
                       onTouchEnd={() => setTimeout(() => setHovered(null), 1200)}
                       style={{
                         aspectRatio: '1',
-                        borderRadius: 2, background: CELL_COLORS[count],
+                        borderRadius: 2, background: (isDark ? CELL_COLORS_DARK : CELL_COLORS)[count],
                         transition: 'transform 0.1s',
                         transform: isHov ? 'scale(1.3)' : 'scale(1)',
                         cursor: 'default', position: 'relative', zIndex: isHov ? 2 : 1,
@@ -556,7 +570,7 @@ function ActivityGraph({ commitCount, topCategory, commits, compact = false, isD
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 16, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 9.5, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(62% 0.01 260)' }}>Less</span>
-        {CELL_COLORS.map((bg, i) => <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: bg }} />)}
+        {(isDark ? CELL_COLORS_DARK : CELL_COLORS).map((bg, i) => <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: bg }} />)}
         <span style={{ fontSize: 9.5, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(62% 0.01 260)' }}>More</span>
       </div>
     </div>
@@ -1346,8 +1360,8 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                   {onMessage && (
                     <button onClick={() => onMessage(resolvedUserId || username)}
                       style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor, transition: 'all 0.12s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = isDark ? 'oklch(26% 0.012 260)' : 'oklch(96% 0.006 260)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = msgBtnBg; }}>
+                      onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(26% 0.012 260)' : 'oklch(96% 0.006 260)'; }}
+                      onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = msgBtnBg; }}>
                       Message
                     </button>
                   )}

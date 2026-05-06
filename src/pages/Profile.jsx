@@ -4,6 +4,7 @@ import { LogOut, GitCommitHorizontal, GitBranch, Trophy, Zap } from 'lucide-reac
 import { api } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
 import SkeletonCard from '../components/shared/SkeletonCard';
 import CommitCard from '../components/ui/CommitCard';
 import './Profile.css';
@@ -85,16 +86,23 @@ function buildCalendar(decisions, days = 90) {
   return result;
 }
 
-function calendarColor(count) {
+function calendarColor(count, isDark) {
+  if (isDark) {
+    if (count === 0) return 'oklch(24% 0.014 260)';
+    if (count === 1) return 'oklch(34% 0.07 260)';
+    if (count === 2) return 'oklch(44% 0.13 260)';
+    return 'oklch(60% 0.22 260)';
+  }
   if (count === 0) return 'var(--bg-elevated)';
   if (count === 1) return 'rgba(16, 185, 129, 0.35)';
   if (count === 2) return 'rgba(16, 185, 129, 0.6)';
-  return 'var(--accent-green)';
+  return 'oklch(52% 0.18 155)';
 }
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [decisions, setDecisions] = useState([]);
@@ -280,7 +288,7 @@ export default function Profile() {
             <div
               key={i}
               className="cal-day"
-              style={{ background: calendarColor(day.count) }}
+              style={{ background: calendarColor(day.count, isDark) }}
               title={`${day.date.toDateString()}: ${day.count} decision${day.count !== 1 ? 's' : ''}`}
             />
           ))}
@@ -288,7 +296,7 @@ export default function Profile() {
         <div className="cal-legend">
           <span className="cal-legend-label">Less</span>
           {[0, 1, 2, 3].map(n => (
-            <div key={n} className="cal-day" style={{ background: calendarColor(n) }} />
+            <div key={n} className="cal-day" style={{ background: calendarColor(n, isDark) }} />
           ))}
           <span className="cal-legend-label">More</span>
         </div>

@@ -1,11 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
+
+function useIsMobile() {
+  const [m, setM] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth <= 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return m;
+}
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../config/api';
 import { QUERY_KEYS } from '../../config/queryClient';
 import Avatar from './Avatar';
 import { useAuth } from '../../contexts/AuthContext';
 
-function renderMentions(text, onProfile) {
+function renderMentions(text, onProfile, isMobile) {
   if (!text || !onProfile) return text;
   const parts = text.split(/(@[\w.]+)/g);
   if (parts.length === 1) return text;
@@ -17,8 +27,8 @@ function renderMentions(text, onProfile) {
           key={i}
           onClick={e => { e.stopPropagation(); onProfile(username); }}
           style={{ color: 'oklch(42% 0.2 260)', fontWeight: 500, cursor: 'pointer' }}
-          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+          onMouseEnter={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+          onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}
         >{part}</span>
       );
     }
@@ -92,6 +102,7 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, onL
   const [replyOpen, setReplyOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const authorName = comment.author?.fullName || comment.author?.username || 'User';
   const authorHandle = comment.author?.username ? `@${comment.author.username}` : '';
@@ -128,12 +139,12 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, onL
             <span
               onClick={() => onProfile && comment.authorId && onProfile(comment.authorId)}
               style={{ fontSize: 12.5, fontWeight: 600, color: 'oklch(22% 0.015 260)', cursor: onProfile && comment.authorId ? 'pointer' : 'default' }}
-              onMouseEnter={e => { if (onProfile && comment.authorId) e.currentTarget.style.textDecoration = 'underline'; }}
-              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
+              onMouseEnter={e => { if (!isMobile && onProfile && comment.authorId) e.currentTarget.style.textDecoration = 'underline'; }}
+              onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}
             >{authorName}</span>
             <span style={{ fontSize: 11, color: 'oklch(58% 0.01 260)' }}>{formatTime(comment.createdAt)}</span>
           </div>
-          <div style={{ fontSize: 13, color: 'oklch(28% 0.012 260)', lineHeight: 1.55, wordBreak: 'break-word' }}>{renderMentions(comment.text, onProfile)}</div>
+          <div style={{ fontSize: 13, color: 'oklch(28% 0.012 260)', lineHeight: 1.55, wordBreak: 'break-word' }}>{renderMentions(comment.text, onProfile, isMobile)}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingLeft: 4 }}>
           {/* Like button */}
@@ -160,8 +171,8 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, onL
               <button
                 onClick={() => setMenuOpen(p => !p)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'oklch(60% 0.01 260)', padding: 0 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'oklch(93% 0.005 80)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = 'oklch(93% 0.005 80)'; }}
+                onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                   <circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/>
@@ -172,8 +183,8 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, onL
                   <button
                     onClick={() => { setMenuOpen(false); onDelete(comment.id); }}
                     style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: 12.5, color: 'oklch(50% 0.18 25)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'oklch(97% 0.005 25)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = 'oklch(97% 0.005 25)'; }}
+                    onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
                     Delete
                   </button>

@@ -1,5 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
+
+function useIsMobile() {
+  const [m, setM] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth <= 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return m;
+}
 import BranchPill from './BranchPill';
 import Tag from './Tag';
 import EngagementBar from './EngagementBar';
@@ -9,6 +19,7 @@ import { api } from '../../config/api';
 import { useTheme } from '../../contexts/ThemeContext';
 
 function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -115,9 +126,9 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
               <div
                 key={u.id}
                 onClick={() => onSend(u)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: `1px solid ${dm.rowDivider}`, transition: 'background 0.1s' }}
-                onMouseEnter={e => e.currentTarget.style.background = dm.rowHover}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: `1px solid ${dm.rowDivider}`, transition: isMobile ? 'none' : 'background 0.1s' }}
+                onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dm.rowHover; }}
+                onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'transparent'; }}
               >
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0, overflow: 'hidden' }}>
                   {u.avatarUrl ? <img src={u.avatarUrl} alt={ini} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : ini}
@@ -170,6 +181,7 @@ function userColor(userId) {
 
 export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDelete, compact, currentUser, openMessage, onProfile }) {
   const { isDark } = useTheme();
+  const isMobile = useIsMobile();
   const isOwnPost = currentUser && (currentUser.id === c.userId || currentUser._id === c.userId);
 
   // Resolve author info from userInfo (populated by backend) or fallback to currentUser
@@ -255,8 +267,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
         marginBottom: 10, transition: 'box-shadow 0.15s', position: 'relative',
         boxShadow: blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30)' : undefined,
       }}
-      onMouseEnter={e => { const inset = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30), ' : ''; e.currentTarget.style.boxShadow = inset + (isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'); setHovered(true); }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30)' : 'none'; setHovered(false); }}
+      onMouseEnter={e => { if (!isMobile) { const inset = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30), ' : ''; e.currentTarget.style.boxShadow = inset + (isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'); setHovered(true); } }}
+      onMouseLeave={e => { if (!isMobile) { e.currentTarget.style.boxShadow = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30)' : 'none'; setHovered(false); } }}
     >
       {c.wi && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.15 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>⎇ what-if branch</div>}
 
@@ -269,8 +281,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
           <div
             onClick={() => onProfile && (c.userInfo?.username || c.userId) && onProfile(c.userInfo?.username || c.userId)}
             style={{ fontSize: 14, fontWeight: 600, cursor: onProfile && (c.userInfo?.username || c.userId) ? 'pointer' : 'default', display: 'inline-block' }}
-            onMouseEnter={e => { if (onProfile && (c.userInfo?.username || c.userId)) e.currentTarget.style.textDecoration = 'underline'; }}
-            onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
+            onMouseEnter={e => { if (!isMobile && onProfile && (c.userInfo?.username || c.userId)) e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}
           >{user.name}</div>
           <div style={{ fontSize: 12, color: textSec, display: 'flex', gap: 6, alignItems: 'center' }}>
             <span>{user.handle}</span><span>·</span><span>{c.ts}</span>
@@ -320,8 +332,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); setBlameFormOpen(true); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(65% 0.18 30)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(24% 0.02 30)' : 'oklch(97% 0.01 30)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(24% 0.02 30)' : 'oklch(97% 0.01 30)'; }}
+                    onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
                     ⚠ Mark as broken
                   </button>
@@ -330,8 +342,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus('resolved'); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: isDark ? 'oklch(65% 0.18 155)' : 'oklch(42% 0.18 155)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 155)' : 'oklch(97% 0.01 155)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 155)' : 'oklch(97% 0.01 155)'; }}
+                    onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
                     ✓ Mark as resolved
                   </button>
@@ -340,8 +352,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus(null); setBlameNote(''); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: menuText, cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = menuHover || 'oklch(97% 0.005 260)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = menuHover || 'oklch(97% 0.005 260)'; }}
+                    onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
                     ✕ Clear blame
                   </button>
@@ -350,8 +362,8 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(c.id); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: isDark ? 'oklch(65% 0.2 25)' : 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 25)' : 'oklch(97% 0.01 25)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 25)' : 'oklch(97% 0.01 25)'; }}
+                  onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                 >
                   <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 3.5h10M5 3.5V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v1M5.5 6v4.5M8.5 6v4.5M3.5 3.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" />

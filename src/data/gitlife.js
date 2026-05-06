@@ -1,7 +1,8 @@
 export const CATEGORIES = ['Career','Health','Relationships','Finance','Education','Travel','Housing'];
 
 export const DAY_LABELS  = ['M','','W','','F','',''];
-export const CELL_COLORS = ['oklch(93% 0.04 260)','oklch(80% 0.1 260)','oklch(68% 0.15 260)','oklch(58% 0.18 260)','oklch(52% 0.2 260)'];
+export const CELL_COLORS      = ['oklch(93% 0.04 260)','oklch(80% 0.1 260)','oklch(68% 0.15 260)','oklch(58% 0.18 260)','oklch(52% 0.2 260)'];
+export const CELL_COLORS_DARK = ['oklch(24% 0.014 260)','oklch(34% 0.07 260)','oklch(44% 0.13 260)','oklch(52% 0.18 260)','oklch(60% 0.22 260)'];
 
 export const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
 

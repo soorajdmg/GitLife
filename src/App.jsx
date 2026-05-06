@@ -190,7 +190,7 @@ function groupNotifs(notifs) {
   });
 }
 
-function groupLabel(type, count, latestSenderName, username, onProfile, onClose, markRead) {
+function groupLabel(type, count, latestSenderName, username, onProfile, onClose, markRead, isMobile) {
   const name = latestSenderName || 'Someone';
   const others = count - 1;
   const tail = others === 1 ? ' and 1 other' : others > 1 ? ` and ${others} others` : '';
@@ -200,8 +200,8 @@ function groupLabel(type, count, latestSenderName, username, onProfile, onClose,
     ? <span
         onClick={e => { e.stopPropagation(); markRead(); onClose(); onProfile(username); }}
         style={{ fontWeight: 600, cursor: 'pointer' }}
-        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+        onMouseEnter={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+        onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}
       >{name}</span>
     : <span style={{ fontWeight: 600 }}>{name}</span>;
   return <>{nameEl}{tail} {action}</>;
@@ -325,9 +325,9 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile, isDark })
           return (
             <div key={type}
               onClick={() => { if (unreadIds.length) markGroupRead(unreadIds); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 16px', background: hasUnread ? nd.rowUnread : nd.rowRead, borderBottom: `1px solid ${nd.borderSub}`, cursor: unreadIds.length ? 'pointer' : 'default', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = hasUnread ? nd.rowHoverUnread : nd.rowHoverRead}
-              onMouseLeave={e => e.currentTarget.style.background = hasUnread ? nd.rowUnread : nd.rowRead}>
+              style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 16px', background: hasUnread ? nd.rowUnread : nd.rowRead, borderBottom: `1px solid ${nd.borderSub}`, cursor: unreadIds.length ? 'pointer' : 'default', transition: isMobile ? 'none' : 'background 0.12s' }}
+              onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = hasUnread ? nd.rowHoverUnread : nd.rowHoverRead; }}
+              onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = hasUnread ? nd.rowUnread : nd.rowRead; }}>
 
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div
@@ -344,7 +344,7 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile, isDark })
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, lineHeight: 1.4, color: nd.textSec }}>
-                  {groupLabel(type, count, senderName, latest.sender?.username, onProfile, onClose, () => { if (unreadIds.length) markGroupRead(unreadIds); })}
+                  {groupLabel(type, count, senderName, latest.sender?.username, onProfile, onClose, () => { if (unreadIds.length) markGroupRead(unreadIds); }, isMobile)}
                 </div>
                 <div style={{ fontSize: 10.5, color: nd.textMuted, marginTop: 2 }}>{formatRelativeTime(latest.createdAt)}</div>
               </div>
@@ -367,9 +367,9 @@ function NotifDropdown({ onClose, onNotifsLoaded, onProfile, isMobile, isDark })
           return (
             <div key={n.id}
               onClick={() => markOneRead(n.id)}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 16px', background: !n.read ? nd.rowUnread : nd.rowRead, borderBottom: `1px solid ${nd.borderSub}`, cursor: 'pointer', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = !n.read ? nd.rowHoverUnread : nd.rowHoverRead}
-              onMouseLeave={e => e.currentTarget.style.background = !n.read ? nd.rowUnread : nd.rowRead}>
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 16px', background: !n.read ? nd.rowUnread : nd.rowRead, borderBottom: `1px solid ${nd.borderSub}`, cursor: 'pointer', transition: isMobile ? 'none' : 'background 0.12s' }}
+              onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = !n.read ? nd.rowHoverUnread : nd.rowHoverRead; }}
+              onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = !n.read ? nd.rowUnread : nd.rowRead; }}>
 
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div
@@ -1063,9 +1063,9 @@ export default function App() {
             <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: dk.textMuted, padding: '0 10px', marginBottom: 7 }}>Following</div>
             {sidebarFollowing.slice(0, 5).map(u => (
               <button key={u.id} onClick={() => openProfile(u.username)}
-                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s', animation: u.id === newlyFollowedId ? '_sbFollowIn 0.35s ease both' : undefined }}
-                onMouseEnter={e => e.currentTarget.style.background = dk.bgHover}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: isMobile ? 'none' : 'background 0.12s', animation: u.id === newlyFollowedId ? '_sbFollowIn 0.35s ease both' : undefined }}
+                onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dk.bgHover; }}
+                onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'transparent'; }}>
                 {u.avatarUrl ? (
                   <img src={u.avatarUrl} alt={u.username} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
                 ) : (
@@ -1084,9 +1084,9 @@ export default function App() {
         {/* User profile at bottom */}
         <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: `1px solid ${dk.border}` }}>
           <button onClick={() => navigate('/profile')}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 9, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: 'background 0.12s' }}
-            onMouseEnter={e => e.currentTarget.style.background = dk.bgHover}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 9, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', transition: isMobile ? 'none' : 'background 0.12s' }}
+            onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dk.bgHover; }}
+            onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'transparent'; }}>
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} referrerPolicy="no-referrer" />
             ) : (
@@ -1100,9 +1100,9 @@ export default function App() {
             </div>
           </button>
           <button onClick={logout}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 12.5, color: dk.textSec, transition: 'all 0.12s', marginTop: 2 }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'oklch(95% 0.02 20)'; e.currentTarget.style.color = 'oklch(42% 0.18 20)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = dk.textSec; }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 12.5, color: dk.textSec, transition: isMobile ? 'none' : 'all 0.12s', marginTop: 2 }}
+            onMouseEnter={e => { if (!isMobile) { e.currentTarget.style.background = 'oklch(95% 0.02 20)'; e.currentTarget.style.color = 'oklch(42% 0.18 20)'; } }}
+            onMouseLeave={e => { if (!isMobile) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = dk.textSec; } }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 2H2.5A1.5 1.5 0 0 0 1 3.5v7A1.5 1.5 0 0 0 2.5 12H5" />
               <polyline points="9 10 13 7 9 4" />

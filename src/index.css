@@ -41,6 +41,72 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
   .feed-filter-bar { position: sticky; top: 0; z-index: 10; }
 }
 
+/* ─── Design tokens ─── */
+:root {
+  /* Backgrounds */
+  --bg-app:         oklch(98.5% 0.005 80);
+  --bg-base:        oklch(98.5% 0.005 80);
+  --bg-surface:     white;
+  --bg-elevated:    oklch(96% 0.006 80);
+  --bg-hover:       oklch(94% 0.006 80);
+  --bg-input:       oklch(97% 0.005 80);
+
+  /* Borders */
+  --border:         oklch(91% 0.006 80);
+  --border-subtle:  oklch(94% 0.004 80);
+  --border-light:   oklch(94% 0.004 80);
+
+  /* Text */
+  --text-primary:   oklch(18% 0.015 260);
+  --text-secondary: oklch(44% 0.01 260);
+  --text-muted:     oklch(62% 0.01 260);
+
+  /* Accents */
+  --accent:              oklch(52% 0.2 260);
+  --accent-bg:           oklch(94% 0.015 260);
+  --accent-green:        oklch(52% 0.18 155);
+  --accent-green-bright: oklch(62% 0.22 155);
+  --accent-green-dark:   oklch(42% 0.18 155);
+  --accent-blue:         oklch(60% 0.18 260);
+  --accent-red:          oklch(55% 0.2 20);
+  --accent-red-dark:     oklch(45% 0.2 20);
+  --accent-purple:       oklch(58% 0.2 310);
+  --accent-purple-dark:  oklch(48% 0.2 310);
+  --accent-yellow:       oklch(72% 0.18 80);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+/* ─── Dark mode token overrides ─── */
+[data-theme="dark"] {
+  --bg-app:         oklch(14% 0.008 260);
+  --bg-base:        oklch(14% 0.008 260);
+  --bg-surface:     oklch(18% 0.01 260);
+  --bg-elevated:    oklch(21% 0.012 260);
+  --bg-hover:       oklch(24% 0.012 260);
+  --bg-input:       oklch(22% 0.01 260);
+  --border:         oklch(28% 0.012 260);
+  --border-subtle:  oklch(25% 0.01 260);
+  --border-light:   oklch(25% 0.01 260);
+  --text-primary:   oklch(94% 0.008 260);
+  --text-secondary: oklch(68% 0.01 260);
+  --text-muted:     oklch(52% 0.01 260);
+  --accent:              oklch(60% 0.2 260);
+  --accent-bg:           oklch(22% 0.06 260);
+  --accent-green:        oklch(52% 0.18 155);
+  --accent-green-bright: oklch(62% 0.22 155);
+  --accent-green-dark:   oklch(42% 0.18 155);
+  --accent-blue:         oklch(62% 0.18 260);
+  --accent-red:          oklch(60% 0.2 20);
+  --accent-red-dark:     oklch(50% 0.2 20);
+  --accent-purple:       oklch(62% 0.2 310);
+  --accent-purple-dark:  oklch(52% 0.2 310);
+  --accent-yellow:       oklch(75% 0.18 80);
+}
+
 /* ─── Large screen CSS custom properties ─── */
 :root {
   --sidebar-width: 230px;
@@ -78,22 +144,6 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
     --explore-h-padding: 56px;
     --messages-list-width: 360px;
   }
-}
-
-/* ─── Dark mode overrides ─── */
-[data-theme="dark"] {
-  --bg-app:        oklch(14% 0.008 260);
-  --bg-surface:    oklch(18% 0.01 260);
-  --bg-elevated:   oklch(21% 0.012 260);
-  --bg-hover:      oklch(24% 0.012 260);
-  --bg-input:      oklch(22% 0.01 260);
-  --border:        oklch(28% 0.012 260);
-  --border-light:  oklch(25% 0.01 260);
-  --text-primary:  oklch(94% 0.008 260);
-  --text-secondary: oklch(68% 0.01 260);
-  --text-muted:    oklch(52% 0.01 260);
-  --accent:        oklch(60% 0.2 260);
-  --accent-bg:     oklch(22% 0.06 260);
 }
 
 [data-theme="dark"] body {

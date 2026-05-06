@@ -1,5 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+function useIsMobile() {
+  const [m, setM] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth <= 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return m;
+}
 import { api } from '../config/api';
 import { QUERY_KEYS } from '../config/queryClient';
 
@@ -47,6 +57,7 @@ function notifMessage(n) {
 const PAGE_SIZE = 10;
 
 export default function NotificationsView() {
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [visible, setVisible] = useState(PAGE_SIZE);
   const { data: notifs = [], isLoading: loading } = useQuery({
@@ -102,9 +113,9 @@ export default function NotificationsView() {
           const ini = initials(senderName);
           return (
             <div key={n.id} onClick={() => markOneRead(n.id)}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', border: `1px solid ${!n.read ? 'oklch(89% 0.04 260)' : 'oklch(92% 0.006 80)'}`, borderRadius: 13, marginBottom: 8, cursor: 'pointer', transition: 'background 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.background = !n.read ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'}
-              onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'}>
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: !n.read ? 'oklch(96.5% 0.012 260)' : 'white', border: `1px solid ${!n.read ? 'oklch(89% 0.04 260)' : 'oklch(92% 0.006 80)'}`, borderRadius: 13, marginBottom: 8, cursor: 'pointer', transition: isMobile ? 'none' : 'background 0.15s' }}
+              onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = !n.read ? 'oklch(95% 0.018 260)' : 'oklch(98.5% 0.005 80)'; }}
+              onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = !n.read ? 'oklch(96.5% 0.012 260)' : 'white'; }}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 {n.sender?.avatarUrl
                   ? <img src={n.sender.avatarUrl} alt={senderName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />

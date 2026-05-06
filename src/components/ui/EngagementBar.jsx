@@ -2,6 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { fmt } from '../../data/gitlife';
 import { useTheme } from '../../contexts/ThemeContext';
 
+function useIsMobile() {
+  const [m, setM] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth <= 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return m;
+}
+
 const rxStyle = (type, active, isDark) => {
   const m = {
     fork:    { b: 'oklch(60% 0.19 55)',  f: 'oklch(45% 0.19 55)',  bg: isDark ? 'oklch(22% 0.04 55)'  : 'oklch(96% 0.015 60)'  },
@@ -40,6 +50,7 @@ export default function EngagementBar({
   compact = false,
 }) {
   const { isDark } = useTheme();
+  const isMobile = useIsMobile();
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const shareRef = useRef();
@@ -166,8 +177,8 @@ export default function EngagementBar({
               <button
                 onClick={copyLink}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: dropItemColor, cursor: 'pointer', textAlign: 'left' }}
-                onMouseEnter={e => e.currentTarget.style.background = dropHoverBg}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dropHoverBg; }}
+                onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
               >
                 {copied ? '✓ Copied!' : 'Copy link'}
               </button>
@@ -175,8 +186,8 @@ export default function EngagementBar({
                 <button
                   onClick={() => { onShare(commitId); setShareOpen(false); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', borderTop: `1px solid ${dropDivider}`, fontSize: 12.5, fontWeight: 500, color: dropItemColor, cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = dropHoverBg}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dropHoverBg; }}
+                  onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                 >
                   Send in DM
                 </button>

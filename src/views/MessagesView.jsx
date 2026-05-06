@@ -10,6 +10,16 @@ import BranchPill from '../components/ui/BranchPill';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+function useIsMobile() {
+  const [m, setM] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth <= 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return m;
+}
+
 function getInitials(name = '') {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -79,6 +89,7 @@ function NewChatModal({ onClose, onStart, currentUserId, isDark }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const m = {
     modalBg:     isDark ? 'oklch(20% 0.012 260)' : 'white',
@@ -171,8 +182,8 @@ function NewChatModal({ onClose, onStart, currentUserId, isDark }) {
           {!loading && results.map(u => (
             <div key={u.id} onClick={() => onStart(u)}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', borderBottom: `1px solid ${m.borderFaint}`, transition: 'background 0.1s', background: m.rowDefault }}
-              onMouseEnter={e => e.currentTarget.style.background = m.rowHover}
-              onMouseLeave={e => e.currentTarget.style.background = m.rowDefault}>
+              onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = m.rowHover; }}
+              onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = m.rowDefault; }}>
               <Avatar user={u} size={36} dotBorder={isDark ? 'oklch(20% 0.012 260)' : 'white'} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: m.textPri, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.username}</div>
@@ -226,7 +237,7 @@ function LinkPreview({ url, isDark, isMe }) {
 
 // ─── Reaction Picker ──────────────────────────────────────────────────────────
 
-function ReactionPicker({ onReact, isDark, isMe, pickerRef, onMouseEnter, onMouseLeave }) {
+function ReactionPicker({ onReact, isDark, isMe, pickerRef, onMouseEnter, onMouseLeave, isMobile }) {
   const bg = isDark ? 'oklch(24% 0.015 260)' : 'white';
   const border = isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)';
   return (
@@ -243,9 +254,9 @@ function ReactionPicker({ onReact, isDark, isMe, pickerRef, onMouseEnter, onMous
       }}>
       {REACTION_EMOJIS.map(e => (
         <button key={e} onClick={() => onReact(e)}
-          style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 3px', borderRadius: 8, lineHeight: 1, transition: 'transform 0.1s' }}
-          onMouseEnter={ev => ev.currentTarget.style.transform = 'scale(1.25)'}
-          onMouseLeave={ev => ev.currentTarget.style.transform = 'scale(1)'}>
+          style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 3px', borderRadius: 8, lineHeight: 1, transition: isMobile ? 'none' : 'transform 0.1s' }}
+          onMouseEnter={ev => { if (!isMobile) ev.currentTarget.style.transform = 'scale(1.25)'; }}
+          onMouseLeave={ev => { if (!isMobile) ev.currentTarget.style.transform = 'scale(1)'; }}>
           {e}
         </button>
       ))}
@@ -382,9 +393,9 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
               {msg.sharedCommit && !isDeleted && (
                 <div
                   onClick={() => onCommitClick?.(msg.sharedCommit.id)}
-                  style={{ background: commitCardBg, border: `1px solid ${commitBorder}`, borderRadius: 10, padding: '10px 12px', marginBottom: 4, cursor: 'pointer', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = commitCardHov}
-                  onMouseLeave={e => e.currentTarget.style.background = commitCardBg}>
+                  style={{ background: commitCardBg, border: `1px solid ${commitBorder}`, borderRadius: 10, padding: '10px 12px', marginBottom: 4, cursor: 'pointer', transition: isMobile ? 'none' : 'background 0.12s' }}
+                  onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = commitCardHov; }}
+                  onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = commitCardBg; }}>
                   <div style={{ fontSize: 10, color: 'oklch(52% 0.2 260)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span>⎇</span> Shared commit · <span style={{ fontWeight: 400, color: commitSubColor }}>tap to view</span>
                   </div>
@@ -489,6 +500,7 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                       isDark={isDark}
                       isMe={isMe}
                       pickerRef={pickerRef}
+                      isMobile={isMobile}
                       onReact={(emoji) => { onReact(msg.id, emoji); setPickerMsgId(null); }}
                       onMouseEnter={() => clearTimeout(hoverLeaveTimerRef.current)}
                       onMouseLeave={() => { hoverLeaveTimerRef.current = setTimeout(() => { setHoveredMsgId(null); setPickerMsgId(null); }, 200); }}
@@ -511,8 +523,8 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                       title="Reply"
                       onClick={() => onReply(msg)}
                       style={{ border: 'none', background: actionBtn, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? 'oklch(68% 0.01 260)' : 'oklch(52% 0.01 260)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = actionBtnHov}
-                      onMouseLeave={e => e.currentTarget.style.background = actionBtn}>
+                      onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = actionBtnHov; }}
+                      onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = actionBtn; }}>
                       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="4 2 1 5 4 8" />
                         <path d="M1 5h7a4 4 0 0 1 4 4v2" />
@@ -523,8 +535,8 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                       title="React"
                       onClick={() => setPickerMsgId(pickerMsgId === msg.id ? null : msg.id)}
                       style={{ border: 'none', background: actionBtn, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}
-                      onMouseEnter={e => e.currentTarget.style.background = actionBtnHov}
-                      onMouseLeave={e => e.currentTarget.style.background = actionBtn}>
+                      onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = actionBtnHov; }}
+                      onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = actionBtn; }}>
                       😊
                     </button>
                     {/* Edit (own messages only, non-deleted) */}
@@ -533,8 +545,8 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                         title="Edit"
                         onClick={() => startEdit(msg)}
                         style={{ border: 'none', background: actionBtn, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? 'oklch(68% 0.01 260)' : 'oklch(52% 0.01 260)' }}
-                        onMouseEnter={e => e.currentTarget.style.background = actionBtnHov}
-                        onMouseLeave={e => e.currentTarget.style.background = actionBtn}>
+                        onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = actionBtnHov; }}
+                        onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = actionBtn; }}>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M8.5 1.5a1.5 1.5 0 0 1 2 2L3 11 1 11.5 1.5 9.5z" />
                         </svg>
@@ -546,8 +558,8 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                         title="Delete"
                         onClick={() => onDelete(msg.id)}
                         style={{ border: 'none', background: actionBtn, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? 'oklch(58% 0.08 20)' : 'oklch(52% 0.12 20)' }}
-                        onMouseEnter={e => e.currentTarget.style.background = isDark ? 'oklch(28% 0.05 20)' : 'oklch(94% 0.04 20)'}
-                        onMouseLeave={e => e.currentTarget.style.background = actionBtn}>
+                        onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(28% 0.05 20)' : 'oklch(94% 0.04 20)'; }}
+                        onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = actionBtn; }}>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="1,2.5 11,2.5" />
                           <path d="M3.5 2.5V1.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1" />
@@ -1173,8 +1185,8 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div onClick={() => onProfile && otherUser?.id && onProfile(otherUser.id)}
                   style={{ fontSize: 14, fontWeight: 600, cursor: onProfile && otherUser?.id ? 'pointer' : 'default', display: 'inline-block', color: headerTextPri }}
-                  onMouseEnter={e => { if (onProfile && otherUser?.id) e.currentTarget.style.textDecoration = 'underline'; }}
-                  onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+                  onMouseEnter={e => { if (!isMobile && onProfile && otherUser?.id) e.currentTarget.style.textDecoration = 'underline'; }}
+                  onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}>
                   {otherUser?.fullName || otherUser?.username}
                 </div>
                 <div style={{ fontSize: 11.5, color: isOtherOnline ? '#22c55e' : (isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)'), fontFamily: "'JetBrains Mono', monospace" }}>

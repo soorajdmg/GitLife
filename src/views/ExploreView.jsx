@@ -88,6 +88,7 @@ function tileBg(category, wi) {
 // ─── Grid Tile ────────────────────────────────────────────────────────────────
 function GridTile({ item, onClick }) {
   const [hovered, setHovered] = useState(false);
+  const isMobile = useIsMobile();
   const wi = isWhatIf(item.branch_name);
   const category = item.type || inferCategory(item.decision);
   const hasImage = !!(item.image || item.img);
@@ -100,8 +101,8 @@ function GridTile({ item, onClick }) {
   return (
     <div
       onClick={() => onClick(item)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { if (!isMobile) setHovered(true); }}
+      onMouseLeave={() => { if (!isMobile) setHovered(false); }}
       style={{
         position: 'relative',
         width: '100%',
@@ -207,6 +208,7 @@ function GridTile({ item, onClick }) {
 
 // ─── Single Post Card (used in feed view) ────────────────────────────────────
 function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, isDark }) {
+  const isMobile = useIsMobile();
   const user = item.userInfo;
   const ini = userInitials(user);
   const color = userColor(item.userId);
@@ -243,8 +245,8 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         transition: 'box-shadow 0.15s',
         position: 'relative',
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+      onMouseEnter={e => { if (!isMobile) e.currentTarget.style.boxShadow = isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'; }}
+      onMouseLeave={e => { if (!isMobile) e.currentTarget.style.boxShadow = 'none'; }}
     >
       {wi && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.19 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
@@ -266,8 +268,8 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
           <div
             onClick={() => onProfile?.(user?.username || userId)}
             style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-block', color: isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)' }}
-            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+            onMouseEnter={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}
           >
             {user?.fullName || user?.username || 'Unknown'}
           </div>
@@ -343,6 +345,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 
 // ─── Feed View (full-screen vertical scroll) ──────────────────────────────────
 function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, isDark }) {
+  const isMobile = useIsMobile();
   const scrollRef = useRef();
 
   return (
@@ -361,8 +364,8 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
             fontSize: 13.5, fontWeight: 600, color: isDark ? 'oklch(75% 0.01 260)' : 'oklch(30% 0.015 260)',
             padding: '4px 0',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = 'oklch(52% 0.2 260)'}
-          onMouseLeave={e => e.currentTarget.style.color = isDark ? 'oklch(75% 0.01 260)' : 'oklch(30% 0.015 260)'}
+          onMouseEnter={e => { if (!isMobile) e.currentTarget.style.color = 'oklch(52% 0.2 260)'; }}
+          onMouseLeave={e => { if (!isMobile) e.currentTarget.style.color = isDark ? 'oklch(75% 0.01 260)' : 'oklch(30% 0.015 260)'; }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M11 4L6 9l5 5" />
@@ -396,6 +399,7 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
 
 // ─── People card (search results) ────────────────────────────────────────────
 function UserCard({ user, onMessage, onProfile, isDark }) {
+  const isMobile = useIsMobile();
   const ini = userInitials(user);
   const color = userColor(user.id);
   return (
@@ -412,8 +416,8 @@ function UserCard({ user, onMessage, onProfile, isDark }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div onClick={() => onProfile?.(user.username || user.id)}
           style={{ fontSize: 14, fontWeight: 600, cursor: onProfile ? 'pointer' : 'default', display: 'inline-block', color: isDark ? 'oklch(92% 0.008 260)' : 'oklch(15% 0.015 260)' }}
-          onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
-          onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+          onMouseEnter={e => { if (!isMobile && onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
+          onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}>
           {user.fullName || user.username}
         </div>
         <div style={{ fontSize: 11.5, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(58% 0.01 260)', fontFamily: "'JetBrains Mono', monospace" }}>@{user.username}</div>
@@ -426,8 +430,8 @@ function UserCard({ user, onMessage, onProfile, isDark }) {
         {onMessage && (
           <button onClick={() => onMessage(user.id)}
             style={{ border: `1px solid ${isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)'}`, background: isDark ? 'oklch(24% 0.012 260)' : 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: 'oklch(42% 0.2 260)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, transition: 'all 0.12s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'oklch(52% 0.2 260)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.border = '1px solid oklch(52% 0.2 260)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = isDark ? 'oklch(24% 0.012 260)' : 'white'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; e.currentTarget.style.border = `1px solid ${isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)'}`; }}>
+            onMouseEnter={e => { if (!isMobile) { e.currentTarget.style.background = 'oklch(52% 0.2 260)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.border = '1px solid oklch(52% 0.2 260)'; } }}
+            onMouseLeave={e => { if (!isMobile) { e.currentTarget.style.background = isDark ? 'oklch(24% 0.012 260)' : 'white'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; e.currentTarget.style.border = `1px solid ${isDark ? 'oklch(32% 0.012 260)' : 'oklch(88% 0.008 260)'}`; } }}>
             Message
           </button>
         )}
@@ -638,8 +642,8 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                   const isFollowed = followed.has(u.id);
                   return (
                     <div key={u.id} style={{ flexShrink: 0, width: 160, background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 14, padding: '18px 12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: isDark ? '0 1px 4px oklch(5% 0.01 260 / 0.3)' : '0 1px 4px oklch(70% 0.01 260 / 0.06)', transition: 'box-shadow 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = isDark ? '0 3px 14px oklch(5% 0.01 260 / 0.5)' : '0 3px 14px oklch(70% 0.01 260 / 0.12)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = isDark ? '0 1px 4px oklch(5% 0.01 260 / 0.3)' : '0 1px 4px oklch(70% 0.01 260 / 0.06)'}>
+                      onMouseEnter={e => { if (!isMobile) e.currentTarget.style.boxShadow = isDark ? '0 3px 14px oklch(5% 0.01 260 / 0.5)' : '0 3px 14px oklch(70% 0.01 260 / 0.12)'; }}
+                      onMouseLeave={e => { if (!isMobile) e.currentTarget.style.boxShadow = isDark ? '0 1px 4px oklch(5% 0.01 260 / 0.3)' : '0 1px 4px oklch(70% 0.01 260 / 0.06)'; }}>
                       <div onClick={() => onProfile?.(u.username || u.id)}
                         style={{ width: 54, height: 54, borderRadius: '50%', marginBottom: 10, position: 'relative', cursor: onProfile ? 'pointer' : 'default', flexShrink: 0 }}>
                         {u.avatarUrl
@@ -650,8 +654,8 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                       </div>
                       <div onClick={() => onProfile?.(u.username || u.id)}
                         style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', marginBottom: 2, lineHeight: 1.2, cursor: onProfile ? 'pointer' : 'default', color: textPri }}
-                        onMouseEnter={e => { if (onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
-                        onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+                        onMouseEnter={e => { if (!isMobile && onProfile) e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={e => { if (!isMobile) e.currentTarget.style.textDecoration = 'none'; }}>
                         {(() => { const parts = (u.fullName || u.username || '').split(' '); return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })()}
                       </div>
                       <div style={{ fontSize: 11, color: textMuted, textAlign: 'center', marginBottom: (u.mutualCount > 0 || (!u.mutualCount && u.followerCount > 0)) ? 4 : 12 }}>{u.commitCount} commits</div>
@@ -693,9 +697,14 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
                 {['All', ...CATEGORIES].map(cat => {
                   const active = catFilter === cat;
                   const c = cat !== 'All' ? catColor(cat) : null;
+                  const CAT_HUES = { Career: '260', Health: '155', Relationships: '330', Finance: '60', Education: '200', Travel: '25', Housing: '80' };
+                  const h = CAT_HUES[cat];
+                  const activeBg     = isDark ? (h ? `oklch(28% 0.08 ${h})` : 'oklch(28% 0.08 260)') : (c ? c.bg : 'oklch(93% 0.05 260)');
+                  const activeFg     = isDark ? (h ? `oklch(80% 0.18 ${h})` : 'oklch(80% 0.18 260)') : (c ? c.fg : 'oklch(42% 0.2 260)');
+                  const activeBorder = isDark ? (h ? `oklch(55% 0.15 ${h})` : 'oklch(60% 0.2 260)')  : (c ? c.fg : 'oklch(52% 0.2 260)');
                   return (
                     <button key={cat} onClick={() => setCatFilter(cat)}
-                      style={{ flexShrink: 0, padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'all 0.13s', border: `1px solid ${active ? (c ? c.fg : 'oklch(52% 0.2 260)') : inputBdr}`, background: active ? (c ? c.bg : 'oklch(93% 0.05 260)') : (isDark ? 'oklch(22% 0.01 260)' : 'white'), color: active ? (c ? c.fg : 'oklch(42% 0.2 260)') : (isDark ? 'oklch(65% 0.01 260)' : 'oklch(48% 0.01 260)') }}>
+                      style={{ flexShrink: 0, padding: '5px 13px', borderRadius: 20, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'all 0.13s', border: `1px solid ${active ? activeBorder : inputBdr}`, background: active ? activeBg : (isDark ? 'oklch(22% 0.01 260)' : 'white'), color: active ? activeFg : (isDark ? 'oklch(65% 0.01 260)' : 'oklch(48% 0.01 260)') }}>
                       {cat}
                     </button>
                   );

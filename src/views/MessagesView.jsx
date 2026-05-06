@@ -291,8 +291,9 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
   const editInputRef = useRef(null);
   const hoverLeaveTimerRef = useRef(null);
   const pickerRef = useRef(null);
+  const longPressTimerRef = useRef(null);
 
-  // Close picker on outside click
+  // Close picker on outside click/touch
   useEffect(() => {
     if (!pickerMsgId) return;
     const handler = (e) => {
@@ -301,8 +302,23 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, [pickerMsgId]);
+
+  // Dismiss action buttons on mobile when tapping outside
+  useEffect(() => {
+    if (!isMobile || !hoveredMsgId) return;
+    const handler = () => {
+      setHoveredMsgId(null);
+      setPickerMsgId(null);
+    };
+    document.addEventListener('touchstart', handler);
+    return () => document.removeEventListener('touchstart', handler);
+  }, [isMobile, hoveredMsgId]);
 
   const incomingBg     = isDark ? 'oklch(26% 0.012 260)' : 'white';
   const incomingColor  = isDark ? 'oklch(92% 0.008 260)' : 'oklch(18% 0.015 260)';
@@ -409,7 +425,17 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
                       setHoveredMsgId(null);
                     }, 200);
                   }
-                }}>
+                }}
+                onTouchStart={(e) => {
+                  if (isMobile && !msg.deletedAt) {
+                    e.stopPropagation();
+                    longPressTimerRef.current = setTimeout(() => {
+                      setHoveredMsgId(msg.id);
+                    }, 450);
+                  }
+                }}
+                onTouchEnd={() => clearTimeout(longPressTimerRef.current)}
+                onTouchMove={() => clearTimeout(longPressTimerRef.current)}>
 
                 {/* Message bubble */}
                 <div style={{ position: 'relative', maxWidth: '100%' }}>
@@ -472,7 +498,9 @@ function MessageGroup({ group, isMe, readByOther, isMobile, onCommitClick, isDar
 
                 {/* Hover action buttons */}
                 {!isDeleted && editingMsgId !== msg.id && (
-                  <div style={{
+                  <div
+                    onTouchStart={e => e.stopPropagation()}
+                    style={{
                     display: 'flex', gap: 3, opacity: isHovered ? 1 : 0,
                     transition: isMobile ? 'none' : 'opacity 0.12s',
                     pointerEvents: isHovered ? 'auto' : 'none',

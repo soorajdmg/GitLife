@@ -383,7 +383,7 @@ const DEFAULT_PREFS = {
 export default function SettingsView({ saveRef, onHasChanges }) {
   const { user, updateUser, logout } = useAuth();
   const { addToast } = useToast();
-  const { setTheme, isDark } = useTheme();
+  const { setTheme, previewTheme, isDark } = useTheme();
   const dk = makeDk(isDark);
 
   const [modal, setModal] = useState(null);
@@ -391,6 +391,9 @@ export default function SettingsView({ saveRef, onHasChanges }) {
   const [savedPrefs, setSavedPrefs] = useState(DEFAULT_PREFS); // last-saved snapshot
   const [prefsLoading, setPrefsLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+
+  // Tracks the last-saved appearance so unmount cleanup can revert it
+  const savedAppearanceRef = useRef(DEFAULT_PREFS.appearance);
 
   const username = user?.username || user?.email?.split('@')[0] || 'You';
   const fullName = user?.fullName || username;
@@ -405,7 +408,10 @@ export default function SettingsView({ saveRef, onHasChanges }) {
         if (!cancelled) {
           setPrefs(res.preferences);
           setSavedPrefs(res.preferences);
-          if (res.preferences.appearance) setTheme(res.preferences.appearance);
+          if (res.preferences.appearance) {
+            savedAppearanceRef.current = res.preferences.appearance;
+            setTheme(res.preferences.appearance);
+          }
         }
       })
       .catch(() => {})
@@ -426,18 +432,24 @@ export default function SettingsView({ saveRef, onHasChanges }) {
       try {
         await api.updatePreferences(prefs);
         setSavedPrefs(prefs);
+        savedAppearanceRef.current = prefs.appearance;
+        setTheme(prefs.appearance); // persist to localStorage on save
         addToast({ message: 'Preferences saved', type: 'success' });
       } catch {
         addToast({ message: 'Failed to save preferences', type: 'error' });
         throw new Error('save failed');
       }
     };
-  }, [prefs, saveRef, addToast]);
+  }, [prefs, saveRef, addToast, setTheme]);
 
-  // Reset dirty state when navigating away
+  // On unmount, revert theme to the last saved value (in case user previewed but didn't save)
   useEffect(() => {
-    return () => { onHasChanges?.(false); };
-  }, [onHasChanges]);
+    return () => {
+      onHasChanges?.(false);
+      setTheme(savedAppearanceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleProfileSaved = (updatedUser) => {
     updateUser(updatedUser);
@@ -452,7 +464,7 @@ export default function SettingsView({ saveRef, onHasChanges }) {
 
   const setAppearance = (val) => {
     setPrefs(p => ({ ...p, appearance: val }));
-    setTheme(val);
+    previewTheme(val); // preview only — not persisted until saved
   };
 
   const handleExport = async () => {

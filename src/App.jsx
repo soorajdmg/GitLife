@@ -1139,7 +1139,7 @@ export default function App() {
           {mobileTopBarIcons}
         </div>
 
-        {/* View content — extra bottom padding on mobile for the bottom nav */}
+        {/* View content */}
         <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />

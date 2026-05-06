@@ -45,8 +45,16 @@ export function ThemeProvider({ children }) {
     setPref(newPref);
   }, []);
 
+  // Applies theme visually without persisting to localStorage (for live preview)
+  const previewTheme = useCallback((newPref) => {
+    const next = resolveTheme(newPref);
+    setResolved(next);
+    document.documentElement.setAttribute('data-theme', next);
+    document.documentElement.style.colorScheme = next;
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ pref, resolved, setTheme, isDark: resolved === 'dark' }}>
+    <ThemeContext.Provider value={{ pref, resolved, setTheme, previewTheme, isDark: resolved === 'dark' }}>
       {children}
     </ThemeContext.Provider>
   );

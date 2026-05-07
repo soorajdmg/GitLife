@@ -291,3 +291,9 @@
   .type-bar-label { width: 100px; }
   .profile-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ─── Press animation ─── */
+.logout-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}

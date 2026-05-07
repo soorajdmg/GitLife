@@ -175,3 +175,33 @@ textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
 [data-theme="dark"] textarea::placeholder {
   color: oklch(50% 0.01 260) !important;
 }
+
+/* ─── Global button press animation ─── */
+button:not(:disabled):not(.auth-switch-btn):not(.auth-forgot-link):not(.drawer-link):not(.mood-btn):not(.commit-type-btn):not(.branch-type-card) {
+  transition-property: transform, box-shadow, background, color, opacity, border-color;
+  transition-duration: 0.18s;
+  transition-timing-function: ease;
+}
+
+button:not(:disabled):not(.auth-switch-btn):not(.auth-forgot-link):not(.drawer-link):not(.mood-btn):not(.commit-type-btn):not(.branch-type-card):active {
+  transform: translateY(2px) !important;
+  transition-duration: 80ms !important;
+}
+
+/* ─── Utility press classes for inline-styled buttons ─── */
+.btn-press {
+  transition-property: transform, background, opacity, border-color;
+  transition-duration: 0.18s;
+  transition-timing-function: ease;
+}
+
+.btn-press:active:not(:disabled) {
+  transform: translateY(2px) !important;
+  transition-duration: 80ms !important;
+}
+
+/* FAB: pushes from -6px rest to -4px (2px push from elevated position) */
+.btn-press-fab:active {
+  transform: translateY(-4px) !important;
+  transition-duration: 80ms !important;
+}

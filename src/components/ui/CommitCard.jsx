@@ -78,7 +78,7 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
         {/* Header */}
         <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${dm.borderSub}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: dm.textPri }}>Send commit in DM</div>
-          <button onClick={onClose} style={{ border: 'none', background: dm.closeBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.textMuted, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} className="btn-press" style={{ border: 'none', background: dm.closeBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.textMuted, fontSize: 14 }}>✕</button>
         </div>
 
         {/* Commit preview */}
@@ -104,7 +104,7 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
               placeholder="Search by name or @username…"
               style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: dm.textPri }}
             />
-            {query && <button onClick={() => setQuery('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: dm.textMuted, fontSize: 13 }}>✕</button>}
+            {query && <button onClick={() => setQuery('')} className="btn-press" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: dm.textMuted, fontSize: 13 }}>✕</button>}
           </div>
         </div>
 
@@ -310,6 +310,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
           <div style={{ position: 'relative' }} ref={menuRef}>
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }}
+              className="btn-press"
               title="More options"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -331,6 +332,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 {!blameStatus && (
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); setBlameFormOpen(true); }}
+                    className="btn-press"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: 'oklch(65% 0.18 30)', cursor: 'pointer', textAlign: 'left' }}
                     onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(24% 0.02 30)' : 'oklch(97% 0.01 30)'; }}
                     onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
@@ -341,6 +343,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 {blameStatus === 'broken' && (
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus('resolved'); }}
+                    className="btn-press"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: isDark ? 'oklch(65% 0.18 155)' : 'oklch(42% 0.18 155)', cursor: 'pointer', textAlign: 'left' }}
                     onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 155)' : 'oklch(97% 0.01 155)'; }}
                     onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
@@ -351,6 +354,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 {blameStatus && (
                   <button
                     onClick={e => { e.stopPropagation(); setMenuOpen(false); handleBlameStatus(null); setBlameNote(''); }}
+                    className="btn-press"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: menuText, cursor: 'pointer', textAlign: 'left' }}
                     onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = menuHover || 'oklch(97% 0.005 260)'; }}
                     onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
@@ -361,6 +365,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                 <div style={{ margin: '4px 12px', borderTop: `1px solid ${menuDivider}` }} />
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(c.id); }}
+                  className="btn-press"
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: isDark ? 'oklch(65% 0.2 25)' : 'oklch(45% 0.2 25)', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 25)' : 'oklch(97% 0.01 25)'; }}
                   onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}

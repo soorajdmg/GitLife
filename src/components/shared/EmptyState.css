@@ -44,3 +44,9 @@
   background: var(--accent-green-dark);
   transform: translateY(-1px);
 }
+
+/* ─── Press animation ─── */
+.empty-state-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}

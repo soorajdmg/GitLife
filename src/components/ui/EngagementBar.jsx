@@ -114,6 +114,7 @@ export default function EngagementBar({
             <button
               key={type}
               onClick={handleClick}
+              className="btn-press"
               style={{ ...btnBase, ...rxStyle(type, active, isDark) }}
               title={type === 'fork' ? 'Explore this path on your profile' : type === 'merge' ? (active ? 'Click to un-merge' : 'Link to one of your own decisions') : 'I support this'}
             >
@@ -128,6 +129,7 @@ export default function EngagementBar({
         {/* Reply */}
         <button
           onClick={() => onReplyClick?.(commitId)}
+          className="btn-press"
           style={{ ...btnBase, border: `1px solid ${inactiveBorder}`, color: inactiveColor, background: inactiveBg }}
           title="Replies"
         >
@@ -153,6 +155,7 @@ export default function EngagementBar({
         {/* Stash */}
         <button
           onClick={() => onStash?.(commitId)}
+          className="btn-press"
           title={isStashed ? 'Unstash' : 'Stash this commit'}
           style={{ ...btnBase, border: `1px solid ${inactiveBorder}`, background: isStashed ? (isDark ? 'oklch(22% 0.05 260)' : 'oklch(95% 0.015 260)') : inactiveBg, color: isStashed ? 'oklch(42% 0.2 260)' : inactiveColor, padding: '5px 8px' }}
         >
@@ -165,6 +168,7 @@ export default function EngagementBar({
         <div style={{ position: 'relative' }} ref={shareRef}>
           <button
             onClick={() => setShareOpen(p => !p)}
+            className="btn-press"
             title="Share"
             style={{ ...btnBase, border: `1px solid ${inactiveBorder}`, color: inactiveColor, background: shareOpen ? (isDark ? 'oklch(22% 0.05 260)' : 'oklch(95% 0.015 260)') : inactiveBg, padding: '5px 8px' }}
           >
@@ -176,6 +180,7 @@ export default function EngagementBar({
             <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 10, boxShadow: isDark ? '0 4px 20px oklch(5% 0.01 260 / 0.5)' : '0 4px 20px oklch(25% 0.05 260 / 0.12)', zIndex: 100, overflow: 'hidden', minWidth: 160 }}>
               <button
                 onClick={copyLink}
+                className="btn-press"
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', fontSize: 12.5, fontWeight: 500, color: dropItemColor, cursor: 'pointer', textAlign: 'left' }}
                 onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dropHoverBg; }}
                 onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
@@ -185,6 +190,7 @@ export default function EngagementBar({
               {onShare && (
                 <button
                   onClick={() => { onShare(commitId); setShareOpen(false); }}
+                  className="btn-press"
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', border: 'none', background: 'none', borderTop: `1px solid ${dropDivider}`, fontSize: 12.5, fontWeight: 500, color: dropItemColor, cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = dropHoverBg; }}
                   onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}

@@ -53,3 +53,14 @@
   opacity: 0.9;
   transform: translateY(-1px);
 }
+
+/* ─── Press animations ─── */
+.confirm-ok-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}
+
+.confirm-cancel-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}

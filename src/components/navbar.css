@@ -454,3 +454,24 @@
   .branch-type-cards { grid-template-columns: 1fr; }
   .mood-grid { grid-template-columns: repeat(5, 1fr); }
 }
+
+/* ─── Press animations ─── */
+.nav-btn-primary:active:not(:disabled),
+.nav-btn-secondary:active:not(:disabled) {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}
+
+.mf-submit:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+  transition-duration: 80ms;
+}
+
+.mf-cancel:active,
+.nav-hamburger:active,
+.drawer-logout-btn:active,
+.drawer-action-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}

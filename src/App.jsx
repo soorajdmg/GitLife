@@ -547,7 +547,7 @@ function BottomNav({ activeNav, navigate, setModal, unreadMsgCount, user, isDark
 
       {/* Center [+] New Commit */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <button onClick={() => setModal(true)} style={{
+        <button onClick={() => setModal(true)} className="btn-press-fab" style={{
           width: 46, height: 46, borderRadius: '50%',
           background: 'oklch(52% 0.2 260)', border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

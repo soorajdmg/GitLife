@@ -1,6 +1,6 @@
-import { StrictMode, useState } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.jsx'
@@ -60,14 +60,36 @@ function SplashScreen({ coldStart }) {
   );
 }
 
-function Root() {
+function LandingRoute() {
   const { isAuthenticated, loading, coldStart } = useAuth();
-  const [showAuth, setShowAuth] = useState(false);
-
+  const navigate = useNavigate();
   if (loading) return <SplashScreen coldStart={coldStart} />;
-  if (isAuthenticated) return <App />;
-  if (showAuth) return <Auth />;
-  return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+  if (isAuthenticated) return <Navigate to="/feed" replace />;
+  return <LandingPage onGetStarted={() => navigate('/login')} />;
+}
+
+function LoginRoute() {
+  const { isAuthenticated, loading, coldStart } = useAuth();
+  if (loading) return <SplashScreen coldStart={coldStart} />;
+  if (isAuthenticated) return <Navigate to="/feed" replace />;
+  return <Auth />;
+}
+
+function AppRoute() {
+  const { isAuthenticated, loading, coldStart } = useAuth();
+  if (loading) return <SplashScreen coldStart={coldStart} />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+  return <App />;
+}
+
+function Root() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingRoute />} />
+      <Route path="/login" element={<LoginRoute />} />
+      <Route path="/*" element={<AppRoute />} />
+    </Routes>
+  );
 }
 
 createRoot(document.getElementById('root')).render(

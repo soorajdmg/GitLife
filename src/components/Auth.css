@@ -325,7 +325,11 @@
   box-shadow: 0 4px 16px oklch(52% 0.2 260 / 0.3);
 }
 
-.auth-submit:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+.auth-submit:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+  transition-duration: 80ms;
+}
 .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @keyframes authSpin {
@@ -530,4 +534,21 @@
   font-size: 0.82rem;
   color: oklch(50% 0.02 260);
   margin: 0 0 12px;
+}
+
+/* ─── Press animations ─── */
+.auth-google-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}
+
+.auth-back-btn:active {
+  transform: translateY(2px);
+  transition-duration: 80ms;
+}
+
+/* .auth-show-pw uses translateY(-50%) for vertical centering — preserve it with calc */
+.auth-show-pw:active {
+  transform: translateY(calc(-50% + 2px));
+  transition-duration: 80ms;
 }

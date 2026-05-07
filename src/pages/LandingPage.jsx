@@ -570,7 +570,7 @@ export default function LandingPage({ onGetStarted }) {
                         </div>
                       );
                     })}
-                    <div style={{ textAlign: 'center', padding: '4px 0 2px', fontSize: 11, color: 'oklch(65% 0.01 260)', fontWeight: 500 }}>+ more from people you follow</div>
+                    <div style={{ textAlign: 'center', padding: '4px 0 2px', fontSize: 11, color: 'oklch(65% 0.01 260)', fontWeight: 500 }}>+ see how others navigate life</div>
                   </div>
                 </div>
               </div>
@@ -596,7 +596,7 @@ export default function LandingPage({ onGetStarted }) {
       <div style={{ padding: 'clamp(48px, 6vw, 96px) 0', background: 'white', borderTop: '1px solid oklch(93% 0.006 80)', borderBottom: '1px solid oklch(93% 0.006 80)' }}>
         <Reveal>
           <p style={{ textAlign: 'center', fontSize: 'clamp(10px, 1vw, 12px)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'oklch(62% 0.01 260)', marginBottom: 26 }}>
-            Live commits from the community
+            What people commit to
           </p>
         </Reveal>
         <CommitTicker />

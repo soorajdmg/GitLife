@@ -725,27 +725,41 @@ export default function LandingPage({ onGetStarted }) {
             body="An interactive, animated git graph of every commit, branch, fork, and merge in your personal history. Your life, rendered as beautiful code history."
             visual={
               <div style={{ padding: '4px 0' }}>
-                <svg width="100%" viewBox="0 0 320 224" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
-                  <line x1="20" y1="22" x2="20" y2="202" stroke="oklch(76% 0.14 260)" strokeWidth="2" strokeLinecap="round" />
-                  <path d="M20 66 C20 84 100 74 100 92" stroke="oklch(70% 0.14 155)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                  <line x1="100" y1="92" x2="100" y2="136" stroke="oklch(70% 0.14 155)" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M100 136 C100 152 20 142 20 158" stroke="oklch(70% 0.14 155)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                  <circle cx="20" cy="22" r="5.5" fill="oklch(52% 0.2 260)" />
-                  <text x="34" y="26" fontSize="10" fontWeight="600" fill="oklch(22% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">quit-corp job</text>
-                  <circle cx="20" cy="66" r="5.5" fill="oklch(52% 0.2 260)" />
-                  <text x="34" y="70" fontSize="10" fontWeight="600" fill="oklch(22% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">moved to Berlin</text>
-                  <circle cx="20" cy="110" r="5.5" fill="oklch(52% 0.2 260)" />
-                  <text x="34" y="114" fontSize="10" fontWeight="600" fill="oklch(22% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">went indie</text>
-                  <circle cx="20" cy="158" r="6" fill="oklch(48% 0.22 260)" stroke="oklch(75% 0.16 260)" strokeWidth="1.5" />
-                  <text x="34" y="162" fontSize="10" fontWeight="700" fill="oklch(36% 0.2 260)" fontFamily="Plus Jakarta Sans, sans-serif">got funded</text>
-                  <circle cx="20" cy="202" r="5.5" fill="oklch(52% 0.2 260)" />
-                  <text x="34" y="206" fontSize="10" fontWeight="600" fill="oklch(22% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">launched v1</text>
-                  <circle cx="100" cy="92" r="4.5" fill="oklch(54% 0.18 155)" />
-                  <text x="114" y="96" fontSize="9.5" fontWeight="600" fill="oklch(38% 0.15 155)" fontFamily="Plus Jakarta Sans, sans-serif">what-if: stayed at corp</text>
-                  <circle cx="100" cy="136" r="4.5" fill="oklch(54% 0.18 155)" />
-                  <text x="114" y="140" fontSize="9.5" fontWeight="600" fill="oklch(38% 0.15 155)" fontFamily="Plus Jakarta Sans, sans-serif">got promoted instead</text>
-                  <rect x="88" y="62" width="124" height="17" rx="8" fill="oklch(93% 0.06 155)" />
-                  <text x="150" y="74" fontSize="8.5" fontWeight="700" fill="oklch(36% 0.16 155)" fontFamily="Plus Jakarta Sans, sans-serif" textAnchor="middle" letterSpacing="0.04em">what-if/stayed-at-corp</text>
+                <svg width="100%" viewBox="0 0 380 260" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+                  {/* ── Main branch vertical line ── */}
+                  <line x1="24" y1="24" x2="24" y2="236" stroke="oklch(76% 0.14 260)" strokeWidth="2.5" strokeLinecap="round" />
+
+                  {/* ── What-if branch: fork out, parallel segment, merge back ── */}
+                  <path d="M24 80 C24 102 130 92 130 114" stroke="oklch(65% 0.16 155)" strokeWidth="1.8" strokeLinecap="round" fill="none" strokeDasharray="5 3" />
+                  <line x1="130" y1="114" x2="130" y2="168" stroke="oklch(65% 0.16 155)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="5 3" />
+                  <path d="M130 168 C130 188 24 178 24 200" stroke="oklch(65% 0.16 155)" strokeWidth="1.8" strokeLinecap="round" fill="none" strokeDasharray="5 3" />
+
+                  {/* ── Branch label pill (top-right corner, above all nodes) ── */}
+                  <rect x="218" y="10" width="148" height="18" rx="9" fill="oklch(92% 0.08 155)" stroke="oklch(80% 0.12 155)" strokeWidth="0.75" />
+                  <text x="292" y="23" fontSize="9" fontWeight="700" fill="oklch(34% 0.18 155)" fontFamily="Plus Jakarta Sans, sans-serif" textAnchor="middle" letterSpacing="0.05em">what-if/stayed-at-corp</text>
+
+                  {/* ── Main branch commit nodes ── */}
+                  <circle cx="24" cy="24" r="6" fill="oklch(52% 0.2 260)" />
+                  <text x="40" y="28" fontSize="11" fontWeight="600" fill="oklch(20% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">quit corp job</text>
+
+                  <circle cx="24" cy="80" r="6" fill="oklch(52% 0.2 260)" />
+                  <text x="40" y="84" fontSize="11" fontWeight="600" fill="oklch(20% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">moved to Berlin</text>
+
+                  <circle cx="24" cy="140" r="6" fill="oklch(52% 0.2 260)" />
+                  <text x="40" y="144" fontSize="11" fontWeight="600" fill="oklch(20% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">went indie</text>
+
+                  <circle cx="24" cy="200" r="7" fill="oklch(46% 0.24 260)" stroke="oklch(72% 0.18 260)" strokeWidth="2" />
+                  <text x="40" y="204" fontSize="11" fontWeight="700" fill="oklch(34% 0.22 260)" fontFamily="Plus Jakarta Sans, sans-serif">got funded</text>
+
+                  <circle cx="24" cy="236" r="6" fill="oklch(52% 0.2 260)" />
+                  <text x="40" y="240" fontSize="11" fontWeight="600" fill="oklch(20% 0.015 260)" fontFamily="Plus Jakarta Sans, sans-serif">launched v1</text>
+
+                  {/* ── What-if branch commit nodes ── */}
+                  <circle cx="130" cy="114" r="5.5" fill="oklch(58% 0.18 155)" />
+                  <text x="147" y="118" fontSize="10.5" fontWeight="600" fill="oklch(34% 0.16 155)" fontFamily="Plus Jakarta Sans, sans-serif">stayed at corp</text>
+
+                  <circle cx="130" cy="168" r="5.5" fill="oklch(58% 0.18 155)" />
+                  <text x="147" y="172" fontSize="10.5" fontWeight="600" fill="oklch(34% 0.16 155)" fontFamily="Plus Jakarta Sans, sans-serif">got promoted instead</text>
                 </svg>
               </div>
             }

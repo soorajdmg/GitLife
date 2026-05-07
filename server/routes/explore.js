@@ -531,6 +531,13 @@ router.get('/users/:userId', authenticateToken, async (req, res) => {
     // isFollowing: check if the target's id or username is in my following list
     const isFollowing = myFollowingIds.has(user.id);
 
+    // How many people the target user follows
+    const targetUserDoc = await db.collection('users').findOne(
+      { $expr: { $eq: [{ $toString: '$_id' }, user.id] } },
+      { projection: { following: 1 } }
+    );
+    const followingCount = (targetUserDoc?.following || []).length;
+
     // People who follow the target (scan all users' following arrays).
     // The following array may contain the target's MongoDB id (string), ObjectId, or legacy username.
     const targetVariants = [user.id];
@@ -562,6 +569,7 @@ router.get('/users/:userId', authenticateToken, async (req, res) => {
       avatarUrl: user.avatarUrl,
       commitCount,
       followerCount: theirFollowerDocs.length,
+      followingCount,
       isFollowing,
       mutualFollowers,
       mutualFollowerCount: mutualIds.length,

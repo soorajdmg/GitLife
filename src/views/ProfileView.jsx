@@ -836,6 +836,14 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
 
   useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
 
+  // Own profile: fetch follower count from the same endpoint used for other profiles
+  const { data: ownProfileStats } = useQuery({
+    queryKey: ['ownProfileStats', user?.username],
+    queryFn: () => api.getUserProfile(user.username),
+    enabled: isOwnProfile && !!user?.username,
+    staleTime: 60_000,
+  });
+
   // Own profile: fetch decisions + branches in parallel
   const { data: ownDecisions = [], isLoading: ownDecisionsLoading } = useQuery({
     queryKey: QUERY_KEYS.decisions,
@@ -1120,7 +1128,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
               <div style={{ fontSize: 11.5, color: textSec, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>{handle}</div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                 {isOwnProfile ? (
-                  [['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
+                  [['commits', commits.length], ['branches', branches.length], ['followers', ownProfileStats?.followerCount ?? 0], ['following', ownProfileStats?.followingCount ?? 0]].map(([lbl, val]) => (
                     <div key={lbl} style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: textPri }}>{fmt(val)}</div>
                       <div style={{ fontSize: 10.5, color: textMuted, marginTop: 1 }}>{lbl}</div>
@@ -1136,19 +1144,27 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                       <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: textPri }}>{fmt(otherUser?.followerCount ?? 0)}</div>
                       <div style={{ fontSize: 10.5, color: textMuted, marginTop: 1 }}>followers</div>
                     </div>
-                    <button onClick={toggleFollow} disabled={followLoading}
-                      style={{ padding: '6px 18px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? `1.5px solid ${msgBtnBorder}` : 'none', background: isFollowing ? followingBtnBg : 'oklch(52% 0.2 260)', color: isFollowing ? followingBtnColor : 'white' }}>
-                      {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
-                    </button>
-                    {onMessage && (
-                      <button onClick={() => onMessage(resolvedUserId || username)}
-                        style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor }}>
-                        Message
-                      </button>
-                    )}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: textPri }}>{fmt(otherUser?.followingCount ?? 0)}</div>
+                      <div style={{ fontSize: 10.5, color: textMuted, marginTop: 1 }}>following</div>
+                    </div>
                   </>
                 )}
               </div>
+              {!isOwnProfile && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button onClick={toggleFollow} disabled={followLoading}
+                    style={{ padding: '6px 18px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? `1.5px solid ${msgBtnBorder}` : 'none', background: isFollowing ? followingBtnBg : 'oklch(52% 0.2 260)', color: isFollowing ? followingBtnColor : 'white' }}>
+                    {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                  </button>
+                  {onMessage && (
+                    <button onClick={() => onMessage(resolvedUserId || username)}
+                      style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor }}>
+                      Message
+                    </button>
+                  )}
+                </div>
+              )}
               {/* Mutual followers — mobile */}
               {!isOwnProfile && otherUser?.mutualFollowerCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
@@ -1296,7 +1312,7 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
                 No commits yet. Start tracking your life decisions!
               </div>
             ) : (
-              <div style={{ overflowX: viz === 'horizontal' ? 'auto' : 'visible' }}>
+              <div style={{ overflowX: viz === 'horizontal' ? 'auto' : 'hidden', overflowY: 'auto', maxHeight: 480 }}>
                 <Viz commits={shown} branches={branches} currentUserId={user?.id} isOwnProfile={isOwnProfile} isDark={isDark} />
               </div>
             )}
@@ -1346,28 +1362,33 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
             <div style={{ fontSize: 12.5, color: textSec, fontFamily: "'JetBrains Mono', monospace", marginBottom: 7 }}>{handle}</div>
             <div style={{ display: 'flex', gap: 22, alignItems: 'center' }}>
               {isOwnProfile ? (
-                [['commits', commits.length], ['branches', branches.length]].map(([lbl, val]) => (
+                [['commits', commits.length], ['branches', branches.length], ['followers', ownProfileStats?.followerCount ?? 0], ['following', ownProfileStats?.followingCount ?? 0]].map(([lbl, val]) => (
                   <div key={lbl}><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(val)}</span> <span style={{ fontSize: 12, color: textMuted }}>{lbl}</span></div>
                 ))
               ) : (
                 <>
                   <div><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(otherUser?.commitCount ?? commits.length)}</span> <span style={{ fontSize: 12, color: textMuted }}>commits</span></div>
                   <div><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(otherUser?.followerCount ?? 0)}</span> <span style={{ fontSize: 12, color: textMuted }}>followers</span></div>
-                  <button onClick={toggleFollow} disabled={followLoading}
-                    style={{ marginLeft: 8, padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? `1px solid ${msgBtnBorder}` : 'none', background: isFollowing ? followingBtnBg : 'oklch(52% 0.2 260)', color: isFollowing ? followingBtnColor : 'white', transition: 'all 0.12s' }}>
-                    {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
-                  </button>
-                  {onMessage && (
-                    <button onClick={() => onMessage(resolvedUserId || username)}
-                      style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor, transition: 'all 0.12s' }}
-                      onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(26% 0.012 260)' : 'oklch(96% 0.006 260)'; }}
-                      onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = msgBtnBg; }}>
-                      Message
-                    </button>
-                  )}
+                  <div><span style={{ fontSize: 15, fontWeight: 700, color: textPri }}>{fmt(otherUser?.followingCount ?? 0)}</span> <span style={{ fontSize: 12, color: textMuted }}>following</span></div>
                 </>
               )}
             </div>
+            {!isOwnProfile && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button onClick={toggleFollow} disabled={followLoading}
+                  style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: followLoading ? 'default' : 'pointer', border: isFollowing ? `1px solid ${msgBtnBorder}` : 'none', background: isFollowing ? followingBtnBg : 'oklch(52% 0.2 260)', color: isFollowing ? followingBtnColor : 'white', transition: 'all 0.12s' }}>
+                  {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                </button>
+                {onMessage && (
+                  <button onClick={() => onMessage(resolvedUserId || username)}
+                    style={{ padding: '5px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1px solid ${msgBtnBorder}`, background: msgBtnBg, color: msgBtnColor, transition: 'all 0.12s' }}
+                    onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(26% 0.012 260)' : 'oklch(96% 0.006 260)'; }}
+                    onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = msgBtnBg; }}>
+                    Message
+                  </button>
+                )}
+              </div>
+            )}
             {/* Mutual followers */}
             {!isOwnProfile && otherUser?.mutualFollowerCount > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>

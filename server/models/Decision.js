@@ -135,8 +135,8 @@ export class Decision {
     return (decision.viewCount || 0) + 1;
   }
 
-  static async findForGraph(userId) {
-    const decisions = await this.getCollection()
+  static async findForGraph(userId, { limit = 0, offset = 0 } = {}) {
+    let cursor = this.getCollection()
       .find({ userId }, {
         projection: {
           decision: 1, branch_name: 1, type: 1, impact: 1, timestamp: 1,
@@ -144,9 +144,12 @@ export class Decision {
           createdAt: 1,
         }
       })
-      .sort({ createdAt: 1, _id: 1 })
-      .toArray();
-    return decisions.map(d => {
+      .sort({ createdAt: 1, _id: 1 });
+    if (offset > 0) cursor = cursor.skip(offset);
+    if (limit > 0) cursor = cursor.limit(limit);
+    const decisions = await cursor.toArray();
+    const total = limit > 0 ? await this.getCollection().countDocuments({ userId }) : decisions.length;
+    const mapped = decisions.map(d => {
       // Sanitize influencedBy — ensure it's always a valid array of objects
       const rawLinks = Array.isArray(d.influencedBy) ? d.influencedBy : [];
       const influencedBy = rawLinks.filter(
@@ -165,6 +168,7 @@ export class Decision {
         influencedBy,
       };
     });
+    return { decisions: mapped, total, offset, limit };
   }
 
   static async updateLinks(id, userId, toAdd = [], toRemove = []) {

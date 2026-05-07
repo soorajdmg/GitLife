@@ -637,7 +637,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'clip' }}>
         <div style={{ maxWidth: '100%', padding: 'clamp(14px, 3vw, 18px) var(--explore-h-padding, 28px) 80px' }}>
 
           {/* Suggested people */}

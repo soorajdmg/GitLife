@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
   useNodesState, useEdgesState, useReactFlow,
@@ -7,7 +6,6 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { api } from '../config/api.js';
-import { queryClient, QUERY_KEYS } from '../config/queryClient.js';
 import DecisionNode from '../components/graph/DecisionNode.jsx';
 import DecisionEdge from '../components/graph/DecisionEdge.jsx';
 import GraphToolbar from '../components/graph/GraphToolbar.jsx';
@@ -348,7 +346,7 @@ function NotePopover({ source, target, onConfirm, onCancel, saving, isDark }) {
 }
 
 // ── Main canvas ──────────────────────────────────────────────────────────────
-function GraphCanvas({ decisions, currentUser, isDark }) {
+function GraphCanvas({ decisions, currentUser, isDark, hasMore, loadingMore, onLoadMore, shownCount, totalCount, onRefresh }) {
   const userId = currentUser?.id || currentUser?.userId || 'anon';
   const savedPositions = getSavedPositions(userId);
 
@@ -432,7 +430,17 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
     return () => clearTimeout(t);
   }, [isMobile, fitView]);
 
-  // Inject dark-mode overrides for ReactFlow Controls (plus/minus/fit/lock buttons)
+  // Inject spin keyframe + dark-mode overrides for ReactFlow Controls
+  useEffect(() => {
+    const spinId = 'rf-spin-keyframe';
+    if (!document.getElementById(spinId)) {
+      const s = document.createElement('style');
+      s.id = spinId;
+      s.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+      document.head.appendChild(s);
+    }
+  }, []);
+
   useEffect(() => {
     const id = 'rf-controls-dark-override';
     let el = document.getElementById(id);
@@ -512,7 +520,7 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
         [{ decisionId: pendingLink.source.id, note: note.trim() || '' }],
         []
       );
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.decisionGraph });
+      onRefresh?.();
       setPendingLink(null);
     } catch (e) {
       console.error(e);
@@ -682,6 +690,43 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
         </div>
       )}
 
+      {/* Load more button */}
+      {hasMore && (
+        <div style={{
+          position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10, pointerEvents: 'auto',
+        }}>
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            style={{
+              padding: '8px 18px', borderRadius: 9,
+              border: `1px solid ${isDark ? 'oklch(35% 0.015 260)' : 'oklch(88% 0.008 260)'}`,
+              background: isDark ? 'oklch(24% 0.015 260)' : 'white',
+              boxShadow: '0 3px 14px oklch(25% 0.05 260 / 0.16)',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: 12.5, fontWeight: 600,
+              color: isDark ? 'oklch(72% 0.01 260)' : 'oklch(38% 0.01 260)',
+              cursor: loadingMore ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              opacity: loadingMore ? 0.65 : 1,
+              transition: 'opacity 0.15s',
+            }}
+          >
+            {loadingMore ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" style={{ animation: 'spin 0.8s linear infinite' }}>
+                  <circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="14 6" />
+                </svg>
+                Loading…
+              </span>
+            ) : (
+              <>↓ Load more <span style={{ opacity: 0.6, fontWeight: 400 }}>({shownCount} / {totalCount})</span></>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Note popover */}
       {pendingLink && (
         <NotePopover
@@ -713,15 +758,62 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
 }
 
 // ── Page wrapper ─────────────────────────────────────────────────────────────
+const PAGE_SIZE = 30;
+
 export default function GraphPage({ currentUser }) {
   const { isDark } = useTheme();
   const [showOnboarding, setShowOnboarding] = useState(!hasSeenOnboarding());
 
-  const { data: decisions = [], isLoading, isError } = useQuery({
-    queryKey: QUERY_KEYS.decisionGraph,
-    queryFn: () => api.getDecisionsForGraph(),
-    staleTime: 30_000,
-  });
+  // Paginated state
+  const [allDecisions, setAllDecisions] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Initial load
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    api.getDecisionsForGraph({ limit: PAGE_SIZE, offset: 0 })
+      .then(res => {
+        if (cancelled) return;
+        setAllDecisions(res.decisions || []);
+        setTotal(res.total || 0);
+        setOffset(PAGE_SIZE);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) { setIsError(true); setIsLoading(false); }
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const hasMore = allDecisions.length < total;
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    api.getDecisionsForGraph({ limit: PAGE_SIZE, offset })
+      .then(res => {
+        setAllDecisions(prev => [...prev, ...(res.decisions || [])]);
+        setTotal(res.total || 0);
+        setOffset(prev => prev + PAGE_SIZE);
+        setLoadingMore(false);
+      })
+      .catch(() => setLoadingMore(false));
+  }, [loadingMore, hasMore, offset]);
+
+  const refresh = useCallback(() => {
+    api.getDecisionsForGraph({ limit: PAGE_SIZE, offset: 0 })
+      .then(res => {
+        setAllDecisions(res.decisions || []);
+        setTotal(res.total || 0);
+        setOffset(PAGE_SIZE);
+      })
+      .catch(() => {});
+  }, []);
 
   const dismissOnboarding = () => {
     markOnboardingSeen();
@@ -744,7 +836,7 @@ export default function GraphPage({ currentUser }) {
     );
   }
 
-  if (decisions.length === 0) {
+  if (allDecisions.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", textAlign: 'center', padding: 32 }}>
         <div style={{ fontSize: 40 }}>◈</div>
@@ -757,9 +849,19 @@ export default function GraphPage({ currentUser }) {
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <ReactFlowProvider>
-        <GraphCanvas decisions={decisions} currentUser={currentUser} isDark={isDark} />
+        <GraphCanvas
+          decisions={allDecisions}
+          currentUser={currentUser}
+          isDark={isDark}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onLoadMore={loadMore}
+          shownCount={allDecisions.length}
+          totalCount={total}
+          onRefresh={refresh}
+        />
       </ReactFlowProvider>
       {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} isDark={isDark} />}
     </div>

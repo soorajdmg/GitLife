@@ -15,8 +15,10 @@ router.use(authenticateToken);
 // Get all decisions for graph rendering (must be before /:id route)
 router.get('/graph', async (req, res) => {
   try {
-    const decisions = await Decision.findForGraph(req.user.userId);
-    res.json(decisions);
+    const limit = parseInt(req.query.limit, 10) || 0;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const result = await Decision.findForGraph(req.user.userId, { limit, offset });
+    res.json(result);
   } catch (error) {
     console.error('Error fetching graph data:', error);
     res.status(500).json({ error: 'Failed to fetch graph data' });

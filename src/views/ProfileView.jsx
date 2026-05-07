@@ -585,7 +585,7 @@ function GitGraph({ commits, branches = [], isDark = false }) {
   const COL = { main: 0, ...Object.fromEntries(otherBranches.map((b, i) => [b, i + 1])) };
   const mergedSet = new Set(branches.filter(b => b.merged).map(b => b.name));
   const COLORS = BRANCH_COLORS;
-  const CW = 22, RH = 90;
+  const CW = 22, RH = 72;
   const totalCols = 1 + otherBranches.length;
   const svgW = CW * Math.max(totalCols, 1) + 4;
 

@@ -362,8 +362,12 @@ class ApiClient {
   }
 
   // Graph / dependency methods
-  async getDecisionsForGraph() {
-    return this.request('/decisions/graph');
+  async getDecisionsForGraph({ limit = 0, offset = 0 } = {}) {
+    const params = new URLSearchParams();
+    if (limit > 0) params.set('limit', limit);
+    if (offset > 0) params.set('offset', offset);
+    const qs = params.toString();
+    return this.request(`/decisions/graph${qs ? `?${qs}` : ''}`);
   }
 
   async updateDecisionLinks(id, toAdd = [], toRemove = []) {

@@ -1,10 +1,11 @@
-import { StrictMode } from 'react'
+import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.jsx'
 import Auth from './components/Auth.jsx'
+import LandingPage from './pages/LandingPage.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { ToastProvider } from './contexts/ToastContext'
@@ -61,9 +62,12 @@ function SplashScreen({ coldStart }) {
 
 function Root() {
   const { isAuthenticated, loading, coldStart } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
 
   if (loading) return <SplashScreen coldStart={coldStart} />;
-  return isAuthenticated ? <App /> : <Auth />;
+  if (isAuthenticated) return <App />;
+  if (showAuth) return <Auth />;
+  return <LandingPage onGetStarted={() => setShowAuth(true)} />;
 }
 
 createRoot(document.getElementById('root')).render(

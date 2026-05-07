@@ -579,7 +579,7 @@ export default function LandingPage({ onGetStarted }) {
         </div>
 
         {/* Scroll hint */}
-        <div style={{
+        <div className="gl-scroll-hint" style={{
           position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
           opacity: heroVisible ? 0.4 : 0,
@@ -946,6 +946,17 @@ export default function LandingPage({ onGetStarted }) {
         /* ── ORBS: hide on small phones ── */
         @media (max-width: 480px) {
           .gl-orb { display: none !important; }
+        }
+
+        /* ── SCROLL HINT: push down on mobile so it clears the hero content ── */
+        @media (max-width: 768px) {
+          .gl-scroll-hint { bottom: 10px !important; }
+        }
+
+        /* ── DISABLE ALL HOVER ANIMATIONS ON TOUCH DEVICES ── */
+        @media (hover: none) {
+          * { transition: none !important; }
+          *:hover { transform: none !important; box-shadow: inherit !important; border-color: inherit !important; background: inherit !important; color: inherit !important; }
         }
 
         /* ── CTA BUTTON GROUP: stack on very small phones ── */

@@ -998,7 +998,7 @@ export default function App() {
   /* ── Desktop top-bar icons (search + bell, or save on settings) ── */
   const topBarIcons = activeNav === 'settings' ? settingsSaveBtn : (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: iconBtnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: iconBtnColor }}>
+      <div onClick={() => navigate('/explore', { state: { focusSearch: true } })} style={{ width: 32, height: 32, borderRadius: 8, background: iconBtnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: iconBtnColor }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="13.5" y2="13.5" /></svg>
       </div>
       {bellIcon}

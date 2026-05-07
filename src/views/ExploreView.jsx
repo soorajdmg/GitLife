@@ -8,6 +8,7 @@ import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
 import EngagementBar from '../components/ui/EngagementBar';
 import CommentThread from '../components/ui/CommentThread';
+import { useLocation } from 'react-router-dom';
 import { catColor, fmt } from '../data/gitlife';
 
 const CATEGORIES = ['Career', 'Health', 'Relationships', 'Finance', 'Education', 'Travel', 'Housing'];
@@ -445,6 +446,8 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   const { user } = useAuth();
   const { isDark } = useTheme();
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const searchInputRef = useRef(null);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('trending');
   const [catFilter, setCatFilter] = useState('All');
@@ -456,6 +459,12 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
   const [feedItems, setFeedItems] = useState([]);
 
   useEffect(() => { setLocalStashed(new Set(stashedIds)); }, [stashedIds]);
+
+  useEffect(() => {
+    if (location.state?.focusSearch) {
+      searchInputRef.current?.focus();
+    }
+  }, []);
 
   const { data: feed = [], isLoading: loading, isError, refetch: refetchFeed } = useQuery({
     queryKey: QUERY_KEYS.exploreFeed(tab),
@@ -609,6 +618,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
             <line x1="10" y1="10" x2="14" y2="14" />
           </svg>
           <input
+            ref={searchInputRef}
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search decisions, people, branches..."

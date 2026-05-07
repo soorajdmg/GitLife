@@ -623,7 +623,7 @@ function GraphCanvas({ decisions, currentUser, isDark }) {
         panOnScroll={false}
         style={{ background: isDark ? 'oklch(13% 0.01 260)' : 'oklch(98% 0.004 260)', paddingTop: connectSourceId ? 44 : 0, transition: 'padding-top 0.15s', flex: 1, height: '100%' }}
       >
-        <Background color={isDark ? 'oklch(25% 0.01 260)' : 'oklch(86% 0.004 260)'} gap={24} size={1} />
+        <Background color={isDark ? 'oklch(32% 0.012 260)' : 'oklch(78% 0.006 260)'} gap={28} size={1.5} />
         <Controls style={{ bottom: 16, left: 16 }} />
         {/* Legend card */}
         <div style={{

@@ -938,7 +938,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
 
     const participants = activeConv?.participants || [user.id, otherUser?.id].filter(Boolean);
 
-    socket?.sendMessage({ conversationId: convId, text, sharedCommit, replyTo: replyToData, participants }).catch(async () => {
+    socket?.sendMessage({ conversationId: convId, text, sharedCommit, replyTo: replyToData, participants, tempId: optimistic.id }).catch(async () => {
       try {
         const res = await api.sendMessageREST(convId, text, sharedCommit);
         if (res?.message) setMessages(prev => prev.map(m => m.id === optimistic.id ? res.message : m));

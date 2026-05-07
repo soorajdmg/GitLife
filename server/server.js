@@ -137,7 +137,7 @@ io.on('connection', async (socket) => {
   socket.broadcast.emit('user_online', { userId });
 
   // ── Send message ──────────────────────────────────────────────────────────
-  socket.on('send_message', async ({ conversationId, text, sharedCommit, replyTo, participants: clientParticipants }, ack) => {
+  socket.on('send_message', async ({ conversationId, text, sharedCommit, replyTo, participants: clientParticipants, tempId: clientTempId }, ack) => {
     if (!text?.trim() && !sharedCommit) return ack?.({ error: 'Empty message' });
 
     const trimmed = text?.trim() || '';
@@ -172,7 +172,7 @@ io.on('connection', async (socket) => {
     (async () => {
       try {
         const message = await Message.create({ conversationId, senderId: userId, text: trimmed, sharedCommit: sharedCommit || null, replyTo: replyTo || null });
-        socket.emit('message_saved', { tempId: optimisticMsg.id, message });
+        socket.emit('message_saved', { tempId: clientTempId || optimisticMsg.id, message });
         const conv = await Conversation.findById(conversationId);
         if (conv) {
           await Conversation.updateLastMessage(conversationId, userId, trimmed, conv.participants);
@@ -183,7 +183,7 @@ io.on('connection', async (socket) => {
         }
       } catch (err) {
         console.error('send_message persist error:', err);
-        socket.emit('message_failed', { tempId: optimisticMsg.id });
+        socket.emit('message_failed', { tempId: clientTempId || optimisticMsg.id });
       }
     })();
   });

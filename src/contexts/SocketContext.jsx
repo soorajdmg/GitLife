@@ -116,11 +116,11 @@ export function SocketProvider({ children }) {
 
   // ── Emit helpers ──────────────────────────────────────────────────────────
 
-  const sendMessage = useCallback(({ conversationId, text, sharedCommit, replyTo, participants }) => {
+  const sendMessage = useCallback(({ conversationId, text, sharedCommit, replyTo, participants, tempId }) => {
     const tryEmit = () => new Promise((resolve, reject) => {
       if (!socketRef.current) return reject(new Error('No socket'));
       const timeout = setTimeout(() => reject(new Error('Send timed out')), 2000);
-      socketRef.current.emit('send_message', { conversationId, text, sharedCommit, replyTo, participants }, (res) => {
+      socketRef.current.emit('send_message', { conversationId, text, sharedCommit, replyTo, participants, tempId }, (res) => {
         clearTimeout(timeout);
         if (res?.error) reject(new Error(res.error));
         else resolve(res);

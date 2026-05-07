@@ -1027,7 +1027,7 @@ export default function App() {
       {/* ── Desktop Sidebar ── */}
       <aside className="desktop-only" style={{ width: sidebarWidth, flexShrink: 0, background: dk.surface, borderRight: `1px solid ${dk.border}`, display: 'flex', flexDirection: 'column', padding: `18px ${sidebarWidth >= 260 ? '18px' : '14px'}` }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 20px', fontSize: 17, fontWeight: 700, color: dk.textPri }}>
+        <div onClick={() => navigate('/feed')} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 20px', fontSize: 17, fontWeight: 700, color: dk.textPri, cursor: 'pointer' }}>
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
             <rect width="28" height="28" rx="8" fill="oklch(52% 0.2 260)" />
             <line x1="10" y1="6" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
@@ -1125,7 +1125,7 @@ export default function App() {
         {/* Mobile top bar — hidden on messages page (MessagesView has its own header) */}
         <div className="mobile-only" style={{ height: activeNav === 'messages' ? 0 : 'calc(52px + env(safe-area-inset-top, 0px))', flexShrink: 0, background: dk.surface, borderBottom: activeNav === 'messages' ? 'none' : `1px solid ${dk.border}`, display: activeNav === 'messages' ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: 16, paddingRight: 16 }}>
           {/* Logo + brand name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: dk.textPri }}>
+          <div onClick={() => navigate('/feed')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: dk.textPri, cursor: 'pointer' }}>
             <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
               <rect width="28" height="28" rx="8" fill="oklch(52% 0.2 260)" />
               <line x1="10" y1="6" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />

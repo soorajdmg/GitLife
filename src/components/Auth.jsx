@@ -85,7 +85,7 @@ export default function Auth() {
 
       if (errorParam) {
         setError('Google sign-in was cancelled or failed.');
-        window.history.replaceState({}, '', '/');
+        window.history.replaceState({}, '', '/login');
         return;
       }
 
@@ -93,7 +93,7 @@ export default function Auth() {
         setLoading(true);
         loginWithGoogle(code)
           .then((res) => {
-            window.history.replaceState({}, '', '/');
+            window.history.replaceState({}, '', '/login');
             if (res?.needsSetup) {
               // New Google user — show username + password setup
               setGooglePending(res.googleData);
@@ -103,7 +103,7 @@ export default function Auth() {
           })
           .catch((err) => {
             setError(err.message || 'Google sign-in failed. Please try again.');
-            window.history.replaceState({}, '', '/');
+            window.history.replaceState({}, '', '/login');
           })
           .finally(() => setLoading(false));
       }

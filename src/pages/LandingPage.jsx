@@ -155,7 +155,7 @@ function FeatureRow({ icon, title, body, visual, reverse = false, delay = 0 }) {
         borderTop: '1px solid oklch(93% 0.006 80)',
       }}>
         {/* Text side */}
-        <div style={{ order: reverse ? 2 : 1 }}>
+        <div className="gl-feature-text" style={{ order: reverse ? 2 : 1 }}>
           {/* Icon — double-bezel, responsive via class */}
           <div className="gl-feature-icon" style={{
             width: 54, height: 54,
@@ -178,7 +178,7 @@ function FeatureRow({ icon, title, body, visual, reverse = false, delay = 0 }) {
           <p style={{ fontSize: 'clamp(14px, 1.4vw, 16px)', color: 'oklch(48% 0.01 260)', lineHeight: 1.8, margin: 0, maxWidth: '50ch' }}>{body}</p>
         </div>
         {/* Visual side — double-bezel panel */}
-        <div style={{ order: reverse ? 1 : 2 }}>
+        <div className="gl-feature-visual" style={{ order: reverse ? 1 : 2 }}>
           <div style={{
             background: 'oklch(94% 0.012 260)',
             border: '1px solid oklch(89% 0.01 260)',
@@ -977,6 +977,9 @@ export default function LandingPage({ onGetStarted }) {
         /* ── FEATURE ROWS ── */
         @media (max-width: 680px) {
           .gl-feature-row { grid-template-columns: 1fr !important; }
+          /* Always show text first, visual second on mobile */
+          .gl-feature-text   { order: 1 !important; }
+          .gl-feature-visual { order: 2 !important; }
         }
         /* Tablet: reduce gap slightly */
         @media (min-width: 681px) and (max-width: 900px) {

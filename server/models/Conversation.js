@@ -74,6 +74,14 @@ export class Conversation {
     );
   }
 
+  // Mark the lastMessage preview as deleted (when the last message is soft-deleted)
+  static async markLastMessageDeleted(id, deletedAt) {
+    await this.getCollection().updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { 'lastMessage.deletedAt': deletedAt } }
+    );
+  }
+
   // Mark all messages in this conversation as read for userId
   static async markRead(id, userId) {
     await this.getCollection().updateOne(

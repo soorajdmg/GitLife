@@ -150,6 +150,11 @@ function PostViewRoute(props) {
   return <ExploreView {...props} initialPostId={id} />;
 }
 
+function MessagesViewRoute(props) {
+  const { convId } = useParams();
+  return <MessagesView {...props} initialConvId={convId} />;
+}
+
 /* ─── NOTIFICATIONS DROPDOWN ─── */
 const NOTIF_TYPE_ICON = { fork: '⎇', merge: '↩', support: '♡', follow: '👤', comment: '💬', reply: '↪' };
 const NOTIF_TYPE_BG   = { fork: 'oklch(93% 0.06 60)', merge: 'oklch(93% 0.05 260)', support: 'oklch(93% 0.05 155)', follow: 'oklch(93% 0.05 330)', comment: 'oklch(93% 0.05 60)', reply: 'oklch(93% 0.05 260)' };
@@ -1165,6 +1170,7 @@ export default function App() {
             <Route path="/profile" element={<ProfileView viz={tweaks.timelineViz} username={null} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />
             <Route path="/graph" element={<GraphPage currentUser={user} />} />
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
+            <Route path="/messages/:convId" element={<MessagesViewRoute onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
             <Route path="/notifications" element={<NotificationsView />} />
             <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
             <Route path="/post/:id" element={<PostViewRoute onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />

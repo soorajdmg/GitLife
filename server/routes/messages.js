@@ -1,6 +1,7 @@
 import express from 'express';
 import https from 'https';
 import http from 'http';
+import { ObjectId } from 'mongodb';
 import { authenticateToken } from '../middleware/auth.js';
 import { Conversation } from '../models/Conversation.js';
 import { Message } from '../models/Message.js';
@@ -51,13 +52,30 @@ router.get('/conversations', async (req, res) => {
   try {
     const convs = await Conversation.findByUser(req.user.userId);
 
-    // Enrich with the other participant's user info
+    // Enrich with the other participant's user info + accurate lastMessage from messages collection
     const enriched = await Promise.all(
       convs.map(async (conv) => {
         const otherId = conv.participants.find(p => p !== req.user.userId);
         const other = otherId ? await User.findById(otherId) : null;
+
+        // Always pull the real last message so deleted/edited state is accurate
+        const lastMsgDoc = await Message.getCollection()
+          .find({ conversationId: conv.id })
+          .sort({ createdAt: -1 })
+          .limit(1)
+          .toArray();
+        const lastMessage = lastMsgDoc[0]
+          ? {
+              senderId: lastMsgDoc[0].senderId,
+              text: lastMsgDoc[0].text,
+              sentAt: lastMsgDoc[0].createdAt,
+              deletedAt: lastMsgDoc[0].deletedAt || null,
+            }
+          : conv.lastMessage;
+
         return {
           ...conv,
+          lastMessage,
           otherUser: other
             ? { id: other.id, username: other.username, fullName: other.fullName, avatarUrl: other.avatarUrl }
             : null,
@@ -228,6 +246,26 @@ router.delete('/message/:msgId', async (req, res) => {
     if (msg.senderId !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
     const updated = await Message.softDelete(msgId, req.user.userId);
+
+    // Sync the conversation's lastMessage preview to reflect the current actual last message
+    const lastMsgInDb = await Message.getCollection()
+      .find({ conversationId: msg.conversationId })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .toArray();
+    if (lastMsgInDb[0]) {
+      const last = lastMsgInDb[0];
+      await Conversation.getCollection().updateOne(
+        { _id: new ObjectId(msg.conversationId) },
+        { $set: { lastMessage: {
+          senderId: last.senderId,
+          text: last.text,
+          sentAt: last.createdAt,
+          deletedAt: last.deletedAt || null,
+        }}}
+      );
+    }
+
     const io = req.app.get('io');
     if (io) io.to(`conv:${msg.conversationId}`).emit('message_updated', { message: updated });
     res.json({ message: updated });

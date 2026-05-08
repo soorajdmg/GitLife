@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -603,7 +603,8 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobi
   const [confirming, setConfirming] = useState(false);
 
   const unread = cv.unreadCount || 0;
-  const lastText = cv.lastMessage?.text || '';
+  const isLastDeleted = !!cv.lastMessage?.deletedAt;
+  const lastText = isLastDeleted ? null : (cv.lastMessage?.text || '');
   const lastTime = cv.lastMessage?.sentAt || cv.createdAt;
 
   const rowBg     = isDark ? 'oklch(18% 0.01 260)' : 'white';
@@ -667,7 +668,9 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobi
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 12, color: textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread ? 600 : 400, flex: 1 }}>
-            {lastText || <span style={{ color: textMuted, fontStyle: 'italic' }}>No messages yet</span>}
+            {isLastDeleted
+              ? <span style={{ color: textMuted, fontStyle: 'italic' }}>Message deleted</span>
+              : lastText || <span style={{ color: textMuted, fontStyle: 'italic' }}>No messages yet</span>}
           </div>
           {unread > 0 && (isMobile || !hovered) && (
             <div style={{ flexShrink: 0, marginLeft: 6, minWidth: 18, height: 18, borderRadius: 9, background: 'oklch(52% 0.2 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', padding: '0 4px' }}>
@@ -702,7 +705,7 @@ function ConvRow({ cv, isActive, isOnline, onSelect, onDelete, onProfile, isMobi
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }) {
+export default function MessagesView({ onProfile, isMobile, onMobilePaneChange, initialConvId }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialUserId = searchParams.get('user') || null;
@@ -712,6 +715,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
   const { user } = useAuth();
   const socket = useSocket();
   const { isDark } = useTheme();
+  const queryClient = useQueryClient();
 
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
@@ -742,6 +746,23 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
     onMobilePaneChange?.(pane);
   }, [onMobilePaneChange]);
 
+  const openConversation = useCallback((id) => {
+    setActiveConvId(id);
+    window.history.pushState({ convId: id }, '', `/messages/${id}`);
+  }, []);
+
+  // Sync state when browser back/forward is pressed
+  useEffect(() => {
+    const handler = () => {
+      if (!window.location.pathname.startsWith('/messages/')) {
+        setActiveConvId(null);
+        switchPane('list');
+      }
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [switchPane]);
+
   const chatPaneRef = useRef(null);
   useEffect(() => {
     if (!isMobile) return;
@@ -765,6 +786,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
   const inputRef = useRef(null);
   const inputValueRef = useRef('');
   const conversationsRef = useRef([]);
+  const messagesRef = useRef([]);
 
   const activeConv = conversations.find(c => c.id === activeConvId);
   const otherUser = activeConv?.otherUser;
@@ -780,6 +802,19 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
   }, [convsData]);
 
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const initialConvHandledRef = useRef(false);
+  useEffect(() => {
+    if (!initialConvId || loadingConvs || conversations.length === 0) return;
+    if (initialConvHandledRef.current) return;
+    initialConvHandledRef.current = true;
+    const existing = conversations.find(c => c.id === initialConvId);
+    if (existing) {
+      setActiveConvId(initialConvId);
+      switchPane('chat');
+    }
+  }, [initialConvId, loadingConvs, conversations]);
 
   const initialUserHandledRef = useRef(false);
   useEffect(() => {
@@ -788,7 +823,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
     initialUserHandledRef.current = true;
     const existing = conversations.find(c => c.otherUser?.id === initialUserId);
     if (existing) {
-      setActiveConvId(existing.id);
+      openConversation(existing.id);
       switchPane('chat');
     } else {
       api.getOrCreateConversation(initialUserId).then(({ conversation }) => {
@@ -796,7 +831,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
           if (prev.find(c => c.id === conversation.id)) return prev;
           return [conversation, ...prev];
         });
-        setActiveConvId(conversation.id);
+        openConversation(conversation.id);
         switchPane('chat');
         socket?.joinConversation(conversation.id, initialUserId);
       }).catch(console.error);
@@ -881,6 +916,18 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
     // Real-time message updates (edit, delete, reaction)
     const offUpdated = socket.on('message_updated', ({ message }) => {
       setMessages(prev => prev.map(m => m.id === message.id ? message : m));
+      // If the updated message is the last one and was deleted, update the conversation preview
+      if (message.deletedAt) {
+        const msgs = messagesRef.current;
+        const isLast = msgs.length > 0 && msgs[msgs.length - 1].id === message.id;
+        if (isLast) {
+          setConversations(convs => convs.map(c =>
+            c.id === message.conversationId
+              ? { ...c, lastMessage: { ...c.lastMessage, deletedAt: message.deletedAt } }
+              : c
+          ));
+        }
+      }
     });
 
     return () => { offMsg?.(); offRead?.(); offSaved?.(); offFailed?.(); offConvUpdated?.(); offUpdated?.(); };
@@ -994,8 +1041,10 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
     try {
       const { message } = await api.deleteMessage(msgId);
       setMessages(prev => prev.map(m => m.id === msgId ? message : m));
+      // Refetch conversations so the list preview reflects the deletion immediately
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conversations });
     } catch (err) { console.error('Failed to delete message', err); }
-  }, []);
+  }, [queryClient]);
 
   // ── Edit message ──────────────────────────────────────────────────────────
   const handleEditMessage = useCallback(async (msgId, newText) => {
@@ -1022,7 +1071,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
         if (prev.find(c => c.id === conversation.id)) return prev;
         return [conversation, ...prev];
       });
-      setActiveConvId(conversation.id);
+      openConversation(conversation.id);
       switchPane('chat');
       socket?.joinConversation(conversation.id, targetUser.id);
     } catch (err) { console.error('Failed to start conversation', err); }
@@ -1146,7 +1195,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
           {filteredConvs.map(cv => (
             <ConvRow key={cv.id} cv={cv} isActive={cv.id === activeConvId}
               isOnline={!!socket?.onlineUsers?.[cv.otherUser?.id]}
-              onSelect={() => { setActiveConvId(cv.id); switchPane('chat'); }}
+              onSelect={() => { openConversation(cv.id); switchPane('chat'); }}
               onDelete={handleDeleteConv} onProfile={onProfile}
               isMobile={isMobile} isDark={isDark} />
           ))}
@@ -1174,7 +1223,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
             {/* Header */}
             <div style={{ flexShrink: 0, paddingTop: isMobile ? 'calc(10px + env(safe-area-inset-top, 0px))' : '14px', paddingBottom: isMobile ? '10px' : '14px', paddingLeft: isMobile ? '12px' : '20px', paddingRight: isMobile ? '12px' : '20px', borderBottom: `1px solid ${headerBdr}`, background: headerBg, display: 'flex', alignItems: 'center', gap: 12 }}>
               {isMobile && (
-                <button onClick={() => switchPane('list')}
+                <button onClick={() => { switchPane('list'); window.history.pushState({}, '', '/messages'); }}
                   style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px 4px 0', display: 'flex', alignItems: 'center', color: 'oklch(42% 0.2 260)', flexShrink: 0 }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="12 4 6 10 12 16" />

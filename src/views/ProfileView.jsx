@@ -809,6 +809,139 @@ function HorizTimeline({ commits, isDark = false }) {
   );
 }
 
+/* ─── Mobile Branch Selector ─── */
+function MobileBranchSelector({
+  loading, allBranches, activeBranch, setActiveBranch,
+  isDark, panelBg, panelBorder, textPri, textMuted,
+  skeletonBg, branchSelectBg, branchSelectBorder, branchActiveBg,
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const activeBranchData = allBranches.find(b => b.id === activeBranch);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '14px' }}>
+      <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 9 }}>Branch</div>
+      {loading ? (
+        <div style={{ height: 40, background: skeletonBg, borderRadius: 10 }} />
+      ) : (
+        <div ref={ref} style={{ position: 'relative' }}>
+          {/* Trigger button */}
+          <button
+            type="button"
+            onClick={() => setOpen(o => !o)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+              padding: '10px 13px', borderRadius: 10,
+              border: `1.5px solid ${open ? (activeBranchData?.color || branchSelectBorder) : branchSelectBorder}`,
+              background: open ? (isDark ? 'oklch(20% 0.012 260)' : 'oklch(99% 0.005 260)') : branchSelectBg,
+              cursor: 'pointer', outline: 'none',
+              transition: 'border-color 0.15s, background 0.15s',
+            }}
+          >
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+              background: activeBranchData?.color || 'oklch(80% 0.01 260)',
+            }} />
+            <span style={{
+              flex: 1, textAlign: 'left', fontSize: 13,
+              fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+              color: textPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {activeBranchData?.name === 'all'
+                ? 'all branches'
+                : (activeBranchData?.name || '').replace(/^what-if\//i, '⎇ ')}
+              {activeBranchData?.merged && (
+                <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'inherit', opacity: 0.6 }}>✓ merged</span>
+              )}
+            </span>
+            <svg
+              width="13" height="13" viewBox="0 0 13 13" fill="none"
+              stroke={textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            >
+              <path d="M2.5 4.5l4 4 4-4" />
+            </svg>
+          </button>
+
+          {/* Dropdown panel */}
+          {open && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 30,
+              background: isDark ? 'oklch(20% 0.012 260)' : 'white',
+              border: `1.5px solid ${isDark ? 'oklch(30% 0.012 260)' : 'oklch(90% 0.007 260)'}`,
+              borderRadius: 12,
+              boxShadow: isDark
+                ? '0 8px 28px oklch(8% 0.01 260 / 0.55)'
+                : '0 8px 28px oklch(25% 0.05 260 / 0.1)',
+              overflow: 'hidden',
+            }}>
+              {allBranches.map((b, i) => {
+                const isActive = activeBranch === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => { setActiveBranch(b.id); setOpen(false); }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 13px',
+                      border: 'none',
+                      borderTop: i === 0 ? 'none' : `1px solid ${isDark ? 'oklch(26% 0.01 260)' : 'oklch(95% 0.005 260)'}`,
+                      background: isActive ? branchActiveBg : 'transparent',
+                      cursor: 'pointer', outline: 'none',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = isDark ? 'oklch(24% 0.012 260)' : 'oklch(97% 0.006 80)'; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                      background: b.color,
+                      boxShadow: isActive ? `0 0 0 2px ${b.color}44` : 'none',
+                      transition: 'box-shadow 0.12s',
+                    }} />
+                    <span style={{
+                      flex: 1, textAlign: 'left', fontSize: 12.5,
+                      fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+                      color: isActive ? textPri : textMuted,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {b.name === 'all' ? 'all branches' : b.name.replace(/^what-if\//i, '⎇ ')}
+                    </span>
+                    {b.merged && (
+                      <span style={{
+                        fontSize: 9, padding: '1px 5px', borderRadius: 3, fontWeight: 600,
+                        background: isDark ? 'oklch(22% 0.08 155)' : 'oklch(92% 0.05 155)',
+                        color: isDark ? 'oklch(62% 0.18 155)' : 'oklch(38% 0.18 155)',
+                        flexShrink: 0,
+                      }}>merged</span>
+                    )}
+                    {isActive && (
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                        stroke={b.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ flexShrink: 0 }}>
+                        <path d="M2 6l3 3 5-5" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── PROFILE VIEW ─── */
 export default function ProfileView({ viz, username, onProfile, onMessage, currentUser, stashedIds = [], onStashChange, onFollowChange }) {
   const { user } = useAuth();
@@ -1237,69 +1370,21 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
           </div>
 
           {/* ── 2. Branch Dropdown ── */}
-          <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '14px' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: textMuted, marginBottom: 9 }}>Branch</div>
-            {loading ? (
-              <div style={{ height: 40, background: skeletonBg, borderRadius: 10 }} />
-            ) : (
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={activeBranch}
-                  onChange={e => setActiveBranch(e.target.value)}
-                  style={{
-                    width: '100%', appearance: 'none', WebkitAppearance: 'none',
-                    padding: '10px 36px 10px 12px', borderRadius: 10, fontSize: 13,
-                    fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
-                    border: `1.5px solid ${branchSelectBorder}`,
-                    background: branchSelectBg, color: isDark ? 'oklch(88% 0.008 260)' : 'oklch(18% 0.015 260)',
-                    cursor: 'pointer', outline: 'none',
-                  }}
-                >
-                  {allBranches.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}{b.merged ? ' (merged)' : ''}
-                    </option>
-                  ))}
-                </select>
-                {/* Chevron icon */}
-                <div style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: textMuted }}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 5l4 4 4-4" />
-                  </svg>
-                </div>
-                {activeBranchData && (
-                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                )}
-              </div>
-            )}
-            {/* Branch pills row - quick filter chips */}
-            {!loading && branches.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                {allBranches.slice(0, 5).map(b => (
-                  <button
-                    key={b.id}
-                    onClick={() => setActiveBranch(b.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '4px 10px', borderRadius: 20, fontSize: 11,
-                      fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
-                      border: activeBranch === b.id ? `1.5px solid ${b.color}` : `1.5px solid ${branchPillInactiveBorder}`,
-                      background: activeBranch === b.id ? `${b.color}22` : branchPillInactiveBg,
-                      color: activeBranch === b.id ? b.color : textMuted,
-                      cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
-                    }}
-                  >
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
-                    {b.name === 'all' ? 'all' : b.name.replace('what-if/', '⎇ ')}
-                    {b.merged && <span style={{ fontSize: 9, opacity: 0.7 }}> ✓</span>}
-                  </button>
-                ))}
-                {allBranches.length > 5 && (
-                  <span style={{ fontSize: 11, color: textMuted, padding: '4px 6px', alignSelf: 'center' }}>+{allBranches.length - 5} more</span>
-                )}
-              </div>
-            )}
-          </div>
+          <MobileBranchSelector
+            loading={loading}
+            allBranches={allBranches}
+            activeBranch={activeBranch}
+            setActiveBranch={setActiveBranch}
+            isDark={isDark}
+            panelBg={panelBg}
+            panelBorder={panelBorder}
+            textPri={textPri}
+            textMuted={textMuted}
+            skeletonBg={skeletonBg}
+            branchSelectBg={branchSelectBg}
+            branchSelectBorder={branchSelectBorder}
+            branchActiveBg={branchActiveBg}
+          />
 
           {/* ── 3. Git Graph ── */}
           <div style={{ background: panelBg, borderRadius: 14, border: `1px solid ${panelBorder}`, padding: '14px', overflow: 'hidden' }}>

@@ -40,23 +40,146 @@ function Toggle({ checked, onChange, disabled, dk }) {
 function Row({ label, sub, right, dk }) {
   const t = dk || {};
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: `1px solid ${t.borderRow || 'oklch(96% 0.004 80)'}` }}>
-      <div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '11px 0', borderBottom: `1px solid ${t.borderRow || 'oklch(96% 0.004 80)'}`, flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 500, color: t.textPri || 'oklch(20% 0.01 260)' }}>{label}</div>
         {sub && <div style={{ fontSize: 11.5, color: t.textSec || 'oklch(58% 0.01 260)', marginTop: 2 }}>{sub}</div>}
       </div>
-      {right}
+      <div style={{ flexShrink: 0 }}>{right}</div>
     </div>
   );
 }
 
-function SelectInput({ value, onChange, opts, disabled, dk }) {
+function ThemePicker({ value, onChange, disabled, dk }) {
   const t = dk || {};
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const opts = [
+    {
+      value: 'light',
+      label: 'Light',
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="8" r="3" />
+          <line x1="8" y1="1" x2="8" y2="2.5" /><line x1="8" y1="13.5" x2="8" y2="15" />
+          <line x1="1" y1="8" x2="2.5" y2="8" /><line x1="13.5" y1="8" x2="15" y2="8" />
+          <line x1="3.1" y1="3.1" x2="4.2" y2="4.2" /><line x1="11.8" y1="11.8" x2="12.9" y2="12.9" />
+          <line x1="12.9" y1="3.1" x2="11.8" y2="4.2" /><line x1="4.2" y1="11.8" x2="3.1" y2="12.9" />
+        </svg>
+      ),
+    },
+    {
+      value: 'dark',
+      label: 'Dark',
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M13.5 10.5A6 6 0 0 1 5.5 2.5a6 6 0 1 0 8 8z" />
+        </svg>
+      ),
+    },
+    {
+      value: 'system',
+      label: 'System',
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="2" width="14" height="10" rx="1.5" />
+          <line x1="5" y1="15" x2="11" y2="15" /><line x1="8" y1="12" x2="8" y2="15" />
+        </svg>
+      ),
+    },
+  ];
+
+  const active = opts.find(o => o.value === value) || opts[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
-      style={{ padding: '5px 10px', borderRadius: 7, border: `1px solid ${t.inputBdr || 'oklch(88% 0.008 260)'}`, fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: t.textPri || 'oklch(25% 0.01 260)', background: disabled ? (t.inputBgDis || 'oklch(97% 0.004 80)') : (t.inputBg || 'white'), cursor: disabled ? 'not-allowed' : 'pointer', outline: 'none' }}>
-      {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-    </select>
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          padding: '6px 10px 6px 10px', borderRadius: 8,
+          border: `1px solid ${open ? 'oklch(60% 0.15 260)' : (t.inputBdr || 'oklch(88% 0.008 260)')}`,
+          background: disabled ? (t.inputBgDis || 'oklch(97% 0.004 80)') : (t.inputBg || 'white'),
+          color: t.textPri || 'oklch(25% 0.01 260)',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          outline: 'none', opacity: disabled ? 0.55 : 1,
+          transition: 'border-color 0.15s, background 0.15s',
+          fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif",
+          minWidth: 110,
+        }}
+      >
+        <span style={{ color: open ? 'oklch(60% 0.15 260)' : (t.textSec || 'oklch(58% 0.01 260)'), display: 'flex', transition: 'color 0.15s' }}>
+          {active.icon}
+        </span>
+        <span style={{ flex: 1, textAlign: 'left' }}>{active.label}</span>
+        <svg
+          width="11" height="11" viewBox="0 0 11 11" fill="none"
+          stroke={t.textMuted || 'oklch(52% 0.01 260)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+          style={{ flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        >
+          <path d="M2 4l3.5 3.5L9 4" />
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 5px)', right: 0, zIndex: 50,
+          background: t.inputBg || 'white',
+          border: `1px solid ${t.isDarkMode ? 'oklch(30% 0.012 260)' : 'oklch(90% 0.007 260)'}`,
+          borderRadius: 10,
+          boxShadow: t.isDarkMode
+            ? '0 6px 22px oklch(8% 0.01 260 / 0.5)'
+            : '0 6px 22px oklch(25% 0.05 260 / 0.1)',
+          overflow: 'hidden', minWidth: 130,
+        }}>
+          {opts.map((o, i) => {
+            const isActive = value === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '9px 12px',
+                  border: 'none',
+                  borderTop: i === 0 ? 'none' : `1px solid ${t.isDarkMode ? 'oklch(26% 0.01 260)' : 'oklch(95% 0.005 260)'}`,
+                  background: isActive
+                    ? (t.isDarkMode ? 'oklch(26% 0.02 260)' : 'oklch(96% 0.015 260)')
+                    : 'transparent',
+                  color: isActive ? (t.textPri || 'oklch(20% 0.01 260)') : (t.textSec || 'oklch(58% 0.01 260)'),
+                  cursor: 'pointer', outline: 'none',
+                  transition: 'background 0.1s',
+                  fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = t.isDarkMode ? 'oklch(24% 0.012 260)' : 'oklch(97% 0.006 80)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span style={{ display: 'flex', flexShrink: 0 }}>{o.icon}</span>
+                <span style={{ flex: 1, textAlign: 'left', fontWeight: isActive ? 600 : 400 }}>{o.label}</span>
+                {isActive && (
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
+                    stroke="oklch(52% 0.2 260)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}>
+                    <path d="M1.5 5.5l3 3 5-5" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -577,12 +700,11 @@ export default function SettingsView({ saveRef, onHasChanges }) {
             label="Appearance"
             sub="Interface theme"
             right={
-              <SelectInput
+              <ThemePicker
                 dk={dk}
                 value={prefs.appearance}
                 onChange={setAppearance}
                 disabled={prefsLoading}
-                opts={[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]}
               />
             }
           />

@@ -165,7 +165,7 @@ function GridTile({ item, onClick }) {
 }
 
 // ── Post Card (for the feed view) ─────────────────────────────────────────────
-function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, onDelete, isOwnProfile, isDark }) {
+function PostCard({ item, currentUserId, isStashed, onReact, onFork, onMerge, onStash, onMessage, onProfile, reactionOverride, onDelete, isOwnProfile, isDark }) {
   const isMobile = useIsMobile();
   const user = item.userInfo;
   const ini = userInitials(user);
@@ -226,13 +226,6 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
       onMouseEnter={e => { if (!isMobile) { e.currentTarget.style.boxShadow = '0 2px 16px oklch(70% 0.01 260 / 0.1)'; setHovered(true); } }}
       onMouseLeave={e => { if (!isMobile) { e.currentTarget.style.boxShadow = 'none'; setHovered(false); } }}
     >
-      {/* what-if label */}
-      {wi && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(68% 0.19 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
-          ⎇ what-if branch
-        </div>
-      )}
-
       {/* Author row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         {user?.avatarUrl
@@ -254,7 +247,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
             <span>{timeAgo(item.createdAt || item.timestamp)}</span>
           </div>
         </div>
-        <BranchPill name={item.branch_name || 'main'} wi={wi} merged={false} />
+        <BranchPill name={(item.branch_name || 'main').replace(/^what-if\//i, '')} wi={wi} merged={false} />
         {isOwnPost && onDelete && (
           <div style={{ position: 'relative' }} ref={menuRef}>
             <button onClick={e => { e.stopPropagation(); setMenuOpen(p => !p); }} title="More options"
@@ -313,8 +306,10 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         commentCount={localCommentCount}
         isStashed={isStashed}
         isAuthor={isOwnPost}
-        viewCount={item.viewCount ?? 0}
+        isFork={!!(item.forkedFrom || item.forked_from)}
         onReact={onReact}
+        onFork={onFork}
+        onMerge={onMerge}
         onReplyClick={() => setCommentOpen(p => !p)}
         onStash={onStash}
         onShare={!isOwnPost && onMessage && userId ? () => onMessage(userId) : null}
@@ -330,7 +325,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 }
 
 // ── Profile Feed View ─────────────────────────────────────────────────────────
-function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, onDelete, isOwnProfile, isDark }) {
+function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, onReact, onFork, onMerge, onStash, onMessage, onProfile, reactionState, onDelete, isOwnProfile, isDark }) {
   const isMobile = useIsMobile();
   const scrollRef = useRef();
   const itemRefs = useRef({});
@@ -368,6 +363,8 @@ function ProfileFeedView({ items, startId, onBack, currentUserId, localStashed, 
                 currentUserId={currentUserId}
                 isStashed={localStashed.has(item.id)}
                 onReact={onReact}
+                onFork={onFork}
+                onMerge={onMerge}
                 onStash={onStash}
                 onMessage={onMessage}
                 onProfile={onProfile}
@@ -978,6 +975,14 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
     });
   };
 
+  const handleFork = (item) => {
+    window.dispatchEvent(new CustomEvent('gitlife:fork', { detail: item }));
+  };
+
+  const handleMerge = (commitId) => {
+    window.dispatchEvent(new CustomEvent('gitlife:merge', { detail: { commitId } }));
+  };
+
   const handleStash = (id) => {
     const wasStashed = localStashed.has(id);
     setLocalStashed(prev => { const n = new Set(prev); wasStashed ? n.delete(id) : n.add(id); return n; });
@@ -989,8 +994,10 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
   };
 
   const openFeed = (item) => {
-    setFeedStartId(item.id || item._id);
+    const id = item.id || item._id;
+    setFeedStartId(id);
     setFeedView(true);
+    window.history.pushState({ postId: id }, '', `/post/${id}`);
   };
 
   const queryClient = useQueryClient();
@@ -1071,10 +1078,12 @@ export default function ProfileView({ viz, username, onProfile, onMessage, curre
       <ProfileFeedView
         items={sortedDecisions}
         startId={feedStartId}
-        onBack={() => setFeedView(false)}
+        onBack={() => { setFeedView(false); window.history.back(); }}
         currentUserId={currentUser?.id || currentUser?._id || user?.id}
         localStashed={localStashed}
         onReact={handleReact}
+        onFork={handleFork}
+        onMerge={handleMerge}
         onStash={handleStash}
         onMessage={onMessage}
         onProfile={onProfile}

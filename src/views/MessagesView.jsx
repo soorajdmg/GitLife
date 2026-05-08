@@ -143,8 +143,8 @@ function NewChatModal({ onClose, onStart, currentUserId, isDark }) {
         <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${m.borderFaint}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: m.textPri }}>New message</div>
           <button onClick={onClose}
-            style={{ border: 'none', background: m.closeBtnBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.textMuted, fontSize: 14, lineHeight: 1 }}>
-            ✕
+            style={{ border: 'none', background: m.closeBtnBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.textMuted }}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><line x1="3" y1="3" x2="11" y2="11" /><line x1="11" y1="3" x2="3" y2="11" /></svg>
           </button>
         </div>
         <div style={{ padding: '10px 18px', borderBottom: `1px solid ${m.borderSub}` }}>
@@ -161,7 +161,9 @@ function NewChatModal({ onClose, onStart, currentUserId, isDark }) {
             />
             {query && (
               <button onClick={() => setQuery('')}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: m.textMuted, fontSize: 13, lineHeight: 1 }}>✕</button>
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: m.textMuted, display: 'flex', alignItems: 'center' }}>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><line x1="3" y1="3" x2="11" y2="11" /><line x1="11" y1="3" x2="3" y2="11" /></svg>
+              </button>
             )}
           </div>
         </div>
@@ -1117,13 +1119,13 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
             <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? 'oklch(85% 0.01 260)' : 'oklch(32% 0.01 260)' }}>Messages</span>
             <button onClick={() => setShowNewChat(true)} title="New message"
               style={{ border: 'none', background: isDark ? 'oklch(26% 0.02 260)' : 'oklch(95% 0.015 260)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, color: isDark ? 'oklch(72% 0.15 260)' : 'oklch(45% 0.15 260)' }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                 <line x1="7" y1="2" x2="7" y2="12" /><line x1="2" y1="7" x2="12" y2="7" />
               </svg>
             </button>
           </div>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: isDark ? 'oklch(55% 0.01 260)' : 'oklch(65% 0.01 260)' }}>⌕</span>
+            <svg style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={isDark ? 'oklch(55% 0.01 260)' : 'oklch(65% 0.01 260)'} strokeWidth="1.6" strokeLinecap="round"><circle cx="6" cy="6" r="4" /><line x1="9.5" y1="9.5" x2="12.5" y2="12.5" /></svg>
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search messages..."
               style={{ width: '100%', padding: '7px 10px 7px 28px', borderRadius: 8, border: `1px solid ${isDark ? 'oklch(30% 0.012 260)' : 'oklch(90% 0.008 260)'}`, fontSize: 12.5, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none', background: isDark ? 'oklch(22% 0.01 260)' : 'oklch(98.5% 0.005 80)', color: isDark ? 'oklch(88% 0.008 260)' : 'oklch(18% 0.015 260)', boxSizing: 'border-box' }} />
@@ -1356,7 +1358,7 @@ export default function MessagesView({ onProfile, isMobile, onMobilePaneChange }
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                   }}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="8" y1="13" x2="8" y2="3" /><polyline points="4 7 8 3 12 7" />
                   </svg>
                 </button>

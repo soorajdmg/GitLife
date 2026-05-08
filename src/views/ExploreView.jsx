@@ -8,7 +8,7 @@ import BranchPill from '../components/ui/BranchPill';
 import Tag from '../components/ui/Tag';
 import EngagementBar from '../components/ui/EngagementBar';
 import CommentThread from '../components/ui/CommentThread';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { catColor, fmt } from '../data/gitlife';
 
 const CATEGORIES = ['Career', 'Health', 'Relationships', 'Finance', 'Education', 'Travel', 'Housing'];
@@ -192,7 +192,7 @@ function GridTile({ item, onClick }) {
         )}
         <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
           <span style={{ color: 'white', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="white"><path d="M7 11.5 C7 11.5 1.5 8 1.5 4.5a2.8 2.8 0 0 1 5.5-0.8 2.8 2.8 0 0 1 5.5 0.8C12.5 8 7 11.5 7 11.5z" /></svg>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M7 11.5 C7 11.5 1.5 8 1.5 4.5a2.8 2.8 0 0 1 5.5-0.8 2.8 2.8 0 0 1 5.5 0.8C12.5 8 7 11.5 7 11.5z" /></svg>
             {fmt(totalReactions)}
           </span>
           <span style={{ color: 'white', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -208,7 +208,7 @@ function GridTile({ item, onClick }) {
 }
 
 // ─── Single Post Card (used in feed view) ────────────────────────────────────
-function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage, onProfile, reactionOverride, isDark }) {
+function PostCard({ item, currentUserId, isStashed, onReact, onFork, onMerge, onStash, onMessage, onProfile, reactionOverride, isDark }) {
   const isMobile = useIsMobile();
   const user = item.userInfo;
   const ini = userInitials(user);
@@ -249,12 +249,6 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
       onMouseEnter={e => { if (!isMobile) e.currentTarget.style.boxShadow = isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'; }}
       onMouseLeave={e => { if (!isMobile) e.currentTarget.style.boxShadow = 'none'; }}
     >
-      {wi && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.19 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>
-          ⎇ what-if branch
-        </div>
-      )}
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         {user?.avatarUrl
           ? <img src={user.avatarUrl} alt={ini} onClick={() => onProfile?.(user?.username || userId)}
@@ -280,7 +274,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
             <span>{timeAgo(item.createdAt || item.timestamp)}</span>
           </div>
         </div>
-        <BranchPill name={item.branch_name || 'main'} wi={wi} merged={false} />
+        <BranchPill name={(item.branch_name || 'main').replace(/^what-if\//i, '')} wi={wi} merged={false} />
       </div>
 
       <div
@@ -324,8 +318,10 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
         commentCount={localCommentCount}
         isStashed={isStashed}
         isAuthor={isOwnPost}
-        viewCount={item.viewCount ?? 0}
+        isFork={!!(item.forkedFrom || item.forked_from)}
         onReact={onReact}
+        onFork={onFork}
+        onMerge={onMerge}
         onReplyClick={() => setCommentOpen(p => !p)}
         onStash={onStash}
         onShare={!isOwnPost && onMessage && userId ? () => onMessage(userId) : null}
@@ -345,7 +341,7 @@ function PostCard({ item, currentUserId, isStashed, onReact, onStash, onMessage,
 }
 
 // ─── Feed View (full-screen vertical scroll) ──────────────────────────────────
-function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onStash, onMessage, onProfile, reactionState, isDark }) {
+function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onFork, onMerge, onStash, onMessage, onProfile, reactionState, isDark }) {
   const isMobile = useIsMobile();
   const scrollRef = useRef();
 
@@ -384,6 +380,8 @@ function PostFeedView({ items, onBack, currentUserId, localStashed, onReact, onS
                 currentUserId={currentUserId}
                 isStashed={localStashed.has(item.id)}
                 onReact={onReact}
+                onFork={onFork}
+                onMerge={onMerge}
                 onStash={onStash}
                 onMessage={onMessage}
                 onProfile={onProfile}
@@ -442,11 +440,12 @@ function UserCard({ user, onMessage, onProfile, isDark }) {
 }
 
 // ─── Main View ────────────────────────────────────────────────────────────────
-export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange, onFollowChange }) {
+export default function ExploreView({ onMessage, onProfile, currentUser, stashedIds = [], onStashChange, onFollowChange, initialPostId }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const isMobile = useIsMobile();
   const location = useLocation();
+  const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('trending');
@@ -488,6 +487,17 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     }
   }, [suggestedUsers]);
 
+  // Auto-open a post when mounted with initialPostId (direct /post/:id link)
+  useEffect(() => {
+    if (!initialPostId || loading || feed.length === 0) return;
+    const item = feed.find(f => f.id === initialPostId);
+    if (item) {
+      const rest = feed.filter(f => f.id !== initialPostId);
+      setFeedItems([item, ...rest]);
+      setFeedView(true);
+    }
+  }, [initialPostId, loading, feed.length]);
+
   const handleReact = (id, type) => {
     setReactionState(prev => {
       const item = feed.find(f => f.id === id);
@@ -515,6 +525,17 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     }).catch(() => {
       setReactionState(prev => { const n = { ...prev }; delete n[id]; return n; });
     });
+  };
+
+  const handleFork = (item) => {
+    // Open new-commit modal pre-filled via the global fork flow
+    // The item object is passed so App.jsx can set forkSource if needed.
+    // For Explore we navigate to feed with the fork pre-filled via URL state.
+    window.dispatchEvent(new CustomEvent('gitlife:fork', { detail: item }));
+  };
+
+  const handleMerge = (commitId) => {
+    window.dispatchEvent(new CustomEvent('gitlife:merge', { detail: { commitId } }));
   };
 
   const handleStash = (id) => {
@@ -576,6 +597,7 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     const rest = sortedItems.filter(i => i.id !== item.id);
     setFeedItems([item, ...rest]);
     setFeedView(true);
+    window.history.pushState({ postId: item.id }, '', `/post/${item.id}`);
   };
 
   // Token shortcuts
@@ -594,10 +616,19 @@ export default function ExploreView({ onMessage, onProfile, currentUser, stashed
     return (
       <PostFeedView
         items={feedItems}
-        onBack={() => setFeedView(false)}
+        onBack={() => {
+          setFeedView(false);
+          if (initialPostId) {
+            navigate('/explore');
+          } else {
+            window.history.back();
+          }
+        }}
         currentUserId={currentUser?.id || currentUser?._id}
         localStashed={localStashed}
         onReact={handleReact}
+        onFork={handleFork}
+        onMerge={handleMerge}
         onStash={handleStash}
         onMessage={onMessage}
         onProfile={onProfile}

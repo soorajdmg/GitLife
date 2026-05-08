@@ -78,7 +78,9 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
         {/* Header */}
         <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${dm.borderSub}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: dm.textPri }}>Send commit in DM</div>
-          <button onClick={onClose} className="btn-press" style={{ border: 'none', background: dm.closeBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.textMuted, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} className="btn-press" style={{ border: 'none', background: dm.closeBg, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.textMuted }}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><line x1="3" y1="3" x2="11" y2="11" /><line x1="11" y1="3" x2="3" y2="11" /></svg>
+          </button>
         </div>
 
         {/* Commit preview */}
@@ -104,7 +106,9 @@ function SendCommitDMModal({ commit, currentUserId, onClose, onSend, isDark }) {
               placeholder="Search by name or @username…"
               style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: dm.textPri }}
             />
-            {query && <button onClick={() => setQuery('')} className="btn-press" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: dm.textMuted, fontSize: 13 }}>✕</button>}
+            {query && <button onClick={() => setQuery('')} className="btn-press" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: dm.textMuted, display: 'flex', alignItems: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><line x1="3" y1="3" x2="11" y2="11" /><line x1="11" y1="3" x2="3" y2="11" /></svg>
+            </button>}
           </div>
         </div>
 
@@ -270,8 +274,6 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
       onMouseEnter={e => { if (!isMobile) { const inset = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30), ' : ''; e.currentTarget.style.boxShadow = inset + (isDark ? '0 2px 16px oklch(5% 0.01 260 / 0.4)' : '0 2px 16px oklch(70% 0.01 260 / 0.1)'); setHovered(true); } }}
       onMouseLeave={e => { if (!isMobile) { e.currentTarget.style.boxShadow = blameStatus === 'broken' ? 'inset 3px 0 0 oklch(60% 0.18 30)' : 'none'; setHovered(false); } }}
     >
-      {c.wi && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: isDark ? 'oklch(65% 0.15 55)' : 'oklch(48% 0.19 55)', fontWeight: 500, marginBottom: 8 }}>⎇ what-if branch</div>}
-
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div onClick={() => onProfile && (c.userInfo?.username || c.userId) && onProfile(c.userInfo?.username || c.userId)} style={{ cursor: onProfile && (c.userInfo?.username || c.userId) ? 'pointer' : 'default', flexShrink: 0 }}>
@@ -288,7 +290,7 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
             <span>{user.handle}</span><span>·</span><span>{c.ts}</span>
           </div>
         </div>
-        <BranchPill name={c.branch} wi={c.wi} merged={false} />
+        <BranchPill name={(c.branch || 'main').replace(/^what-if\//i, '')} wi={c.wi} merged={false} />
         {/* Forked-from attribution */}
         {c.forkedFrom?.username && (
           <span
@@ -337,7 +339,10 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                     onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(24% 0.02 30)' : 'oklch(97% 0.01 30)'; }}
                     onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
-                    ⚠ Mark as broken
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 1L13 12H1L7 1z" /><line x1="7" y1="5.5" x2="7" y2="8" /><circle cx="7" cy="10" r="0.6" fill="currentColor" />
+                    </svg>
+                    Mark as broken
                   </button>
                 )}
                 {blameStatus === 'broken' && (
@@ -348,7 +353,10 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                     onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = isDark ? 'oklch(22% 0.02 155)' : 'oklch(97% 0.01 155)'; }}
                     onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
-                    ✓ Mark as resolved
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 7l3.5 3.5L12 4" />
+                    </svg>
+                    Mark as resolved
                   </button>
                 )}
                 {blameStatus && (
@@ -359,7 +367,10 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
                     onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = menuHover || 'oklch(97% 0.005 260)'; }}
                     onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
                   >
-                    ✕ Clear blame
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="3" y1="3" x2="11" y2="11" /><line x1="11" y1="3" x2="3" y2="11" />
+                    </svg>
+                    Clear blame
                   </button>
                 )}
                 <div style={{ margin: '4px 12px', borderTop: `1px solid ${menuDivider}` }} />
@@ -417,7 +428,12 @@ export default function CommitCard({ c, onReact, onFork, onMerge, onStash, onDel
       {/* Inline blame form */}
       {blameFormOpen && (
         <div style={{ marginBottom: 12, padding: '10px 12px', background: isDark ? 'oklch(20% 0.015 30)' : 'oklch(98% 0.008 30)', borderRadius: 8, border: `1px solid ${isDark ? 'oklch(32% 0.05 30)' : 'oklch(90% 0.05 30)'}` }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: isDark ? 'oklch(65% 0.18 30)' : 'oklch(45% 0.18 30)', marginBottom: 6 }}>⚠ What went wrong?</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: isDark ? 'oklch(65% 0.18 30)' : 'oklch(45% 0.18 30)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 1L13 12H1L7 1z" /><line x1="7" y1="5.5" x2="7" y2="8" /><circle cx="7" cy="10" r="0.6" fill="currentColor" />
+            </svg>
+            What went wrong?
+          </div>
           <textarea
             value={blameNote}
             onChange={e => setBlameNote(e.target.value)}

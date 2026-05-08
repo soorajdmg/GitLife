@@ -21,7 +21,12 @@ export default function BranchPill({ name, wi, merged }) {
       fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 500,
       background: bg, color: fg, whiteSpace: 'nowrap'
     }}>
-      {merged ? '✓' : wi ? '⎇' : '●'} {name}
+      {merged ? '✓' : wi ? (
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <circle cx="5" cy="3.5" r="1.5" /><circle cx="5" cy="12.5" r="1.5" /><circle cx="11" cy="6.5" r="1.5" />
+          <line x1="5" y1="5" x2="5" y2="11" /><path d="M5 5c0 0 0-1.5 6 0" />
+        </svg>
+      ) : '●'} {name}
     </span>
   );
 }

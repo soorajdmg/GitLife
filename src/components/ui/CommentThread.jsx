@@ -174,8 +174,8 @@ function CommentItem({ comment, currentUserId, onDelete, onReply, onProfile, onL
                 onMouseEnter={e => { if (!isMobile) e.currentTarget.style.background = 'oklch(93% 0.005 80)'; }}
                 onMouseLeave={e => { if (!isMobile) e.currentTarget.style.background = 'none'; }}
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                  <circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                  <circle cx="7" cy="2.5" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="7" cy="11.5" r="1.2" />
                 </svg>
               </button>
               {menuOpen && (

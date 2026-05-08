@@ -145,6 +145,11 @@ function ProfileViewRoute(props) {
   return <ProfileView {...props} username={username || null} />;
 }
 
+function PostViewRoute(props) {
+  const { id } = useParams();
+  return <ExploreView {...props} initialPostId={id} />;
+}
+
 /* ─── NOTIFICATIONS DROPDOWN ─── */
 const NOTIF_TYPE_ICON = { fork: '⎇', merge: '↩', support: '♡', follow: '👤', comment: '💬', reply: '↪' };
 const NOTIF_TYPE_BG   = { fork: 'oklch(93% 0.06 60)', merge: 'oklch(93% 0.05 260)', support: 'oklch(93% 0.05 155)', follow: 'oklch(93% 0.05 330)', comment: 'oklch(93% 0.05 60)', reply: 'oklch(93% 0.05 260)' };
@@ -651,7 +656,7 @@ export default function App() {
   const queryClient = useQueryClient();
 
   // Derive active nav from URL
-  const activeNav = pathname.startsWith('/explore') ? 'explore'
+  const activeNav = pathname.startsWith('/explore') || pathname.startsWith('/post/') ? 'explore'
     : pathname.startsWith('/profile') ? 'profile'
     : pathname.startsWith('/graph') ? 'graph'
     : pathname.startsWith('/messages') ? 'messages'
@@ -785,6 +790,18 @@ export default function App() {
     window.addEventListener('message', h);
     window.parent?.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', h);
+  }, []);
+
+  // Global fork/merge events from Explore and Profile views
+  useEffect(() => {
+    const onFork = e => handleFork(e.detail);
+    const onMerge = e => handleMerge(e.detail.commitId);
+    window.addEventListener('gitlife:fork', onFork);
+    window.addEventListener('gitlife:merge', onMerge);
+    return () => {
+      window.removeEventListener('gitlife:fork', onFork);
+      window.removeEventListener('gitlife:merge', onMerge);
+    };
   }, []);
 
   const react = (id, type) => {
@@ -1150,6 +1167,7 @@ export default function App() {
             <Route path="/messages" element={<MessagesView onProfile={openProfile} isMobile={isMobile} onMobilePaneChange={setMsgMobilePane} />} />
             <Route path="/notifications" element={<NotificationsView />} />
             <Route path="/settings" element={<SettingsView saveRef={settingsSaveRef} onHasChanges={setSettingsHasChanges} />} />
+            <Route path="/post/:id" element={<PostViewRoute onMessage={openMessage} onProfile={openProfile} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />
             <Route path="/:username" element={<ProfileViewRoute viz={tweaks.timelineViz} onProfile={openProfile} onMessage={openMessage} currentUser={user} stashedIds={stashedIds} onStashChange={(id, stashed) => setStashedIds(prev => stashed ? [...prev, id] : prev.filter(x => x !== id))} onFollowChange={handleFollowChange} />} />
           </Routes>
         </div>

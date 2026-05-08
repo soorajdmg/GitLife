@@ -40,7 +40,6 @@ export default function EngagementBar({
   isStashed = false,
   isAuthor = false,
   isFork = false,
-  viewCount = 0,
   onReact,
   onFork,
   onMerge,
@@ -141,16 +140,8 @@ export default function EngagementBar({
         </button>
       </div>
 
-      {/* Right: views (author-only), stash, share */}
+      {/* Right: stash, share */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {isAuthor && (
-          <span style={{ fontSize: 11, color: inactiveColor, display: 'flex', alignItems: 'center', gap: 3, marginRight: 4 }} title="Views (only you can see this)">
-            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1.5 7C1.5 7 3.5 3 7 3s5.5 4 5.5 4-2 4-5.5 4S1.5 7 1.5 7z" /><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" />
-            </svg>
-            {fmt(viewCount)}
-          </span>
-        )}
 
         {/* Stash */}
         <button

@@ -84,7 +84,12 @@ router.get('/', authenticateToken, async (req, res) => {
           }
         }
       },
-      { $sort: { trendScore: -1 } },
+      // When fetching a specific user's profile, sort chronologically (newest first).
+      // For the general feed, sort by trending score.
+      ...(userId && userId.trim()
+        ? [{ $sort: { createdAt: -1 } }]
+        : [{ $sort: { trendScore: -1 } }]
+      ),
       { $limit: parseInt(limit) },
       {
         $lookup: {

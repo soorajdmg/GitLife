@@ -36,4 +36,4 @@ build
 .netlify
 
 # Claude Code settings
-.claude/
+.claude

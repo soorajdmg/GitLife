@@ -87,6 +87,7 @@ function Root() {
     <Routes>
       <Route path="/" element={<LandingRoute />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/auth/google/callback" element={<LoginRoute />} />
       <Route path="/*" element={<AppRoute />} />
     </Routes>
   );

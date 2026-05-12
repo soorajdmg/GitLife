@@ -1,10 +1,10 @@
-# GitLife — Version Control for Your Life Decisions
+# GitLife - Version Control for Your Life Decisions
 
 ![gitlifeVideoGIF](https://github.com/user-attachments/assets/e8623512-85ee-4cda-b70a-a25f428e4a73)
 
 > Commit your choices. Branch your timelines. Visualize your path.
 
-GitLife is a full-stack social platform that gamifies life decision-making using Git metaphors. Track decisions as commits, create alternate-life branches, explore an interactive decision graph, and share your journey with a community—all without needing to know anything about Git.
+GitLife is a full-stack social platform that gamifies life decision-making using Git metaphors. Track decisions as commits, create alternate-life branches, explore an interactive decision graph, and share your journey with a community, all without needing to know anything about Git.
 
 ---
 
@@ -23,36 +23,36 @@ GitLife is a full-stack social platform that gamifies life decision-making using
 ## Features
 
 ### Core
-- **Decision Commits** — Log life choices with a title, branch, mood emoji, impact score (1–100), category, description, and optional image
-- **Branch Management** — Create alternate timeline branches for "what if" scenarios; track commits and impact per branch
-- **Interactive Decision Graph** — Visualize decisions as linked nodes using React Flow; explore dependency chains between choices
-- **Blame Chains** — Mark decisions with blame status and notes; trace responsibility through a chain of linked choices
-- **Stash System** — Draft decisions without publishing them; retrieve them when you're ready to commit
+- **Decision Commits** - Log life choices with a title, branch, mood emoji, impact score (1-100), category, description, and optional image
+- **Branch Management** - Create alternate timeline branches for "what if" scenarios; track commits and impact per branch
+- **Interactive Decision Graph** - Visualize decisions as linked nodes using React Flow; explore dependency chains between choices
+- **Blame Chains** - Mark decisions with blame status and notes; trace responsibility through a chain of linked choices
+- **Stash System** - Draft decisions without publishing them; retrieve them when you're ready to commit
 
 ### Social
-- **Social Feed** — See commits from users you follow in chronological order
-- **Explore** — Discover public decisions, search users, and find suggested people to follow
-- **Reactions** — Fork, Merge, and Support reactions on other users' commits
-- **Comments & Threading** — Nested comment threads with like support on every decision
-- **Follow System** — Follow users and build a personalized feed
+- **Social Feed** - See commits from users you follow in chronological order
+- **Explore** - Discover public decisions, search users, and find suggested people to follow
+- **Reactions** - Fork, Merge, and Support reactions on other users' commits
+- **Comments & Threading** - Nested comment threads with like support on every decision
+- **Follow System** - Follow users and build a personalized feed
 
 ### Real-Time
-- **Direct Messaging** — Real-time chat powered by Socket.IO, with link preview generation, message editing, emoji reactions, and message search
-- **Notifications** — Live notifications for reactions, comments, messages, and follows
-- **Online Presence** — Real-time online status tracking
+- **Direct Messaging** - Real-time chat powered by Socket.IO, with link preview generation, message editing, emoji reactions, and message search
+- **Notifications** - Live notifications for reactions, comments, messages, and follows
+- **Online Presence** - Real-time online status tracking
 
 ### Profile & Analytics
-- **Stats Dashboard** — Track total decisions, branches, cumulative impact score, and mood distribution
-- **Mood Chart** — Recharts-powered visualization of emotional state trends over time
-- **User Profiles** — Public profile pages showing a user's decisions and stats
+- **Stats Dashboard** - Track total decisions, branches, cumulative impact score, and mood distribution
+- **Mood Chart** - Recharts-powered visualization of emotional state trends over time
+- **User Profiles** - Public profile pages showing a user's decisions and stats
 
 ### Platform
-- **Google OAuth + JWT Auth** — Register and log in with email/password or Google
-- **Image Uploads** — Attach images to decisions via Cloudinary
-- **Dark / Light Theme** — Full theme switching with an OKLch color system
-- **PWA Support** — Installable as a Progressive Web App
-- **Mobile-Optimized** — Bottom sheet modal for new commits, camera capture for image attachments
-- **Data Export** — Export your decision data at any time
+- **Google OAuth + JWT Auth** - Register and log in with email/password or Google
+- **Image Uploads** - Attach images to decisions via Cloudinary
+- **Dark / Light Theme** - Full theme switching with an OKLch color system
+- **PWA Support** - Installable as a Progressive Web App
+- **Mobile-Optimized** - Bottom sheet modal for new commits, camera capture for image attachments
+- **Data Export** - Export your decision data at any time
 
 ---
 
@@ -80,7 +80,7 @@ GitLife is a full-stack social platform that gamifies life decision-making using
 ### Prerequisites
 
 - Node.js v16+ (v18 recommended)
-- MongoDB — local install or [MongoDB Atlas](https://www.mongodb.com/atlas)
+- MongoDB - local install or [MongoDB Atlas](https://www.mongodb.com/atlas)
 - Google OAuth credentials (optional, for social login)
 - Cloudinary account (optional, for image uploads)
 
@@ -100,13 +100,13 @@ cd server && npm install && cd ..
 
 ### Running Locally
 
-**Terminal 1 — Backend** (runs on port 5000):
+**Terminal 1 - Backend** (runs on port 5000):
 ```bash
 cd server
 npm start
 ```
 
-**Terminal 2 — Frontend** (runs on port 5173):
+**Terminal 2 - Frontend** (runs on port 5173):
 ```bash
 npm run dev
 ```
@@ -117,7 +117,7 @@ Open [http://localhost:5173](http://localhost:5173), create an account, and star
 
 ## Environment Variables
 
-**Frontend** — create `.env` in the root directory:
+**Frontend** - create `.env` in the root directory:
 ```env
 VITE_API_URL=http://localhost:5000/api
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
@@ -125,7 +125,7 @@ VITE_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 VITE_CLOUDINARY_UPLOAD_PRESET=your-upload-preset
 ```
 
-**Backend** — create `server/.env`:
+**Backend** - create `server/.env`:
 ```env
 MONGODB_URI=mongodb://localhost:27017/gitlife
 PORT=5000

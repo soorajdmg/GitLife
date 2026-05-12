@@ -337,7 +337,7 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
               cursor: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'pointer' : 'not-allowed',
               transition: 'background 0.15s, color 0.15s',
             }}
-          >{uploading ? 'Uploading…' : '⎇ Commit'}</button>
+          >{uploading ? 'Uploading…' : 'Commit'}</button>
         </div>
 
         {prefill && (

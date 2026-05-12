@@ -1,145 +1,175 @@
-# 🌍 GitLife - Version Control System for your Life Decisions.
+# GitLife — Version Control for Your Life Decisions
 
 ![gitlifeVideoGIF](https://github.com/user-attachments/assets/e8623512-85ee-4cda-b70a-a25f428e4a73)
 
+> Commit your choices. Branch your timelines. Visualize your path.
+
+GitLife is a full-stack social platform that gamifies life decision-making using Git metaphors. Track decisions as commits, create alternate-life branches, explore an interactive decision graph, and share your journey with a community—all without needing to know anything about Git.
+
 ---
-Video Link: https://github.com/user-attachments/assets/fffc5474-a644-4cc9-8bed-7e239f70668d
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Scripts](#scripts)
+- [Contributing](#contributing)
+- [Contact](#contact)
+
 ---
 
-Welcome to GitLife, the app that proves version control can be as chaotic and unpredictable as your life! Forget the boring Git tutorials; we’re here to turn your life decisions into a version control system. Because who doesn’t want to commit their choices like they’re pushing code?
+## Features
 
-## 🚀 Table of Contents
+### Core
+- **Decision Commits** — Log life choices with a title, branch, mood emoji, impact score (1–100), category, description, and optional image
+- **Branch Management** — Create alternate timeline branches for "what if" scenarios; track commits and impact per branch
+- **Interactive Decision Graph** — Visualize decisions as linked nodes using React Flow; explore dependency chains between choices
+- **Blame Chains** — Mark decisions with blame status and notes; trace responsibility through a chain of linked choices
+- **Stash System** — Draft decisions without publishing them; retrieve them when you're ready to commit
 
-- [Introduction](#%EF%B8%8F-introduction)
-- [Features](#%F0%9F%8C%9F-features)
-- [Installation](#%F0%9F%9B%A0-installation)
-- [Usage](#%F0%9F%8F%92-usage)
-- [Controls](#%F0%9F%8F%92-controls)
-- [Contributing](#%F0%9F%A4%9D-contributing)
-- [Contact](#%F0%9F%93%AC-contact)
+### Social
+- **Social Feed** — See commits from users you follow in chronological order
+- **Explore** — Discover public decisions, search users, and find suggested people to follow
+- **Reactions** — Fork, Merge, and Support reactions on other users' commits
+- **Comments & Threading** — Nested comment threads with like support on every decision
+- **Follow System** — Follow users and build a personalized feed
 
-## 📖 Introduction
+### Real-Time
+- **Direct Messaging** — Real-time chat powered by Socket.IO, with link preview generation, message editing, emoji reactions, and message search
+- **Notifications** — Live notifications for reactions, comments, messages, and follows
+- **Online Presence** — Real-time online status tracking
 
-Welcome to GitLife! Here, you can interact with your life decisions just like you would with your Git repositories—without needing to understand anything about Git! Commit your choices, create new branches for those “what if” scenarios, and visualize your life timeline as a graph. It's like living your life with a commit history, because who needs spontaneity?
+### Profile & Analytics
+- **Stats Dashboard** — Track total decisions, branches, cumulative impact score, and mood distribution
+- **Mood Chart** — Recharts-powered visualization of emotional state trends over time
+- **User Profiles** — Public profile pages showing a user's decisions and stats
 
-## 🌟 Features
+### Platform
+- **Google OAuth + JWT Auth** — Register and log in with email/password or Google
+- **Image Uploads** — Attach images to decisions via Cloudinary
+- **Dark / Light Theme** — Full theme switching with an OKLch color system
+- **PWA Support** — Installable as a Progressive Web App
+- **Mobile-Optimized** — Bottom sheet modal for new commits, camera capture for image attachments
+- **Data Export** — Export your decision data at any time
 
-- **Multi-User Support**: Create your own account and keep your existential crises private!
-- **Secure Authentication**: JWT-based login system—because your life decisions deserve encryption.
-- **Decision Commits**: Turn every life choice into a commit—because it's easier to track regrets this way!
-- **Branch Out**: Create branches for alternative paths in life, so you can wonder "what if?" without any real commitment.
-- **Graphical Timeline**: Visualize your life as a graph, showing your ups, downs, and existential crises.
-- **Impact Tracking**: Measure the impact of your decisions with a fancy slider (1-100).
-- **Mood Logging**: Track your emotional state with emojis—because words are overrated.
-- **Private Data**: Each user's data is completely isolated—no one else needs to see your chaos.
-- **User-Friendly Interface**: Enjoy navigating through choices with an interface that may or may not make sense.
-- **Community Shenanigans**: Join others who are just as lost as you are, sharing the joys of turning life into code.
+---
 
-## 🛠 Installation
+## Tech Stack
 
-Ready to embark on this emotional rollercoaster? Here's how to get started:
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, React Router v6 |
+| Styling | Tailwind CSS, Framer Motion |
+| Server State | TanStack React Query v5 |
+| Graph | React Flow (@xyflow/react) |
+| Charts | Recharts |
+| Backend | Express.js (Node.js, ES Modules) |
+| Database | MongoDB (native driver) |
+| Real-time | Socket.IO |
+| Auth | JWT, bcryptjs, Google OAuth |
+| Media | Cloudinary, Multer |
+| Security | Helmet, express-validator, CORS |
+| Deployment | Render (render.yaml included) |
+
+---
+
+## Getting Started
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- MongoDB (local installation or MongoDB Atlas account)
 
-### Quick Start
+- Node.js v16+ (v18 recommended)
+- MongoDB — local install or [MongoDB Atlas](https://www.mongodb.com/atlas)
+- Google OAuth credentials (optional, for social login)
+- Cloudinary account (optional, for image uploads)
 
-1. **Clone the repository:**
-    ```sh
-    git clone https://github.com/soorajdmg/GitLife
-    cd GitLife
-    ```
+### Installation
 
-2. **Install dependencies:**
-    ```sh
-    # Install frontend dependencies
-    npm install
+```bash
+# 1. Clone the repo
+git clone https://github.com/soorajdmg/GitLife
+cd GitLife
 
-    # Install backend dependencies
-    cd server
-    npm install
-    cd ..
-    ```
+# 2. Install frontend dependencies
+npm install
 
-3. **Set up environment variables:**
+# 3. Install backend dependencies
+cd server && npm install && cd ..
+```
 
-    Create `.env` file in root directory:
-    ```
-    VITE_API_URL=http://localhost:5000/api
-    ```
+### Running Locally
 
-    Create `server/.env` file:
-    ```
-    MONGODB_URI=mongodb://localhost:27017/gitlife
-    PORT=5000
-    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-    ```
+**Terminal 1 — Backend** (runs on port 5000):
+```bash
+cd server
+npm start
+```
 
-4. **Start MongoDB:**
-    ```sh
-    # On macOS (if installed via homebrew)
-    brew services start mongodb-community
+**Terminal 2 — Frontend** (runs on port 5173):
+```bash
+npm run dev
+```
 
-    # On Windows/Linux
-    mongod
-    ```
-
-5. **Run the application:**
-
-    Terminal 1 - Start backend:
-    ```sh
-    cd server
-    npm start
-    ```
-
-    Terminal 2 - Start frontend:
-    ```sh
-    npm run dev
-    ```
-
-6. **Open the app:**
-    - Visit `http://localhost:5173`
-    - Create an account and start tracking your life decisions!
-    - If things go wrong, just remember: it's not you; it's the universe.
-
-### Tech Stack
-- **Frontend**: React + Vite + Tailwind CSS
-- **Backend**: Express.js + MongoDB
-- **Authentication**: JWT tokens
-- **Database**: MongoDB
-
-📚 For detailed setup and migration information, see:
-- [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) - Firebase to MongoDB migration
-- [AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md) - Multi-user authentication
-
-## 🎮 Usage
-
-Navigate through the app and commit your life decisions with a sense of thrill and potential disaster! Keep your life “alive” while enjoying the weirdness of this experience.
-
-## 🤝 Contributing
-
-We welcome your contributions, even if they are as chaotic as this project itself. Here’s how to get involved:
-
-1. Fork the Project.
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the Branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request and try not to laugh too hard at your genius!
-
-## 📬 Contact
-
-Got questions, funny life stories, or want to share your version control mishaps? Reach out to me:
-
-- **Email:** [soorajmurugaraj@gmail.com](mailto:soorajmurugaraj@gmail.com)
-- **GitHub:** [soorajdmg](https://github.com/soorajdmg)
+Open [http://localhost:5173](http://localhost:5173), create an account, and start committing.
 
 ---
 
-⭐️ If you enjoy this wonderfully chaotic experience, please give it a star! It might not fix your life, but it will definitely bring a smile.
+## Environment Variables
+
+**Frontend** — create `.env` in the root directory:
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+VITE_CLOUDINARY_UPLOAD_PRESET=your-upload-preset
+```
+
+**Backend** — create `server/.env`:
+```env
+MONGODB_URI=mongodb://localhost:27017/gitlife
+PORT=5000
+JWT_SECRET=your-super-secret-key-change-in-production
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+FRONTEND_URL=http://localhost:5173
+```
+
+> Google OAuth and Cloudinary credentials are optional. The app works without them, but social login and image uploads will be unavailable.
+
 ---
 
-https://github.com/user-attachments/assets/fffc5474-a644-4cc9-8bed-7e239f70668d
+## Scripts
+
+**Frontend** (root directory):
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+
+**Backend** (`server/` directory):
+
+| Script | Description |
+|---|---|
+| `npm start` | Start production server |
+| `npm run dev` | Start with nodemon (auto-reload) |
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add your feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## Screenshots
 
 ---
 ![image](https://github.com/user-attachments/assets/3a9a825d-f65e-4344-b677-998a67992c24)
@@ -154,3 +184,13 @@ https://github.com/user-attachments/assets/fffc5474-a644-4cc9-8bed-7e239f70668d
 ---
 ![image](https://github.com/user-attachments/assets/d7e8adb0-ab60-4e2a-b922-bc16601ac25a)
 
+---
+
+## Contact
+
+- **Email:** [soorajmurugaraj@gmail.com](mailto:soorajmurugaraj@gmail.com)
+- **GitHub:** [soorajdmg](https://github.com/soorajdmg)
+
+---
+
+If GitLife is useful or interesting to you, consider giving it a star.

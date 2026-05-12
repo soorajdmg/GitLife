@@ -4,8 +4,6 @@
   <img src="src/assets/images/gitlife-header.png" width="100%" alt="GitLife" />
 </p>
 
-> Commit your choices. Branch your timelines. Visualize your path.
-
 GitLife is a full-stack social platform that gamifies life decision-making using Git metaphors. Track decisions as commits, create alternate-life branches, explore an interactive decision graph, and share your journey with a community, all without needing to know anything about Git.
 
 ---

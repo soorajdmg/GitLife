@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { CATEGORIES } from '../../data/gitlife';
 import { api } from '../../config/api';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -22,6 +22,59 @@ function timeAgo(ts) {
 
 export default function NewCommitModal({ onClose, onSubmit, prefill }) {
   const { isDark } = useTheme();
+  const isNarrow = window.innerWidth < 600;
+
+  // Bottom sheet animation state
+  const [visible, setVisible] = useState(false);
+  const sheetRef = useRef(null);
+  const dragStartY = useRef(null);
+  const isDragging = useRef(false);
+  const [dragOffset, setDragOffset] = useState(0);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    setTimeout(onClose, 300);
+  }, [onClose]);
+
+  // Drag-to-dismiss gesture (handle only)
+  const handleDragStart = useCallback((e) => {
+    dragStartY.current = e.clientY ?? e.touches?.[0]?.clientY;
+    isDragging.current = true;
+
+    const onMove = (ev) => {
+      if (!isDragging.current) return;
+      const clientY = ev.clientY ?? ev.touches?.[0]?.clientY;
+      const delta = clientY - dragStartY.current;
+      if (delta > 0) setDragOffset(delta);
+    };
+
+    const onUp = (ev) => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      const clientY = ev.clientY ?? ev.changedTouches?.[0]?.clientY;
+      const delta = clientY - dragStartY.current;
+      if (delta > 120) {
+        handleClose();
+      } else {
+        setDragOffset(0);
+      }
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onUp);
+  }, [handleClose]);
+
   const [commitType, setCommitType] = useState(prefill ? 'what-if' : 'main');
   const [msg, setMsg] = useState(prefill?.message || '');
   const [body, setBody] = useState(prefill?.body || '');
@@ -132,7 +185,7 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
       image: imageUrl,
       influencedBy: influences.map(i => ({ decisionId: i.decisionId, note: i.note || '' })),
     });
-    onClose();
+    handleClose();
   };
 
   const handleFile = e => {
@@ -201,18 +254,103 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
     boxSizing: 'border-box',
   };
 
+  const sheetTransform = visible
+    ? `translateY(${dragOffset}px)`
+    : 'translateY(100%)';
+  const sheetTransition = dragOffset > 0
+    ? 'none'
+    : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'oklch(15% 0.02 260 / 0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: m.bg, borderRadius: 18, padding: 28, width: 520, maxWidth: 'calc(100vw - 32px)', boxShadow: m.shadow, maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: prefill ? 10 : 22, display: 'flex', alignItems: 'center', gap: 9, color: m.textPri }}>
-          <span style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? 'oklch(22% 0.05 260)' : 'oklch(93% 0.05 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'oklch(42% 0.2 260)' }}>⎇</span>
-          {prefill ? 'Fork this path' : 'New commit'}
+    <div
+      onClick={handleClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'oklch(15% 0.02 260 / 0.5)',
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        zIndex: 100, backdropFilter: 'blur(6px)',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+      }}
+    >
+      <div
+        ref={sheetRef}
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: m.bg,
+          borderRadius: '24px 24px 0 0',
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
+          width: '100%',
+          maxWidth: 720,
+          boxShadow: isDark
+            ? '0 -8px 40px oklch(5% 0.01 260 / 0.5), 0 -1px 0 oklch(32% 0.015 260)'
+            : '0 -8px 40px oklch(25% 0.05 260 / 0.12), 0 -1px 0 oklch(90% 0.008 260)',
+          maxHeight: '88vh',
+          overflowY: 'auto',
+          transform: sheetTransform,
+          transition: sheetTransition,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Drag handle */}
+        <div
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+          style={{
+            padding: '14px 0 0',
+            display: 'flex', justifyContent: 'center',
+            cursor: 'grab', flexShrink: 0, touchAction: 'none',
+          }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 99, background: m.border, opacity: 0.6 }} />
         </div>
+
+        {/* Sheet header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 28px 0',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 34, height: 34, borderRadius: 10, background: isDark ? 'oklch(22% 0.05 260)' : 'oklch(93% 0.05 260)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'oklch(42% 0.2 260)', flexShrink: 0 }}>⎇</span>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: m.textPri, lineHeight: 1.2 }}>
+                {prefill ? 'Fork this path' : 'New commit'}
+              </div>
+              {!prefill && (
+                <div style={{ fontSize: 11.5, color: m.textMuted, marginTop: 1 }}>Log a real decision or explore a what-if</div>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={submit}
+            disabled={!msg.trim() || uploading || (commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())}
+            style={{
+              padding: '8px 20px', borderRadius: 9, border: 'none', flexShrink: 0,
+              background: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'oklch(52% 0.2 260)' : m.elevated,
+              color: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'white' : m.textMuted,
+              fontSize: 13, fontWeight: 600,
+              cursor: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'pointer' : 'not-allowed',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >{uploading ? 'Uploading…' : '⎇ Commit'}</button>
+        </div>
+
         {prefill && (
-          <div style={{ fontSize: 12, color: m.textSec, background: m.pillBg, border: `1px solid ${m.pillBorder}`, borderRadius: 8, padding: '7px 11px', marginBottom: 18 }}>
+          <div style={{ margin: '12px 28px 0', fontSize: 12, color: m.textSec, background: m.pillBg, border: `1px solid ${m.pillBorder}`, borderRadius: 8, padding: '7px 11px' }}>
             Forking someone else's decision — edit it to make it yours, then choose a what-if branch.
           </div>
         )}
+
+        {/* Divider */}
+        <div style={{ margin: '16px 0 0', borderTop: `1px solid ${m.borderFaint}` }} />
+
+        {/* Sheet content — two column on wide, single on narrow */}
+        <div style={{ padding: '20px 28px 28px', display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : 'minmax(0,1fr) minmax(0,1fr)', gap: '0 28px' }}>
+
+        {/* LEFT COLUMN */}
+        <div>
 
         {/* Branch type */}
         <div style={{ marginBottom: 16 }}>
@@ -370,92 +508,112 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
 
         {/* Causal links */}
         <div style={{ marginBottom: 16 }}>
-          <button
-            type="button"
-            onClick={() => setLinksExpanded(v => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
-          >
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: m.textMuted }}>
-              Causal links
-            </div>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: m.textMuted, marginBottom: 7 }}>
+            Causal links
             {influences.length > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 700, background: 'oklch(52% 0.2 260)', color: 'white', borderRadius: 4, padding: '1px 5px' }}>{influences.length}</span>
+              <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, background: 'oklch(52% 0.2 260)', color: 'white', borderRadius: 4, padding: '1px 5px', verticalAlign: 'middle' }}>{influences.length}</span>
             )}
-            <span style={{ fontSize: 13, color: m.textMuted, marginLeft: 'auto', transition: 'transform 0.15s', transform: linksExpanded ? 'rotate(180deg)' : 'rotate(0deg)', display: 'inline-block' }}>▾</span>
-          </button>
+          </div>
 
-          {linksExpanded && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 11.5, color: m.textSec, marginBottom: 8 }}>
-                What past decisions influenced this one?
-              </div>
-
-              {/* Selected influences as pills */}
-              {influences.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-                  {influences.map(inf => (
-                    <div key={inf.decisionId} style={{ background: m.pillBg, borderRadius: 8, padding: '7px 10px', border: `1px solid ${m.pillBorder}` }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                        <div style={{ flex: 1, fontSize: 12.5, color: m.textPri, lineHeight: 1.35 }}>
-                          {(inf.decision || '').length > 70 ? inf.decision.slice(0, 67) + '…' : inf.decision}
-                        </div>
-                        <button onClick={() => removeInfluence(inf.decisionId)}
-                          style={{ padding: '1px 6px', borderRadius: 4, border: `1px solid ${m.border}`, background: m.inputBg, fontSize: 11.5, color: m.textSec, cursor: 'pointer', flexShrink: 0 }}>
-                          ×
-                        </button>
-                      </div>
-                      <input
-                        placeholder="Why was this an influence? (optional)"
-                        value={inf.note}
-                        onChange={e => updateInfluenceNote(inf.decisionId, e.target.value)}
-                        style={{ marginTop: 5, width: '100%', padding: '5px 8px', border: `1px solid ${m.border}`, borderRadius: 6, fontSize: 11.5, background: m.inputBg, color: m.textPri, boxSizing: 'border-box', outline: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                        onFocus={e => e.target.style.borderColor = 'oklch(62% 0.15 260)'}
-                        onBlur={e => e.target.style.borderColor = m.border}
-                      />
+          {/* Selected influences */}
+          {influences.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+              {influences.map(inf => (
+                <div key={inf.decisionId} style={{ background: m.pillBg, borderRadius: 8, padding: '8px 10px', border: `1px solid ${m.pillBorder}` }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <span style={{ fontSize: 13, marginTop: 1, flexShrink: 0, opacity: 0.5 }}>↩</span>
+                    <div style={{ flex: 1, fontSize: 12.5, color: m.textPri, lineHeight: 1.35 }}>
+                      {(inf.decision || '').length > 70 ? inf.decision.slice(0, 67) + '…' : inf.decision}
                     </div>
+                    <button onClick={() => removeInfluence(inf.decisionId)}
+                      style={{ width: 20, height: 20, borderRadius: '50%', border: 'none', background: m.border, color: m.textSec, fontSize: 12, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                      ×
+                    </button>
+                  </div>
+                  <input
+                    placeholder="Why did this influence you? (optional)"
+                    value={inf.note}
+                    onChange={e => updateInfluenceNote(inf.decisionId, e.target.value)}
+                    style={{ marginTop: 6, width: '100%', padding: '5px 8px', border: `1px solid ${m.border}`, borderRadius: 6, fontSize: 11.5, background: m.inputBg, color: m.textPri, boxSizing: 'border-box', outline: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    onFocus={e => e.target.style.borderColor = 'oklch(62% 0.15 260)'}
+                    onBlur={e => e.target.style.borderColor = m.border}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Trigger button / search */}
+          {!linksExpanded ? (
+            <button
+              type="button"
+              onClick={() => setLinksExpanded(true)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+                padding: '9px 13px', borderRadius: 9, cursor: 'pointer',
+                border: `1.5px dashed ${m.border}`,
+                background: 'none', color: m.textSec, fontSize: 13,
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'oklch(52% 0.2 260)'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = m.border; e.currentTarget.style.color = m.textSec; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 8h10M8 3l5 5-5 5"/>
+              </svg>
+              Link a past decision that led to this one
+            </button>
+          ) : (
+            <div ref={influenceDropRef} style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 11.5, color: m.textSec, flex: 1 }}>What past decision influenced this one?</span>
+                <button type="button" onClick={() => { setLinksExpanded(false); setInfluenceSearch(''); }}
+                  style={{ fontSize: 11, color: m.textMuted, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  collapse
+                </button>
+              </div>
+              <input
+                autoFocus
+                style={{ ...iStyle, fontSize: 13 }}
+                placeholder="Search your past decisions…"
+                value={influenceSearch}
+                onChange={e => { setInfluenceSearch(e.target.value); setInfluenceDropOpen(true); }}
+                onFocus={e => { e.target.style.borderColor = 'oklch(52% 0.2 260)'; setInfluenceDropOpen(true); }}
+                onBlur={e => e.target.style.borderColor = m.border}
+              />
+              {influenceDropOpen && influenceResults.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 30,
+                  background: m.dropBg, border: `1px solid ${m.dropBorder}`, borderRadius: 9,
+                  boxShadow: isDark ? '0 4px 20px oklch(5% 0.01 260 / 0.5)' : '0 4px 20px oklch(25% 0.05 260 / 0.12)', overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                }}>
+                  {influenceResults.map(d => (
+                    <button key={d.id} type="button" onClick={() => addInfluence(d)}
+                      style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2, padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left', background: m.dropBg, transition: 'background 0.1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = m.dropHover}
+                      onMouseLeave={e => e.currentTarget.style.background = m.dropBg}
+                    >
+                      <div style={{ fontSize: 12.5, color: m.textPri, lineHeight: 1.3 }}>
+                        {(d.decision || '').length > 65 ? d.decision.slice(0, 62) + '…' : d.decision}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 10.5, color: m.textSec, fontFamily: "'JetBrains Mono', monospace", background: m.pillBg, padding: '0 5px', borderRadius: 3 }}>
+                          {(d.branch_name || 'main').replace(/^what-if\//i, '⎇ ')}
+                        </span>
+                        <span style={{ fontSize: 10.5, color: m.textMuted }}>{timeAgo(d.timestamp)}</span>
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
-
-              {/* Search input */}
-              <div ref={influenceDropRef} style={{ position: 'relative' }}>
-                <input
-                  style={{ ...iStyle, fontSize: 13 }}
-                  placeholder="Search past decisions…"
-                  value={influenceSearch}
-                  onChange={e => { setInfluenceSearch(e.target.value); setInfluenceDropOpen(true); }}
-                  onFocus={e => { e.target.style.borderColor = 'oklch(52% 0.2 260)'; setInfluenceDropOpen(true); }}
-                  onBlur={e => e.target.style.borderColor = m.border}
-                />
-                {influenceDropOpen && influenceResults.length > 0 && (
-                  <div style={{
-                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 30,
-                    background: m.dropBg, border: `1px solid ${m.dropBorder}`, borderRadius: 9,
-                    boxShadow: isDark ? '0 4px 20px oklch(5% 0.01 260 / 0.5)' : '0 4px 20px oklch(25% 0.05 260 / 0.12)', overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
-                  }}>
-                    {influenceResults.map(d => (
-                      <button key={d.id} type="button" onClick={() => addInfluence(d)}
-                        style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2, padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left', background: m.dropBg, transition: 'background 0.1s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = m.dropHover}
-                        onMouseLeave={e => e.currentTarget.style.background = m.dropBg}
-                      >
-                        <div style={{ fontSize: 12.5, color: m.textPri, lineHeight: 1.3 }}>
-                          {(d.decision || '').length > 65 ? d.decision.slice(0, 62) + '…' : d.decision}
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ fontSize: 10.5, color: m.textSec, fontFamily: "'JetBrains Mono', monospace", background: m.pillBg, padding: '0 5px', borderRadius: 3 }}>
-                            {(d.branch_name || 'main').replace(/^what-if\//i, '⎇ ')}
-                          </span>
-                          <span style={{ fontSize: 10.5, color: m.textMuted }}>{timeAgo(d.timestamp)}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           )}
-        </div>
+        </div>{/* end causal links */}
+
+        </div>{/* end left column */}
+
+        {/* RIGHT COLUMN */}
+        <div>
 
         {/* Category */}
         <div style={{ marginBottom: 16 }}>
@@ -512,12 +670,11 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 9, border: `1px solid ${m.border}`, background: m.cancelBg, fontSize: 13.5, fontWeight: 500, color: m.cancelText, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={submit}
-            disabled={!msg.trim() || uploading || (commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())}
-            style={{ padding: '9px 22px', borderRadius: 9, border: 'none', background: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'oklch(52% 0.2 260)' : 'oklch(80% 0.05 260)', color: 'white', fontSize: 13.5, fontWeight: 600, cursor: (msg.trim() && !uploading && !(commitType === 'whatif' && selectedBranch === '__new__' && !branchName.trim())) ? 'pointer' : 'not-allowed', transition: 'background 0.15s', minWidth: 90 }}>{uploading ? 'Uploading…' : 'Commit'}</button>
-        </div>
+        </div>{/* end right column */}
+
+        </div>{/* end two-column grid */}
+
+
       </div>
     </div>
   );

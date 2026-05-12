@@ -1092,11 +1092,30 @@ export default function LandingPage({ onGetStarted }) {
         }
 
         /* ── FOOTER ── */
-        @media (max-width: 480px) {
+        @media (max-width: 640px) {
           .gl-footer-inner {
             flex-direction: column !important;
-            align-items: flex-start !important;
+            align-items: center !important;
+            text-align: center !important;
             gap: 20px !important;
+          }
+          .gl-footer-inner > div:first-child {
+            align-items: center !important;
+          }
+          .gl-footer-inner > div:first-child > div {
+            justify-content: center !important;
+          }
+          .gl-footer-links {
+            justify-content: center !important;
+            gap: 16px !important;
+          }
+          .gl-footer-inner > div:last-child {
+            align-items: center !important;
+            width: 100% !important;
+          }
+          .gl-footer-inner > div:last-child > a {
+            width: 100% !important;
+            justify-content: center !important;
           }
         }
       `}</style>

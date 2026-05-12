@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../config/api';
 import { Eye, EyeOff, CheckCircle, XCircle, Loader } from 'lucide-react';
 
-import img1 from '../assets/images/login-1.jpg';
+import img1 from '../assets/images/login-1.webp';
 import img2 from '../assets/images/login-2.webp';
 import img3 from '../assets/images/login-3.webp';
 import img4 from '../assets/images/login-4.webp';

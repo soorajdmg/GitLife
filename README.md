@@ -1,5 +1,9 @@
 # GitLife - Version Control for Your Life Decisions
 
+<p align="center">
+  <img src="src/assets/images/logo-splash.png" width="200" alt="GitLife Logo" />
+</p>
+
 ![gitlifeVideoGIF](https://github.com/user-attachments/assets/e8623512-85ee-4cda-b70a-a25f428e4a73)
 
 > Commit your choices. Branch your timelines. Visualize your path.

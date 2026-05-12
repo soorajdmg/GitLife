@@ -89,6 +89,8 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
   const [image, setImage] = useState(null);   // { file, url }
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
+  const cameraRef = useRef();
+  const isMobile = window.innerWidth <= 768;
 
   // Causal links state
   const [allDecisions, setAllDecisions] = useState([]);
@@ -199,6 +201,7 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
     if (image?.url) URL.revokeObjectURL(image.url);
     setImage(null);
     fileRef.current.value = '';
+    if (cameraRef.current) cameraRef.current.value = '';
   };
 
   const addInfluence = (d) => {
@@ -318,7 +321,7 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
               <div style={{ fontSize: 16, fontWeight: 700, color: m.textPri, lineHeight: 1.2 }}>
                 {prefill ? 'Fork this path' : 'New commit'}
               </div>
-              {!prefill && (
+              {!prefill && !isMobile && (
                 <div style={{ fontSize: 11.5, color: m.textMuted, marginTop: 1 }}>Log a real decision or explore a what-if</div>
               )}
             </div>
@@ -634,7 +637,33 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
             Reference image <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 11 }}>(optional)</span>
           </div>
           <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
           {!image ? (
+            isMobile ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => cameraRef.current.click()}
+                  style={{ flex: 1, padding: '12px', borderRadius: 9, border: `1.5px dashed ${m.border}`, background: m.imageBg, cursor: 'pointer', color: m.textSec, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.12s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'oklch(62% 0.15 260)'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = m.border; e.currentTarget.style.color = m.textSec; }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                  Take Photo
+                </button>
+                <button onClick={() => fileRef.current.click()}
+                  style={{ flex: 1, padding: '12px', borderRadius: 9, border: `1.5px dashed ${m.border}`, background: m.imageBg, cursor: 'pointer', color: m.textSec, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.12s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'oklch(62% 0.15 260)'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = m.border; e.currentTarget.style.color = m.textSec; }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+                    <circle cx="5.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                    <path d="M1.5 10.5l3.5-3 3 3 2-2 3.5 3.5" />
+                  </svg>
+                  Gallery
+                </button>
+              </div>
+            ) : (
             <button onClick={() => fileRef.current.click()}
               style={{ width: '100%', padding: '14px', borderRadius: 9, border: `1.5px dashed ${m.border}`, background: m.imageBg, cursor: 'pointer', color: m.textSec, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.12s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'oklch(62% 0.15 260)'; e.currentTarget.style.color = 'oklch(42% 0.2 260)'; }}
@@ -646,6 +675,7 @@ export default function NewCommitModal({ onClose, onSubmit, prefill }) {
               </svg>
               Attach image
             </button>
+            )
           ) : (
             <div style={{ position: 'relative', borderRadius: 9, overflow: 'hidden', border: `1px solid ${m.border}` }}>
               <img src={image.url} alt="reference" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }} />

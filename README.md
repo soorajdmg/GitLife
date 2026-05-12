@@ -1,7 +1,7 @@
 # GitLife - Version Control for Your Life Decisions
 
 <p align="center">
-  <img src="src/assets/images/gitlife-header1.png" width="100%" alt="GitLife" />
+  <img src="src/assets/images/gitlife-header.png" width="100%" alt="GitLife" />
 </p>
 
 > Commit your choices. Branch your timelines. Visualize your path.
